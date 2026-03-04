@@ -111,7 +111,7 @@ task BaseShot(){
 
 					ascent(b in 0..3){
 
-						let shotC = CreatePlayerShotA1(playerX-96, playerY+84, 42, 270 - 8 + b * 8, shotDamageOption, 1.001, BULLET); 
+						let shotC = CreatePlayerShotA1(playerX-44, playerY+84, 42, 240 - 8 + b * 8, shotDamageOption, 1.001, BULLET); 
 						ObjRender_SetAlpha(shotC, shotAlpha);
 						//ObjShot_SetAngleRounding(shotC, 30);
 						Obj_SetRenderPriorityI(shotC, 41);
@@ -120,7 +120,7 @@ task BaseShot(){
 
 					ascent(b in 0..3){
 
-						let shotC = CreatePlayerShotA1(playerX+96, playerY+84, 42, 270 - 8 + b * 8, shotDamageOption, 1.001, BULLET); 
+						let shotC = CreatePlayerShotA1(playerX+44, playerY+84, 42, 300 - 8 + b * 8, shotDamageOption, 1.001, BULLET); 
 						ObjRender_SetAlpha(shotC, shotAlpha);
 						//ObjShot_SetAngleRounding(shotC, 30);
 						Obj_SetRenderPriorityI(shotC, 41);
