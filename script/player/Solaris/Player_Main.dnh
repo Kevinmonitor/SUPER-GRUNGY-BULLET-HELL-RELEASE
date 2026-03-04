@@ -60,7 +60,7 @@ float bombrand = 0;
 
 int shotAlpha = (GetAreaCommonData("Config", "PlayerShotOpacity", 255)*0.01)*255;
 
-float shotDamageOption = 10.5; //~595-1785DPS
+float shotDamageOption = 13; //~595-1785DPS
  
 float[] PlayerSpd = PlayerSpeeds[1];
 
