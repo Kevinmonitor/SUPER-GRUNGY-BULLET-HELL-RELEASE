@@ -1,7 +1,7 @@
 //--------------------------------------------------------------
 //Package Script Path
 //	Upon starting the game, the specified package script will be run.
-package.script.main = script/PackageLoader.dnh
+//package.script.main = script/PackageLoader.dnh
 
 //--------------------------------------------------------------
 //Window Title
