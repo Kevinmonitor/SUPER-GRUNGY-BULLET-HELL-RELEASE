@@ -442,6 +442,8 @@ function TOpener(){
 
 	}
 
+	SetCommonData("TrueBossReveal", false);
+
 	Chapter1A();
 	Chapter1D();
 	wait(60);
