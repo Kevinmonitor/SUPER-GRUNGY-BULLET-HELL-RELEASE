@@ -1,0 +1,330 @@
+// Rank
+
+float RANK_MAX = 255;
+
+// Constants
+
+int STAGE_LENGTH = 140*60;
+int SECTION4_LENGTH = 120*60;
+int SECTION3_LENGTH = 90*60;
+int SECTION2_LENGTH = 40*60;
+int SECTION1_LENGTH = 20*60;
+
+// Freeze timer after Section 4
+
+int HP_MAX = 4500;
+int PHASE1_LIMIT = 2250;
+int PHASE2_LIMIT = 0;
+int PHASE3_LIMIT = 0;
+
+int MIDBOSS_HP = 1800;
+
+int OPTION_HP = 5000;
+
+// Enemy parameters
+
+int popcornHitbox = 36;
+int smallEnemyHitbox = 48;
+int medEnemyHitbox = 80;
+int largeEnemyHitbox = 110;
+int spiritHitbox = 36;
+
+float smallEnemyHP = 40;
+float medEnemyHP = 300;
+float largeEnemyHP = 750;
+float largeEnemyAltHP = 300;
+float popcornHP = 40;
+
+float smallEnemyScale = 1;
+float largeEnemyScale = 1;
+float popcornScale = 1;
+
+// Enemy rects 2
+
+int[] smallshipRectA = [0, 0, 256, 256]; 
+int[] medshipRectA = [256, 0, 512, 256];
+int[] missileRectA = [512, 0, 640, 128];
+
+int[] smallshipRectB = [0, 256, 256, 512]; 
+int[] medshipRectB = [256, 256, 512, 512];
+int[] missileRectB = [640, 0, 768, 128];
+
+int[] smallshipRectC = [0, 512, 256, 768]; 
+int[] medshipRectC = [256, 512, 512, 768];
+
+int[] gemA = [512, 512, 768, 768];
+int[] gemB = [512, 512, 768, 768];
+
+int[] enemyKevCat = [0, 0, 512, 512];
+int[] enemyLavCat = [0, 512, 512, 1024];
+int[] enemyCoolCat = [0, 1536, 512, 2048];
+
+int[] smallshipRectAAlt = [768, 0, 1024, 256]; 
+int[] smallshipRectBAlt = [1536, 0, 1792, 256]; 
+int[] medshipRectAAlt = [768, 256, 1024, 512];
+int[] largeshipRectBAlt = [1024, 0, 1536, 512];
+
+int[] smallshipRectCAlt = [768, 0+896, 1024, 256+896]; 
+int[] smallshipRectDAlt = [1536, 0+896, 1792, 256+896]; 
+int[] medshipRectCAlt = [768, 256+896, 1024, 512+896];
+int[] largeshipRectDAlt = [1024, 0+896, 1536, 512+896];
+
+int[] smallshipRectEAlt = [768, 0+1408, 1024, 256+1408]; 
+int[] smallshipRectFAlt = [1536, 0+1408, 1792, 256+1408]; 
+int[] medshipRectEAlt = [768, 256+1408, 1024, 512+1408];
+int[] largeshipRectFAlt = [1024, 0+1408, 1536, 512+1408];
+
+// Universal
+
+// MOVEMENT SPEED RELATED 
+
+	// Very low speed (ground, large enemies)
+	float baseMoveSpeedVL = 4;
+
+	// Low speed (ground, large enemies)
+	float baseMoveSpeedL= 6;
+
+	// Medium speed
+	float baseMoveSpeedM = 7;
+
+	// High speed
+	float baseMoveSpeedH = 8;
+
+	// Very high speed
+	float baseMoveSpeedVH = 9;
+	
+	float MoveSpeedRankMultiplierVL = 0.008; 
+	float MoveSpeedRankMultiplierL = 0.014;
+	float MoveSpeedRankMultiplierH = 0.018; 
+	float MoveSpeedRankMultiplierVH = 0.025; 
+
+// ITEM RELATED
+
+	float smallFlyingEnm_itemPointMin = 2;
+	float smallFlyingEnm_itemPointMax = 8;
+
+	float medFlyingEnm_itemPointMin = 10;
+	float medFlyingEnm_itemPointMax = 40;
+
+	float largeFlyingEnm_itemPointMin = 25;
+	float largeFlyingEnm_itemPointMax = 100;
+
+	float verylargeFlyingEnm_itemPointMin = 50;
+	float verylargeFlyingEnm_itemPointMax = 200;
+
+	// 1 ammo item = 2 ammo
+
+	float smallGroundEnm_itemAmmoMin = 2;
+	float smallGroundEnm_itemAmmoMax = 4;
+
+	float medGroundEnm_itemAmmoMin = 4;
+	float medGroundEnm_itemAmmoMax = 6;
+
+	float largeGroundEnm_itemAmmoMin = 12;
+	float largeGroundEnm_itemAmmoMax = 18;
+
+	float verylargeGroundEnm_itemAmmoMin = 40;
+	float verylargeGroundEnm_itemAmmoMax = 60;
+
+	float smallEnm_itemChainMin = 6;
+	float smallEnm_itemChainMax = 12;
+
+	float mediumEnm_itemChainMin = 9;
+	float mediumEnm_itemChainMax = 16;
+
+	float largeEnm_itemChainMin = 12;
+	float largeEnm_itemChainMax = 20;
+
+	float itemMultiplier = 0.03; // For point items only
+
+// INVINCIBILITY TIME
+
+	// Short, medium, long
+	int[] invinTimeArr = [20, 40, 60];
+	int[] invinTimeDecrease = [1, 2, 3]; // Per GetCommonDataPtr(POINTER_RANK, 1) increase
+
+// Wave 1
+
+	// Graphic: fairy
+
+	// Uses high speed, fires aimed bullets
+
+	int W1_spawnDelayMin = 4;
+	int W1_spawnDelayMax = 8;
+
+	int W1_fairyNumMin = 5;
+	int W1_fairyNumMax = 8;
+
+	int W1_decelTimeMin = 20;
+	int W1_decelTimeMax = 30;
+
+	int W1_bulletDelayMin = 30;
+	int W1_bulletDelayMax = 40;
+
+	float W1_bulletSpdMin = 4;
+	float W1_bulletSpdMax = 6;
+
+// Wave 2
+
+	// Graphic: spirit
+
+	// Sin-wave movement, fires aimed small-fire fans
+
+	int W2_fairyNumMin = 3;
+	int W2_fairyNumMax = 5;
+
+	int W2_bulletDelayMin = 65;
+	int W2_bulletDelayMax = 90;
+
+	float W2_bulletSpdMin = 10;
+	float W2_bulletSpdMax = 13;
+
+	float W2_rangeMin = 2;
+	float W2_rangeMax = 3.25;
+
+	int W2_bulletfanNumMin = 3;
+	int W2_bulletfanNumMax = 5;
+
+	int W2_spawnDelayMin = 10;
+	int W2_spawnDelayMax = 15;
+
+// Wave 3: Mushroom fairy, fires large fireballs
+
+	int W3_spawnDelayMin = 15;
+	int W3_spawnDelayMax = 30;
+
+	int W3_fairyNumMin = 2;
+	int W3_fairyNumMax = 6;
+
+	float W3_rangeMin = 1;
+	float W3_rangeMax = 2.5;
+
+	int W3_bulletfanNumMin = 1;
+	int W3_bulletfanNumMax = 1;
+
+	int W3_bulletDelayMin = 15;
+	int W3_bulletDelayMax = 20;
+
+	float W3_bulletSpdMin = 11;
+	float W3_bulletSpdMax = 13;
+
+// Wave 4: Mushroom fairy, fires small fireball lines
+
+	int W4_spawnDelayMin = 15;
+	int W4_spawnDelayMax = 30;
+
+	int W4_fairyNumMin = 2;
+	int W4_fairyNumMax = 5;
+
+	int W4_bulletNumMin = 3;
+	int W4_bulletNumMax = 5;
+
+	int W4_bulletDelayMin = 2;
+	int W4_bulletDelayMax = 4;
+
+	int W4_stopTimeMin = 20;
+	int W4_stopTimeMax = 30;
+
+	float W4_bulletSpdMin = 8;
+	float W4_bulletSpdMax = 10;
+
+// Wave 5: Clumped small fairy lines come from both sides to attack you.
+
+	int W5_spawnDelayMin = 25;
+	int W5_spawnDelayMax = 45;
+
+	int W5_fairyNumMin = 3;
+	int W5_fairyNumMax = 6;
+
+	// Angles 
+
+	int W5_moveTimeMin = 55;
+	int W5_moveTimeMax = 70;
+
+	float W5_bulletSpdMin = 11;
+	float W5_bulletSpdMax = 13;
+
+// Wave 6: Alt mushroom fairies (2 OR 3) spawns sparse rings (NOT GROUND)
+
+	int WG1_ringDenseMin = 10;
+	int WG1_ringDenseMax = 14;
+
+	float WG1_bulletSpdMin = 8;
+	float WG1_bulletSpdMax = 10;
+
+	int WG1_bulletDelayMin = 35;
+	int WG1_bulletDelayMax = 50;
+
+// Wave 7 (S2): Yukionna with spiral (counts as ground)
+
+	int WG2_spiralDenseMin = 6;
+	int WG2_spiralDenseMax = 9;
+
+	int WG2_spiralNumMin = 3;
+	int WG2_spiralNumMax = 5;
+
+	float WG2_spiralSpdMin = 7.5;
+	float WG2_spiralSpdMax = 9.5;
+
+	int WG2_spiralDelayMax = 40;
+	int WG2_spiralDelayMin = 25;
+
+// Wave 8 (S2): Medium fairies with W3 movements leave large fireball walls. Uses W4 parameters
+// Wave 9 (S2): Large number of small fairies come in from both sides (with W3 movements) firing aimed bullets.
+
+	int W9_spawnDelayMin = 5;
+	int W9_spawnDelayMax = 10;
+
+	int W9_fairyNumMin = 8;
+	int W9_fairyNumMax = 12;
+
+	int W9_bulletDelayMin = 30;
+	int W9_bulletDelayMax = 50;
+
+	float W9_bulletSpdMin = 7.5;
+	float W9_bulletSpdMax = 9.5;
+
+// Wave 10 (S2): Clumped medium fairy (3 per line) come in from the right to fire large fireball lines.
+
+	int W10_spawnDelayMin = 35;
+	int W10_spawnDelayMax = 50;
+
+	int W10_fairyNumMin = 2;
+	int W10_fairyNumMax = 4;
+
+	int W10_bulletLineNumMin = 3;
+	int W10_bulletLineNumMax = 5;
+
+	// Angles 
+
+	int W10_moveTimeMin = 55;
+	int W10_moveTimeMax = 70;
+
+	float W10_bulletSpdMin = 8;
+	float W10_bulletSpdMax = 9.5;
+
+task UpdateDrops(){
+
+	// According to GetCommonDataPtr(POINTER_RANK, 1)
+
+	while(true){
+
+		smallFlyingEnm_itemPointMax = FUNC_LERP_LINEAR(12, 18, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+		medFlyingEnm_itemPointMax = FUNC_LERP_LINEAR(21, 28, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+		largeFlyingEnm_itemPointMax = FUNC_LERP_LINEAR(30, 40, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+		verylargeFlyingEnm_itemPointMax = FUNC_LERP_LINEAR(45, 60, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+
+		smallGroundEnm_itemAmmoMax = FUNC_LERP_LINEAR(4, 6, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+		medGroundEnm_itemAmmoMax = FUNC_LERP_LINEAR(6, 8, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+		largeGroundEnm_itemAmmoMax = FUNC_LERP_LINEAR(18, 25, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+		verylargeGroundEnm_itemAmmoMax = FUNC_LERP_LINEAR(60, 75, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+		
+		smallEnm_itemChainMax = FUNC_LERP_LINEAR(12, 16, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+		mediumEnm_itemChainMax = FUNC_LERP_LINEAR(16, 20, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+		largeEnm_itemChainMax = FUNC_LERP_LINEAR(20, 24, GetCommonDataPtr(POINTER_RANK, 1)/RankLimits[curDiff][2]);
+
+		wait(5);
+
+	}
+}
+

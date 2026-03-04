@@ -1,0 +1,1069 @@
+#TouhouDanmakufu[Single]
+#ScriptVersion[3]
+#Title["Bulwark 1"]
+#Text["M Y N U T T U S S Y I N B I O"]
+#System["script/KevinSystem/Kevin_System.dnh"]
+
+int diff = 0;
+
+let objScene = GetEnemyBossSceneObjectID();
+let csd = GetCurrentScriptDirectory();
+
+let bossObj;
+int dummyBullet;
+
+int curDiff = 1;
+
+float bossX = 0; 
+float bossY = 0;
+float playerY = 0;
+float playerX = 0;
+
+let aniframe = 0;
+let aniframe2 = 0;
+
+let spellsnd = ObjSound_Create(); 
+let bossdiesnd = ObjSound_Create();
+
+int homophobicShip;
+int[] homophobicCannons = [];
+
+/*
+
+phase 1
+
+*/
+
+/*
+
+*/
+
+float curRankMult, curRank, bulletspd1, angleSpin;
+int bulletdel1, bulletdel2, bulletdense1, bulletspace;
+
+// Includes ahoy
+
+#include "script/KevinSystem/Universal_Lib.dnh" // The library to include all libraries :sans: :nail_care:
+#include "script/GrungyBossData/Boss_Lib.dnh" // The library to include all libraries :sans: :nail_care:
+
+#include "script/StageData/Stage_Enemies.dnh"
+
+@Initialize {
+	
+	SetAutoDeleteObject(true);
+
+	//SetAreaCommonData("Ingame", "Difficulty", "Legendary");
+
+	diff = _InitDifficulty();
+	ManageRankLimits(diff, false);
+    
+    curDiff = diff;
+
+	// Create the boss object itself
+	bossObj = ObjEnemy_Create(OBJ_ENEMY_BOSS); 
+	ObjEnemy_Regist(bossObj);
+	// ObjMove_SetPosition(bossObj, STG_WIDTH/2, STG_HEIGHT/3.5);
+	ObjMove_SetDestAtFrame(bossObj, STG_WIDTH/2, STG_HEIGHT/3.5, 15, LERP_DECELERATE);
+
+	ObjEnemyBossScene_StartSpell(objScene);
+	//ObjEnemy_SetMaximumDamage(bossObj, 999);
+
+	_RenderBoss01(bossObj);
+    Obj_SetRenderPriorityI(bossObj, 41);
+
+	mainTask();
+	_FadeInvincibility(bossObj, 5, 80, 1);
+	//BossEnding();
+
+	SetCommonDataPtr(POINTER_SPELLSCORE, 1000000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0));
+
+	_RenderBossLife(bossObj, 40000, [0, 128, 600, 256], [0, 0, 0, 0], "SUPER POWERFUL PENMASTAH!!!");
+	_RenderSpellDetails("\"PHASE 02 / 04\"", 0, 40000, false);
+	_SpellScoreHandling(40000);
+
+}
+
+@Event {
+
+	alternative(GetEventType())
+
+	case(EV_REQUEST_LIFE) {
+		SetScriptResult(777777);
+	}
+	
+	case(EV_REQUEST_TIMER) {
+		SetScriptResult(777);
+	}
+	
+	case(EV_REQUEST_SPELL_SCORE){
+		SetScriptResult(100);
+	}
+
+}
+
+@MainLoop {
+
+	playerY = GetPlayerY();
+	playerX = GetPlayerX();
+	//The player position is ALWAYS UPDATED 
+	
+	bossX = ObjMove_GetX(bossObj);
+	bossY = ObjMove_GetY(bossObj);
+
+	ObjEnemy_SetIntersectionCircleToShot(bossObj, ObjMove_GetX(bossObj), ObjMove_GetY(bossObj), 96);
+	//WriteLog(ObjEnemy_GetInfo(bossObj, INFO_LIFE));
+
+	curRankMult = GetCommonDataPtr(POINTER_RANK, 1.0)/255; // max 1
+	curRank = GetCommonDataPtr(POINTER_RANK, 1.0);
+
+	yield;
+	
+}
+
+
+task mainTask {
+
+	wait(30);
+	int dir = 1;
+
+	WriteLog("wait done");
+
+	// StartPart2();
+    EndPhase2();
+
+    // Opener();
+    Part1A();
+	Part1B();
+	// Part1B();
+	// Part1C();
+
+	while(ObjEnemy_GetInfo(bossObj, INFO_LIFE) > 0){
+		
+		// dir *= -1;
+		// CalculateValues();
+		// //WriteLog("1");
+		// SpiralAttack(dir);
+		// //WriteLog("2");
+		// KnifeAttacks();
+		// wait(knifeWalls * knifeWallsDelay - patternWait);
+		// ObjMove_SetDestAtFrame(bossObj, rand(STG_WIDTH/2 - STG_WIDTH/3, STG_WIDTH/2 + STG_WIDTH/3), STG_HEIGHT/4, 60, LERP_DECELERATE);
+
+        yield;
+
+	}
+	// Refire initial semicircle
+	
+}
+
+task CalculateValues(){
+
+}
+
+function <int> AimedEnemy(enmX, enmY, targetX, targetY, frameMove, rank){
+
+	int ship = _SmallShip(
+		42, frameMove,
+		enmX, enmY, smallshipRectA
+	);
+
+	async{
+		ObjMove_SetDestAtFrame(ship, targetX, targetY, frameMove, LERP_DECELERATE);
+		wait(frameMove);
+		FireTask();
+		wait(frameMove * 2);
+		ObjMove_SetDestAtFrame(ship, targetX, STG_HEIGHT + 256, frameMove * 4, LERP_ACCELERATE);
+	}
+
+	task FireTask(){
+
+		int bulletDel = max(10, FUNC_LERP_LINEAR(40, 10, rank/400));
+		int bulletDense = [1, 3, 5][min(2, floor(rank/80))];
+		float bulletAng = [0, 1.2, 1.4, 1.6, 2.0][min(4, floor(rank/60))];
+		float bulletSpeed = 8.0 * (1.001 ^ rank);
+
+		while(!Obj_IsDeleted(ship)){
+			NewCreateFan (ship, bulletDense, KEV_BULLET, HUE_RED, 1, 
+			0, bulletAng, bulletSpeed, 1, 1.5,
+			PATTERN_FAN_AIMED, false);
+			Shoot2;
+			wait(bulletDel);
+			yield;
+		}
+
+		return;
+	}
+
+	return ship;
+
+}
+
+function <int> LargeEnemyB(enmX, enmY, targetX, targetY, leaveX, leaveY, frameMove, spinDir, rank, HP, bool cancel){
+
+	int ship = _LargeShip(
+		42, frameMove, 2400,
+		enmX, enmY, medshipRectC, HP, cancel
+	);
+
+	async{
+		ObjEnemy_SetAutoDelete(ship, false);
+		ObjRender_SetAngleZ(ship, 180);
+		ObjMove_SetDestAtFrame(ship, targetX, targetY, frameMove, LERP_DECELERATE);
+		wait(frameMove);
+		ObjEnemy_SetAutoDelete(ship, true);
+
+		NewSpawnSpiralWithOffset(
+			ship, -128, 0,
+			[1, 2, 3][min(2, floor(rank/60))], min(8, FUNC_LERP_SMOOTH(3, 6, rank/400)),
+			max(6.5, FUNC_LERP_SMOOTH(9.0, 6.5, rank/350)), 
+			6 * (1.0015 ^ rank), 6 * (1.0015 ^ rank) * 0.9, max(4, FUNC_LERP_SMOOTH(7, 4, rank/350)),
+			KEV_BULLET_INV, HUE_ROSE, 1.5,
+			GetAngleToPlayer(ship), spinDir
+		);
+		NewSpawnSpiralWithOffset(
+			ship, 128, 0,
+			[1, 2, 3][min(2, floor(rank/60))], min(8, FUNC_LERP_SMOOTH(3, 6, rank/400)),
+			max(6.5, FUNC_LERP_SMOOTH(9.0, 6.5, rank/350)), 
+			6 * (1.0015 ^ rank), 6 * (1.0015 ^ rank) * 0.9, max(4, FUNC_LERP_SMOOTH(7, 4, rank/350)),
+			KEV_BULLET_INV, HUE_ROSE, 1.5,
+			GetAngleToPlayer(ship), spinDir * (-1)
+		);
+
+		wait(frameMove * 3);
+		ObjMove_SetDestAtFrame(ship, leaveX, leaveY, frameMove * 4, LERP_ACCELERATE);
+	}
+
+	return ship;
+
+}
+
+function <int> Popcorn(enmX, enmY, rank){
+
+	int ship = _SmallShip(
+		42, 3,
+		enmX, enmY, smallshipRectA
+	);
+
+	async{
+		ObjMove_SetAngle(ship, GetAngleToPlayer(ship));
+		ObjRender_SetAngleZ(ship, GetAngleToPlayer(ship) + 90);
+		ObjMove_SetSpeed(ship, 15);
+		wait(5);
+		FireTask();
+	}
+
+	task FireTask(){
+
+		int bulletDel = max(15, FUNC_LERP_LINEAR(40, 15, rank/400));
+		int bulletDense = [1, 3, 5][min(2, floor(rank/80))];
+		float bulletAng = [0, 1.5, 1.0, 1.5][min(3, floor(rank/80))];
+		float bulletSpeed = 10 * (1.0001 ^ rank);
+
+		while(!Obj_IsDeleted(ship)){
+			NewCreateFan (ship, bulletDense, KEV_BULLET, HUE_RED, 1, 
+			0, bulletAng, bulletSpeed, 1, 1.5,
+			PATTERN_FAN_AIMED, false);
+			Shoot1;
+			wait(999);
+			yield;
+		}
+
+		return;
+
+	}
+
+	return ship;
+
+}
+
+function Part1A(){
+
+    _ReinitialiseValues();
+
+    async{
+        ObjMove_SetDestAtFrame(bossObj, STG_WIDTH/2 + 128, STG_HEIGHT/3.5, 15, LERP_DECELERATE);
+
+        wait(8*4);
+
+        BossSubattack(rand(0, 360), 1, [-32, -32]);
+        BossSubattack(rand(0, 360), -1, [32, 32]);
+
+        wait(96);
+
+        ObjMove_SetDestAtFrame(bossObj, STG_WIDTH/2 - 128, STG_HEIGHT/3.5, 15, LERP_DECELERATE);
+
+        wait(8*4);
+
+        BossSubattack(rand(0, 360), 1, [-32, -32]);
+        BossSubattack(rand(0, 360), -1, [32, 32]);
+
+        wait(96);
+
+        ObjMove_SetDestAtFrame(bossObj, STG_WIDTH/2, STG_HEIGHT/3.5, 15, LERP_DECELERATE);
+
+        wait(8*4);
+
+        BossSubattack(rand(0, 360), 1, [-32, -32]);
+        BossSubattack(rand(0, 360), -1, [32, 32]);
+    
+        BossSubattack(rand(0, 360), 1, [-128, 0]);
+        BossSubattack(rand(0, 360), -1, [128, 0]);
+
+    }
+
+    task BossSubattack(ang, dir, float[] offset){
+
+        ascent(i in 0..16){
+
+            _CreateCustomTelegraphLine( 
+                bossX + offset[0], bossY + offset[1], 45,
+                ang + i * 360/16 * (dir == 1 ? -1 : 1) + 12, ang + i * 360/16 * (dir == 1 ? -1 : 1),
+                0, STG_HEIGHT*1.1,
+                0, 24,
+                0xDE4848, 150,
+                5, 45, 15
+            );
+
+            LaserSFX;
+
+            wait(2);
+
+        }
+
+        wait(14);
+
+        ascent(i in 0..16){
+
+            int laser = CreateHueLooseLaserA1(
+                bossX + offset[0], bossY + offset[1], ang + i * 360/16 * (dir == 1 ? -1 : 1),
+                368, 36, 24, KEV_BULLET_INV, HUE_RED, 1.5, 0
+            );
+
+            ObjRender_SetBlendType(laser, BLEND_ALPHA);
+
+            SwordSlashSFX;
+
+            wait(2);
+
+        }
+
+    }
+
+    ascent(i in 0..16){
+        Popcorn(STG_WIDTH/2 - 256 + rand(-48, 128), -32, curRank);
+        wait(4);
+    }
+    
+    wait(76);
+
+    ascent(i in 0..16){
+        Popcorn(STG_WIDTH/2 + 256 + rand(-48, 128), -32, curRank);
+        wait(4);
+    }
+
+    wait(76*2+36);
+
+    ascent(i in 0..6){
+        float xVal = i % 2 == 0 ? 1 : -1;
+        ascent(f in 0..3){
+            //float yVal = f > 4 ? bossY - 48 : bossY + 48;
+            int enm = AimedEnemy(
+                STG_WIDTH/2 + 86 * xVal - 54 * f * -xVal, -16, 
+                STG_WIDTH/2 + 86 * xVal - 54 * f * -xVal, bossY - 48, 17, curRank
+            );
+            ObjRender_SetAngleZ(enm, 180);
+        }
+        ascent(f in 0..3){
+            //float yVal = f > 4 ? bossY - 48 : bossY + 48;
+            int enm = AimedEnemy(
+                STG_WIDTH/2 + 86 * xVal - 54 * f * -xVal, -16, 
+                STG_WIDTH/2 + 86 * xVal - 54 * f * -xVal, bossY + 48, 17, curRank
+            );
+            ObjRender_SetAngleZ(enm, 180);
+        }
+        wait(17);
+    }
+
+    wait(17*3);
+
+    float despeAng = 0;
+
+    ascent(f in 0..4)
+	{
+
+		ascent(i in 0..[15, 16, 18, 20][curDiff]){
+
+			int[] fan = NewCreateFan_ReturnArray (
+				bossObj, [1, 2, 3, 4][curDiff], KEV_BULLET_ALT, HUE_RED,
+				1, despeAng + i * 360/[15, 16, 18, 20][curDiff], [1.4, 1.5, 1.8, 1.6][curDiff], 
+				bulletspd1, bulletspd1, 2.0,
+				0, 0,
+				PATTERN_FAN, false
+			);
+
+			for each(int bullet in ref fan){
+				ObjMove_AddPatternA2(bullet, 0, bulletspd1*1.8, NO_CHANGE, -bulletspd1/11, bulletspd1/4, 0);
+				ObjMove_AddPatternA2(bullet, 17*4, NO_CHANGE, NO_CHANGE, bulletspd1/22, bulletspd1*1.5, 0);
+			}
+
+		}
+
+		despeAng += [20, 18, 16, 14][curDiff];
+
+		Shoot1;
+
+		wait(17);
+
+	}
+
+    wait(17*4);
+
+    ascent(f in 0..24)
+	{
+
+		ascent(i in 0..[8, 9, 10, 12][curDiff]){
+
+			int[] fan = NewCreateFan_ReturnArray (
+				bossObj, [1, 1, 2, 3][diff], KEV_BULLET_ALT, HUE_BLUE,
+				1, despeAng + i * 360/[8, 9, 10, 12][curDiff], [1.4, 1.5, 1.8, 1.6][curDiff], 
+				bulletspd1, bulletspd1, 1.8,
+				0, 0,
+				PATTERN_FAN, false
+			);
+
+			for each(int bullet in ref fan){
+				ObjMove_AddPatternA2(bullet, 0, bulletspd1*1.8, NO_CHANGE, -bulletspd1/14, bulletspd1/2, 0);
+				ObjMove_AddPatternA2(bullet, 45, NO_CHANGE, NO_CHANGE, bulletspd1/22, bulletspd1, 0);
+			}
+
+		}
+
+		despeAng -= [12, 11, 9, 8][curDiff];
+
+		Shoot1;
+
+		wait(4);
+
+	}
+
+    int enm01 = LargeEnemyB(bossX - 128, -48, bossX - 128, bossY, bossX - 128, STG_HEIGHT+96, 34, 1, curRank, 1600, false);
+    
+    wait(68);
+
+    int enm02 = LargeEnemyB(bossX + 128, -48, bossX + 128, bossY, bossX + 128, STG_HEIGHT+96, 34, -1, curRank, 1600, true);
+
+    wait(68+34);
+
+    ascent(i in 0..16){
+        Popcorn(rand(69, STG_WIDTH-69), -32, curRank);
+        wait(4);
+    }
+
+    BossSubattack(rand(0, 360), 1, [-32, -32]);
+    BossSubattack(rand(0, 360), -1, [32, 32]);
+
+    BossSubattack(rand(0, 360), 1, [-128, 0]);
+    BossSubattack(rand(0, 360), -1, [128, 0]);
+
+    wait(34*2+21);
+
+    async{
+        ascent(i in 0..32){
+
+            ascent(i in 0..[12, 13, 14, 16][curDiff]){
+
+                int[] fan = NewCreateFan_ReturnArray (
+                    bossObj, [1, 2, 3, 4][curDiff], KEV_BULLET_ALT, HUE_AZURE,
+                    1, despeAng + i * 360/[12, 13, 14, 16][curDiff], [1.4, 1.5, 1.8, 1.6][curDiff], 
+                    bulletspd1, bulletspd1, 2.0,
+                    0, 0,
+                    PATTERN_FAN, false
+                );
+
+                for each(int bullet in ref fan){
+                    Obj_SetRenderPriorityI(bullet, 50);
+                    ObjMove_AddPatternA2(bullet, 0, bulletspd1*1.8, NO_CHANGE, -bulletspd1/11, bulletspd1/4, 0);
+                    ObjMove_AddPatternA2(bullet, 17*4, NO_CHANGE, NO_CHANGE, bulletspd1/22, bulletspd1*1.5, 0);
+                }
+
+            }
+
+            despeAng += [14, 12, 11, 10][curDiff];
+
+            Shoot1;
+
+            wait(17);
+            
+        }
+    }   
+
+    //wait(5);
+    
+    loop(4){
+        BossSubattack(rand(0, 360), [-1, 1][rand_int(0, 1)], [rand(-48, 48), rand(-48, 48)]);
+        wait(68);
+    }
+
+    loop(4){
+        BossSubattack(rand(0, 360), -1, [rand(-72, -32), rand(-48, -16)]);
+        BossSubattack(rand(0, 360), 1, [rand(32, 72), rand(16, 48)]);
+        wait(68);
+    }
+
+    wait(17);
+
+    loop(2){
+        ascent(f in 0..17)
+        {
+
+            ascent(i in 0..[7, 8, 9, 11][curDiff]){
+
+                int[] fan = NewCreateFan_ReturnArray (
+                    bossObj, [1, 1, 2, 3][diff], KEV_BULLET_ALT, HUE_BLUE,
+                    1, despeAng + i * 360/[7, 8, 9, 11][curDiff], [1.4, 1.5, 1.8, 1.6][curDiff], 
+                    bulletspd1, bulletspd1, 1.8,
+                    0, 0,
+                    PATTERN_FAN, false
+                );
+
+                for each(int bullet in ref fan){
+                    ObjMove_AddPatternA2(bullet, 0, bulletspd1*1.8, NO_CHANGE, -bulletspd1/14, bulletspd1/2, 0);
+                    ObjMove_AddPatternA2(bullet, 45, NO_CHANGE, NO_CHANGE, bulletspd1/30, bulletspd1*0.9, 0);
+                }
+
+            }
+
+            despeAng -= [12, 11, 9, 8][curDiff];
+
+            Shoot1;
+
+            wait(4);
+
+        }
+
+        ascent(f in 0..17)
+        {
+
+            ascent(i in 0..[8, 9, 10, 12][curDiff]){
+
+                int[] fan = NewCreateFan_ReturnArray (
+                    bossObj, [1, 1, 2, 3][diff], KEV_BULLET_ALT, HUE_AZURE,
+                    1, despeAng + i * 360/[8, 9, 10, 12][curDiff], [1.4, 1.5, 1.8, 1.6][curDiff], 
+                    bulletspd1, bulletspd1, 1.8,
+                    0, 0,
+                    PATTERN_FAN, false
+                );
+
+                for each(int bullet in ref fan){
+                    ObjMove_AddPatternA2(bullet, 0, bulletspd1*1.8, NO_CHANGE, -bulletspd1/14, bulletspd1/2, 0);
+                    ObjMove_AddPatternA2(bullet, 45, NO_CHANGE, NO_CHANGE, bulletspd1/30, bulletspd1*0.9, 0);
+                }
+
+            }
+
+            despeAng += [12, 11, 9, 8][curDiff];
+
+            Shoot1;
+
+            wait(4);
+
+        }
+    }
+
+    ascent(i in 0..8){
+
+        ascent(f in 0..5){
+
+            _CreateCustomTelegraphLine( 
+                rand(-6, 6) + 1/4 * (f * STG_WIDTH), -32, 45,
+                90 + rand(-4, 4), 90 + rand(-2, 2),
+                0, STG_HEIGHT*1.1,
+                0, 24,
+                0x9981FF, 150,
+                5, 45, 15
+            );
+
+            LaserSFX;
+
+        }
+
+        wait(2);
+
+    }
+
+    wait(17);
+
+    ascent(i in 0..8){
+
+        ascent(f in 0..5){
+
+            int laser = CreateHueLooseLaserA1(
+                rand(-12, 12) + 1/4 * (f * STG_WIDTH), -32, 90 + rand(-2, 2),
+                368, 40, 54, KEV_BULLET_INV, HUE_BLUE, 1.5, 0
+            );
+
+            ObjRender_SetBlendType(laser, BLEND_ALPHA);
+
+            LaserBSFX;
+
+        }
+
+        wait(2);
+
+    }
+
+    wait(17);
+
+    ascent(i in 0..8){
+
+        ascent(f in 0..5){
+
+            _CreateCustomTelegraphLine( 
+                rand(-6, 6) + 1/4 * (f * STG_WIDTH) + STG_WIDTH/5, -32, 45,
+                90 + rand(-4, 4), 90 + rand(-2, 2),
+                0, STG_HEIGHT*1.1,
+                0, 24,
+                0x9981FF, 150,
+                5, 45, 15
+            );
+
+            LaserSFX;
+
+        }
+
+        wait(2);
+
+    }
+
+    wait(17);
+
+    ascent(i in 0..8){
+
+        ascent(f in 0..5){
+
+            int laser = CreateHueLooseLaserA1(
+                rand(-12, 12) + 1/4 * (f * STG_WIDTH) + STG_WIDTH/5, -32, 90 + rand(-2, 2),
+                368, 40, 54, KEV_BULLET_INV, HUE_BLUE, 1.5, 0
+            );
+
+            ObjRender_SetBlendType(laser, BLEND_ALPHA);
+
+            LaserBSFX;
+
+        }
+
+        wait(2);
+
+    }
+
+    wait(17);
+
+    ascent(i in 0..8){
+
+        ascent(f in 0..5){
+
+            _CreateCustomTelegraphLine( 
+                rand(-6, 6) + 1/4 * (f * STG_WIDTH), -32, 45,
+                90 + rand(-4, 4), 90 + rand(-2, 2),
+                0, STG_HEIGHT*1.1,
+                0, 24,
+                0x9981FF, 150,
+                5, 45, 15
+            );
+
+            LaserSFX;
+
+        }
+
+        wait(2);
+
+    }
+
+    wait(17);
+
+    ascent(i in 0..8){
+
+        ascent(f in 0..5){
+
+            int laser = CreateHueLooseLaserA1(
+                rand(-12, 12) + 1/4 * (f * STG_WIDTH), -32, 90 + rand(-2, 2),
+                368, 40, 54, KEV_BULLET_INV, HUE_BLUE, 1.5, 0
+            );
+
+            ObjRender_SetBlendType(laser, BLEND_ALPHA);
+
+            LaserBSFX;
+
+        }
+
+        wait(2);
+
+    }
+
+}
+
+function Part1B(){
+
+    // NotifyEventAll(EV_BOSS_START_V1, 0);
+	// ObjSound_Seek(GetCommonData("currentBossSong", 0), 90.198); // debug
+
+    task BossSubattack(ang, dir, float[] pos){
+
+        ascent(i in 0..9){
+
+            _CreateCustomTelegraphLine( 
+                pos[0], pos[1], 45,
+                ang + i * 360/9 * (dir == 1 ? -1 : 1) + 5, ang + i * 360/9 * (dir == 1 ? -1 : 1),
+                0, STG_HEIGHT*2,
+                0, 24,
+                0xDE4848, 150,
+                5, 45, 15
+            );
+
+            LaserSFX;
+
+        }
+
+        wait(46);
+
+        ascent(i in 0..9){
+
+            int laser = CreateHueLooseLaserA1(
+                pos[0], pos[1], ang + i * 360/9 * (dir == 1 ? -1 : 1),
+                340, 36, 36, KEV_BULLET_INV, HUE_RED, 1.5, 0
+            );
+
+            ObjRender_SetBlendType(laser, BLEND_ALPHA);
+
+            SwordSlashSFX;
+
+        }
+
+    }
+
+    wait(17);
+
+    ascent(i in 0..31){
+        int shot = CreateHueShotA1(bossX, bossY, 60, i * 360/31, KEV_BULLET_ALT_DARK, HUE_BLUE, 2.0, 0);
+        Obj_SetRenderPriorityI(shot, 52);
+        ObjMove_AddPatternA2(shot, 0, NO_CHANGE, NO_CHANGE, -11.5, 2.5, 0);
+        ObjMove_AddPatternA2(shot, 40, 14, NO_CHANGE, 0, 14, 0);
+    }
+
+    // DEATH MATCH PRE
+
+    float[][] values = [ [0, 0], [STG_WIDTH, 0], [0, STG_HEIGHT], [STG_WIDTH, STG_HEIGHT] ];
+    float startAng = GetAngleToPlayer(bossObj);
+    int deathMatchDense01 = [15, 18, 21, 24][curDiff];
+    int deathMatchDense02 = [9, 11, 13, 14][curDiff];
+
+    ascent(g in 0..4){
+
+        ascent(i in 0..deathMatchDense01){
+
+            _CreateCustomTelegraphLine( 
+                values[g][0], values[g][1], 45,
+                startAng + i * 360/deathMatchDense01, startAng + i * 360/deathMatchDense01,
+                0, STG_HEIGHT*2,
+                0, 24,
+                0xAB222B, 150,
+                5, 45, 15
+            );
+
+        }
+
+    }
+
+    wait(34);
+
+    ObjMove_SetDestAtFrame(bossObj, STG_WIDTH/2, 128, 15, LERP_LINEAR);
+
+    ascent(i in 0..17){
+        
+        ascent(f in 0..deathMatchDense01){
+            ascent(g in 0..4){
+                int shot = CreateHueShotA1(values[g][0], values[g][1], 48, startAng + f * 360/deathMatchDense01, KEV_BULLET_INV, HUE_RED, 2.5, 0);
+            }
+        }
+
+        wait(2);
+
+    }
+
+    // DEATH MATCH START
+
+    wait(8);
+
+    ascent(i in 0..8){
+        float x = i * STG_WIDTH/7;
+        float y = i % 2 == 0 ? 0 : STG_HEIGHT;
+        BossSubattack(GetAngleToPlayer(bossObj), i % 2 == 0 ? 1 : -1, [x, y]);
+        wait(8);
+    }
+
+    wait(68);
+
+    ascent(i in 0..8){
+        float x = STG_WIDTH - i * STG_WIDTH/7;
+        float y = i % 2 == 0 ? 0 : STG_HEIGHT;
+        BossSubattack(GetAngleToPlayer(bossObj), i % 2 == 0 ? -1 : 1, [x, y]);
+        wait(8);
+    }
+
+    wait(68);
+
+    ascent(i in 0..deathMatchDense02){
+
+        _CreateCustomTelegraphLine( 
+            STG_WIDTH/2, -16, 45,
+            startAng + i * 360/deathMatchDense02, startAng + i * 360/deathMatchDense02,
+            0, STG_HEIGHT*2,
+            0, 24,
+            0xAB222B, 150,
+            5, 45, 15
+        );
+
+        _CreateCustomTelegraphLine( 
+            0, STG_HEIGHT * 3/4, 45,
+            startAng + i * 360/deathMatchDense02, startAng + i * 360/deathMatchDense02,
+            0, STG_HEIGHT*2,
+            0, 24,
+            0xAB222B, 150,
+            5, 45, 15
+        );
+
+        _CreateCustomTelegraphLine( 
+            STG_WIDTH, STG_HEIGHT * 3/4, 45,
+            startAng + i * 360/deathMatchDense02, startAng + i * 360/deathMatchDense02,
+            0, STG_HEIGHT*2,
+            0, 24,
+            0xAB222B, 150,
+            5, 45, 15
+        );
+
+    }
+
+    wait(34);
+
+    async{
+        ascent(f in 0..24){
+
+            ascent(i in 0..deathMatchDense02){
+
+                ascent(g in 0..3){
+                    int shot = CreateHueShotA1(
+                        [STG_WIDTH/2, 0, STG_WIDTH][g], [-16, STG_HEIGHT * 3/4, STG_HEIGHT * 3/4][g], 
+                        32, startAng + i * 360/deathMatchDense02, 
+                        KEV_BULLET_INV, HUE_RED, 2.0, 0);
+                }
+                
+            }
+
+            wait(4);
+
+        }
+    }
+
+    wait(84-3);
+
+    int[] fan = NewCreateFan_ReturnArray (
+        bossObj, [8, 9, 10, 11][curDiff], KEV_BULLET_ALT, HUE_RED,
+        1, 0, [2.5, 2.8, 3.2, 3.4][curDiff], 
+        24, 24, 3.5,
+        0, 0,
+        PATTERN_FAN_AIMED, false
+    );
+
+    wait(3);
+    
+    ascent(i in 0..17*9){
+        for each (bullet in GetAllShotID(TARGET_ENEMY)){
+            ObjMove_AddPatternA1(bullet, 0, 2, NO_CHANGE);
+        }
+        yield;
+    }
+
+    for each (bullet in GetAllShotID(TARGET_ENEMY)){
+        ObjMove_AddPatternA1(bullet, 0, 32, NO_CHANGE);
+    }
+
+   // wait(17);
+
+    startAng = GetAngleToPlayer(bossObj);
+
+    ascent(i in 0..deathMatchDense01){
+
+        ascent(f in 0..4){
+
+            _CreateCustomTelegraphLine( 
+                values[f][0], values[f][1], 45,
+                startAng + i * 360/deathMatchDense01 - 24, startAng + i * 360/deathMatchDense01,
+                0, STG_HEIGHT*2,
+                0, 24,
+                0xAB222B, 150,
+                10, 45, 15
+            );
+
+        }
+
+    }
+
+    wait(48);
+
+    ascent(g in 0..12){
+            
+        ascent(i in 0..deathMatchDense01){
+
+            ascent(f in 0..4){
+
+                int shot = CreateHueShotA1(
+                    values[f][0], values[f][1], 
+                    32, startAng + i * 360/deathMatchDense01, 
+                    KEV_BULLET_INV, HUE_RED, 2.0, 0);
+
+            }
+
+        }
+
+        wait(4);
+
+    }
+
+    startAng = GetAngleToPlayer(bossObj);
+
+    ascent(i in 0..(deathMatchDense01+2)){
+
+        ascent(f in 0..4){
+
+            _CreateCustomTelegraphLine( 
+                values[f][0], values[f][1], 45,
+                startAng + i * 360/(deathMatchDense01+2) - 24, startAng + i * 360/(deathMatchDense01+2),
+                0, STG_HEIGHT*2,
+                0, 24,
+                0xAB222B, 150,
+                10, 45, 15
+            );
+
+        }
+
+    }
+
+    wait(48+24);
+
+    ascent(g in 0..16){
+            
+        ascent(i in 0..(deathMatchDense01+2)){
+
+            ascent(f in 0..4){
+
+                int shot = CreateHueShotA1(
+                    values[f][0], values[f][1], 
+                    32, startAng + i * 360/(deathMatchDense01+2), 
+                    KEV_BULLET_INV, HUE_RED, 2.0, 0);
+
+            }
+
+        }
+
+        wait(4);
+
+    }
+
+    async{
+        ascent(i in 0..48){
+            Popcorn(STG_WIDTH/2 + rand(-256, 256), -32, curRank);
+            wait(4);
+        }   
+    }
+
+    wait(40*4);
+
+}
+
+task EndPhase2(){
+
+    // ObjSound_Seek(GetCommonData("currentBossSong", 0), 107); // debug
+
+    while( ObjSound_GetInfo(GetCommonData("currentBossSong", 0), INFO_POSITION) < 107.653 ) {yield;}
+
+    DeleteShotAll(TYPE_ALL, TYPE_IMMEDIATE);
+
+    int evilFadeToBlack = _Create2DImage("script/GrungyTextures/EvilDarkness.png", [0, 0, 1280, 720]);
+    ObjRender_SetAlpha(evilFadeToBlack, 0);
+    Obj_SetRenderPriorityI(evilFadeToBlack, 99);
+    ObjRender_SetPosition(evilFadeToBlack, 1280/2, 720/2, 1);
+
+    async{
+
+        ascent(i in 0..72){
+            ObjRender_SetAlpha(evilFadeToBlack, Interpolate_Linear(0, 255, i/72));
+            yield;
+        }
+
+    }
+
+    wait(84);
+
+    ascent(i in 0..25){
+        int shot = CreateHueShotA1(bossX, bossY, 60, i * 360/25, KEV_BULLET_ALT_DARK, HUE_RED, 2.0, 0);
+        ObjMove_AddPatternA2(shot, 0, NO_CHANGE, NO_CHANGE, -11.5, 2, 0);
+        ObjMove_AddPatternA2(shot, 45, 20, NO_CHANGE, 0, 20, 0);
+    }
+
+    wait(15);
+
+    ObjRender_SetAlpha(evilFadeToBlack, 0);
+
+    wait(12);
+
+    BossEnding();
+
+}
+
+task _ReinitialiseValues(){
+
+	curRankMult = GetCommonDataPtr(POINTER_RANK, 1.0)/255; // max 1
+	curRank = GetCommonDataPtr(POINTER_RANK, 1.0);
+
+    bulletspd1 = FUNC_LERP_LINEAR(9, 11, curRankMult) * FUNC_LERP_LINEAR(1, 1.1, (5-length(homophobicCannons))/4);
+	bulletdel1 = [5, 4, 4, 3][min(3, floor(curRank/70))];
+	bulletdel2 = FUNC_LERP_LINEAR(45, 30, (5-length(homophobicCannons))/4);
+	
+	bulletdense1 = FUNC_LERP_LINEAR(3, 5, (5-length(homophobicCannons))/4) + [0, 1, 1, 2][min(3, floor(curRank/80))];
+	bulletspace = FUNC_LERP_LINEAR(5, 7, (5-length(homophobicCannons))/4) * (1 * FUNC_LERP_LINEAR(0.2, 1, min(1, curRankMult)));
+
+	angleSpin = FUNC_LERP_LINEAR(25, 17, curRankMult) * FUNC_LERP_LINEAR(1, 0.8, (5-length(homophobicCannons))/4);
+
+}
+
+function BossEnding(){
+	
+	ObjEnemy_SetLife(bossObj, -1);
+
+	float x = bossX;
+	float y = bossY;
+
+	// SetCommonData("midbossKillTime", GetCommonData("midbossKillTime", 0)+(ObjEnemyBossScene_GetInfo(objScene, INFO_ORGTIMERF) - ObjEnemyBossScene_GetInfo(objScene, INFO_TIMERF)));
+	ObjSound_Play(bossGlassBreak);
+
+	async{
+		while(!Obj_IsDeleted(bossObj)){
+			ObjMove_SetPosition(bossObj, x, y);
+			ObjMove_CancelMovement(bossObj);
+			yield;
+		}
+	}
+
+	//Obj_SetRenderPriorityI(bossObj, 40);
+	//DeleteShotAll(TYPE_ALL, TYPE_ITEM);
+	//NotifyEventAll(EV_BOSS_ATTACK_CLEAR, [bossX, bossY]);
+	SetPlayerInvincibilityFrame(60);
+
+	loop(36){
+		yield;
+	}
+
+	Obj_Delete(bossObj);
+	SetShotAutoDeleteClip(256, 256, 256, 256);
+	CloseScript(GetOwnScriptID);
+	
+}

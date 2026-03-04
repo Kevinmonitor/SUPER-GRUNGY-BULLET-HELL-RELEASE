@@ -1,0 +1,16 @@
+#UserShotData
+
+local
+{
+	LoadEnemyShotData(GetCurrentScriptDirectory ~ "SkyscraperData.dnh");
+}
+
+const WINDOW_01 = 2200;
+const WINDOW_02 = 2201;
+const WINDOW_03 = 2202;
+const WINDOW_04 = 2203;
+
+const WINDOW_GOLD_01 = 2204;
+const WINDOW_GOLD_02 = 2205;
+const WINDOW_GOLD_03 = 2206;
+const WINDOW_GOLD_04 = 2207;

@@ -1,0 +1,46 @@
+shot_image = "./playerlib/reimu.png"
+
+ShotData{
+	id = 0 // Dummy
+	rect = (0,0,0,0)
+	render = ALPHA 
+	alpha = 0
+	collision = 24
+}
+
+// Shot
+
+ShotData{
+	id = 1
+	rect = (480, 0, 528, 144)
+	render = ALPHA
+	alpha = 255
+	collision = 32 // Hitbox of arrows is not centered on the sprite
+}
+
+ShotData{
+	id = 2
+	rect = (528, 0, 624, 144)
+	render = ALPHA
+	alpha = 255
+	collision = 64 // Hitbox of arrows is not centered on the sprite
+}
+
+ShotData{
+	id = 3
+	rect = (624, 0, 720, 144)
+	render = ALPHA
+	alpha = 255
+	collision = 64 // Hitbox of arrows is not centered on the sprite
+	angular_velocity = 6
+	fixed_angle = true
+}
+
+ShotData{
+	id = 4
+	rect = (624, 0, 720, 144)
+	render = ALPHA
+	alpha = 255
+	collision = 64 // Hitbox of arrows is not centered on the sprite
+}
+

@@ -1,0 +1,33 @@
+#UserShotData
+
+shot_image = "script/GrungyTextures/EvilStaticSheet.png"
+
+// WARNING
+ShotData {
+
+    id = 2100
+    //rect = (512, 256, 768, 512)
+
+    AnimationData{ 
+        animation_data=(4, 0, 512, 256, 768)
+        animation_data=(4, 256, 512, 512, 768)
+    }
+     
+    delay_color = (255,255,255) 
+    
+} 
+
+// STATIC
+ShotData {
+
+    id = 2101
+    //rect = (512, 256, 768, 512)
+
+    AnimationData{ 
+        animation_data=(4, 0, 0, 512, 512)
+        animation_data=(4, 512, 0, 1024, 512)
+    }
+     
+    delay_color = (255,255,255) 
+    
+} 

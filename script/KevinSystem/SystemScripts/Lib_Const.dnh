@@ -1,0 +1,230 @@
+//Custom events
+
+const EV_START_MUSIC = EV_USER + 411i;
+const EV_BOSS_MUSIC = EV_USER + 412i;
+const EV_FADE_BOSS_MUSIC = EV_USER + 413i;
+const EV_FADE_STAGE_MUSIC = EV_USER + 414i;
+
+const EV_BOSS_MUSIC_START = EV_USER + 415i;
+const EV_BOSS_MUSIC_MIDDLE = EV_USER + 416i;
+const EV_BOSS_START = EV_USER + 417i;
+
+const EV_DROP_POINT_ENEMY = EV_USER + 200i;
+const EV_DROP_PIV_ENEMY = EV_USER + 201i;
+const EV_SINGLE_ITEM_DROP = EV_USER + 202i;
+const EV_DROP_EXTEND = EV_USER + 203i;
+const EV_DROP_AMMO_ENEMY = EV_USER + 204i;
+
+const EV_EXPLODE = EV_USER + 300i;
+const EV_SCORE_POPUP = EV_USER + 301i;
+const EV_SCORE_POPUP_GOLD = EV_USER + 302i;
+
+const EV_USER_BURST = EV_USER + 303i;
+
+// Hyper event
+
+const EV_REQUEST_HYPER = EV_USER + 351i;
+const EV_END = EV_USER + 450i;
+
+// Card shop events
+
+const EV_SHOP_CALL = EV_USER + 400i; // Call shop (in stage)
+const EV_SHOP_OPEN = EV_USER + 401i; // Request to open shop (in player script) when CALL is notified
+const EV_SHOP_GAIN = EV_USER + 402i; // Shop is opened in package. Afterwards, add ability via notifying this event (in player script)
+
+// WHY CAN'T YOU CALL THESE IN THE SYSTEM SCRIPT
+
+const EV_REQUEST_SHOT_DELETE = EV_USER + 420i;
+const EV_REQUEST_SHOT_ITEMIZE = EV_USER + 421i;
+
+// AAAAA
+
+const EV_BOSS_ATTACK_CLEAR = EV_USER + 430i;
+const EV_BOSS_SUMMON_BACKUP = EV_USER + 431i;
+const EV_FADE_NORMAL_BG = EV_USER + 432i;
+const EV_START_BOSS_BG = EV_USER + 433i;
+const EV_START_SHADER = EV_USER + 434i;
+const EV_END_PHASE_1A = EV_USER + 435i;
+const EV_END_PHASE_1B = EV_USER + 436i;
+const EV_EXPAND_FRAME = EV_USER + 437i;
+
+const EV_END_PHASE_1 = EV_USER + 440i;
+const EV_START_PHASE_2 = EV_USER + 441i;
+
+const EV_BOSS_PHASE_2_MUSIC_START = EV_USER + 442i;
+
+const EV_BOSS_CUTE_START = EV_USER + 443i;
+
+// IM SIPPING ON THAT FUCKING LEAN - camellia
+
+const EV_TRANSFORM_TO_CUTE = EV_USER + 470i;
+const EV_TRANSFORM_TO_GRUNGE = EV_USER + 471i;
+
+const EV_BOSS_START_V1 = EV_USER + 480i;
+const EV_BOSS_START_V2 = EV_USER + 481i;
+const EV_BOSS_START_V3 = EV_USER + 482i;
+const EV_BOSS_START_V4 = EV_USER + 483i;
+const EV_BOSS_START_V5 = EV_USER + 484i;
+
+const EV_START_TRUE_FORM = EV_USER + 485i;
+const EV_END_TRUE_FORM = EV_USER + 486i;
+// ACHIEVEMENTS
+
+const EV_UNLOCK_ACHIEVEMENT = EV_USER_PACKAGE + 100i;
+const EV_SAVE_TO_FILE = EV_USER_PACKAGE + 101i;
+
+// Convenience constants
+
+float STG_WIDTH = GetStgFrameWidth();
+float STG_HEIGHT = GetStgFrameHeight();
+
+const int RESULT_END_LEADERBOARD_SUCCESS = 9999999;
+const int RESULT_END_LEADERBOARD_FAILED = 9999998;
+
+// Card names
+
+const CARD_NAMES = 
+[   
+    // Shop 1
+
+    "Hitchcock Birds",
+    "Turtle Cannon",
+    "Phoenix Feather",
+    "Devil's Crown",
+
+    // Shop 2
+
+    "Irresistible Demand",
+    "Danmaku Catcher",
+    "Mango Jam",
+    "Cucumber Jam",
+
+    // Shop 3
+
+    "K*taka Fried Chicken",
+    "Magic Absorber",
+    "Warrior's Breastplate",
+    "20/20 Goggles",
+
+    // Shop 4
+
+    "Fossil Spear",
+    "Oni's Cursed Gourd",
+    "Bee-Powered Laser",
+    "Radiant Warrior",
+
+    // Final Shop
+
+    "Blacksmith's Offer",
+    "Potionmaker's Mist",
+    "Marketeer's Rainbow"
+
+];
+
+// Pointers
+
+let POINTER_MULTIPLIER = LoadAreaCommonDataValuePointer("Ingame", "Multiplier", 1.0);
+let POINTER_BURSTGAUGE = LoadAreaCommonDataValuePointer("Ingame", "BurstGauge", 0);
+let POINTER_BURSTMODE = LoadAreaCommonDataValuePointer("Ingame", "IsBurst", false);
+
+let POINTER_BURSTCOUNT = LoadAreaCommonDataValuePointer("Ingame", "Bursts", 0);
+let POINTER_DEATHCOUNT = LoadAreaCommonDataValuePointer("Ingame", "Deaths", 0);
+let POINTER_ENEMYCOUNT = LoadAreaCommonDataValuePointer("Ingame", "TotalEnemies", 1);
+let POINTER_ENEMYKILLED = LoadAreaCommonDataValuePointer("Ingame", "TotalDefeat", 1);
+
+let POINTER_SPELLSCORE = LoadCommonDataValuePointer("spellScore", 10000000);
+
+// Rank
+
+let POINTER_RANK = LoadAreaCommonDataValuePointer("Ingame", "Rank", 1.0);
+let POINTER_TRUERANK = LoadAreaCommonDataValuePointer("Ingame", "TrueRank", 1.0);
+let POINTER_RANKSPD = LoadAreaCommonDataValuePointer("Ingame", "RankSpeed", 1);
+let POINTER_FRAME = LoadAreaCommonDataValuePointer("Ingame", "IsExpandFrame", false);
+
+// Player
+
+let POINTER_DIFFICULTYNUM = LoadAreaCommonDataValuePointer("Ingame", "DifficultyNo", 0);
+let POINTER_PLAYERNUM = LoadAreaCommonDataValuePointer("Ingame", "PlayerNum", 0);
+let POINTER_GAMEMODENUM = LoadAreaCommonDataValuePointer("Ingame", "GameMode", 0);
+
+// ???
+
+let POINTER_SHOTSHADER = LoadCommonDataValuePointer("shotShader", 0);
+        
+float[] PlayerBurstGain = [0.5, 0.75, 0.8, 0.75];
+float[] PlayerBurstGainGoldMult = [0.25, 0.25, 0.375, 0.25];
+
+string[] PlayerName = ["Erika", "Solaris", "Rin Satsuki", "Kobiko Reikou"]; 
+
+string[] PlayerPath = 
+    ["script/player/Erika/Player_Main.dnh", 
+    "script/player/Solaris/Player_Main.dnh",
+    "",
+    ""
+    ]; // fill this with player paths
+
+float[][] PlayerSpeeds = [[9.5, 4.6], [11.5, 5.8], [11, 5.25], [9.5, 4.6]];
+
+// string[] DifficultyName = ["Casual", "Original", "Powerful", "Legendary"];
+// string[] GameMode = ["Journey", "Simple", "Time Attack", "Debug"];
+// string[] DifficultyNameShort = ["CS", "ORG", "PWR", "LGD"];
+// int[][] RankLimits = [[60, 1, 255], [120, 80, 255], [180, 120, 400], [255, 200, 500]]; // Start -> Min -> Max
+// float[] RankLower = [0.7, 0.8, 0.9, 0.9];
+// float[] RankSpeed = [0.8, 1, 1.25, 1.5]; 
+
+// DEMO
+
+string[] DifficultyName = ["Drizzle", "Rainstorm", "Monsoon", "Overload", "Tutorial"];
+string[] GameMode = ["Journey", "Simple", "Time Attack", "Debug"];
+string[] DifficultyNameShort = ["CS", "ORG", "PWR", "LGD", "TUT"];
+int[][] RankLimits = [[0, 1, 255], [60, 60, 255], [120, 120, 400], [200, 200, 500], [0, 1, 255]]; // Start -> Min -> Max
+float[] RankLower = [0.5, 0.6, 0.6, 0.7, 0.7];
+float[] RankSpeed = [0.75, 0.9, 1.1, 1.4, 0.8]; 
+
+int leaderboardFile = ObjFile_Create(OBJ_FILE_TEXT);
+ObjFile_Open(leaderboardFile, "script/KevinSystem/SystemScripts/LeaderboardCodes_DONOTCOMMIT.txt");
+
+string[] LeaderboardPrivateCodes = [
+
+    ObjFileT_GetLineText(leaderboardFile, 2),
+    ObjFileT_GetLineText(leaderboardFile, 3),
+    ObjFileT_GetLineText(leaderboardFile, 4),
+    ObjFileT_GetLineText(leaderboardFile, 5)
+
+];
+
+string[] LeaderboardPublicCodes = [
+
+    ObjFileT_GetLineText(leaderboardFile, 7),
+    ObjFileT_GetLineText(leaderboardFile, 8),
+    ObjFileT_GetLineText(leaderboardFile, 9),
+    ObjFileT_GetLineText(leaderboardFile, 10)
+    
+];
+
+// Kobiko
+
+const BURSTRADIUS_PTR = LoadAreaCommonDataValuePointer("Ingame", "BurstRadius", []);
+
+// Misc
+
+const EFFECTCUT_PTR = LoadAreaCommonDataValuePointer("Config", "EffectCut", 0);
+const SCOREDISPLAY_PTR = LoadAreaCommonDataValuePointer("Config", "ScoreDisplayType", 1);
+const HITBOXDISPLAY_PTR = LoadAreaCommonDataValuePointer("Config", "HitboxDisplayType", 0);
+
+const ITEMID_PTR = LoadAreaCommonDataValuePointer("ScriptID", "ItemID", 0);
+const SYSTEMID_PTR = LoadAreaCommonDataValuePointer("ScriptID", "SystemID", 0);
+
+const FLYINGENM_PTR = LoadCommonDataValuePointer("Flying Defeated", 0);
+const GROUNDENM_PTR = LoadCommonDataValuePointer("Ground Defeated", 0);
+
+const STAGE_PTR = LoadAreaCommonDataValuePointer("ScriptID", "StageID", 0);
+
+const PTR_SCRIPT_ERIKA = LoadAreaCommonDataValuePointer("ScriptID", "ErikaID", 0);
+const PTR_SCRIPT_SOLARIS = LoadAreaCommonDataValuePointer("ScriptID", "SolarisID", 0);
+
+// Reset ingame values
+
+function Init_IngameValues(){
+
+}

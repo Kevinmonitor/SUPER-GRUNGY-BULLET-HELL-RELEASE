@@ -1,0 +1,146 @@
+// Sound effects for boss go here. 
+
+let lib = GetModuleDirectory() ~ "./script/KevinSystem/RyannSFX/ryannlib/";
+let libKev = "script/KevinSound/";
+
+let SFXVol = GetAreaCommonData("Config", "SEVol", 100) * 0.01;
+
+// Sound paths
+
+let defeatsnd = lib ~ "../bossdie.wav";
+let lw = lib ~ "sp_lastword.wav";
+
+let bullet1 = libKev ~ "bfxr_Shoot1.wav"; // Regular bullet sound
+let bullet2 = libKev ~ "bfxr_Shoot2.wav"; // Shiny bullet sound
+
+let bullet3 = lib ~ "se_explode.wav"; 
+let lightning1 = lib ~ "se_don00.wav"; // Lightning sound 1/Explosion sound
+let lightning2 = lib ~ "se_kira02.wav"; // Lightning sound 2
+let laze = lib ~ "se_lazer01.wav"; // Laser sound
+let lazeB = lib ~ "se_lazer00.wav";
+let slash = lib ~ "se_slash.ogg";
+
+let pause = libKev ~ "bfxr_Pause.wav";
+let chargeA = libKev ~ "bfxr_Charge.wav";
+
+let selection = lib ~ "se_select00.wav";
+let thunder = lib ~ "se_boon00.wav"; // Thunder/delay laser sound
+let bomb = lib ~ "se_nep00.wav";
+
+let extend = libKev ~ "bfxr_ExtendLegacy.wav"; // Clear game!
+
+let lenenwarn = lib ~ "../lenenwarning.wav";
+let chargeB = lib ~ "se_ch01.wav";
+
+let evilNoise = libKev ~ "StepGames_TVNoise.wav";
+
+// Sound objects declarations
+
+let warnsfx = ObjSound_Create();
+let lwmusic = ObjSound_Create();
+let fire1 = ObjSound_Create();
+let fire2 = ObjSound_Create();
+let fire3 = ObjSound_Create();
+let light1 = ObjSound_Create();
+let light2 = ObjSound_Create();
+let laser = ObjSound_Create();
+let laserB = ObjSound_Create();
+let charge = ObjSound_Create();
+let phase = ObjSound_Create();
+let grz = ObjSound_Create();
+let swing = ObjSound_Create();
+let pausesfx = ObjSound_Create();
+let choose = ObjSound_Create();
+let thundersfx = ObjSound_Create();
+let bombsfx = ObjSound_Create();
+let extendsfx = ObjSound_Create();
+let icebreak = ObjSound_Create();
+let entrance = ObjSound_Create();
+
+int sfxBoom = ObjSound_Create();
+int bossBoom = ObjSound_Create();
+int bossLaugh = ObjSound_Create();
+int bossGlassBreak = ObjSound_Create();
+int bossGlassBreakB = ObjSound_Create();
+int bossGlassDestroy = ObjSound_Create();
+
+int supernovaCharge = ObjSound_Create();
+int supernovaExplode = ObjSound_Create();
+
+int sfxUnlock = ObjSound_Create();
+int sfxSuccess = ObjSound_Create();
+int sfxError = ObjSound_Create();
+int sfxStatic = ObjSound_Create();
+
+// Merge function that loads sounds and significantly decreases volume
+// so the ears do not die from SFX overload. 
+
+function LoadEx(targetobj, targetpath, targetvol){
+
+	ObjSound_Load(targetobj, targetpath);
+	ObjSound_SetVolumeRate(targetobj, targetvol * SFXVol);
+	ObjSound_SetSoundDivision(targetobj, SOUND_SE);
+}
+
+task _SoundTask{
+
+	//LoadEx(lwmusic, lw, 80);
+	LoadEx(fire1, bullet1, 65);
+	LoadEx(fire2, bullet2, 65);
+	LoadEx(pausesfx, pause, 40);
+	LoadEx(extendsfx, extend, 60);
+	
+	LoadEx(light1, lightning1, 45);
+	LoadEx(light2, lightning2, 45);
+	LoadEx(laser, laze, 65);
+	LoadEx(laserB, lazeB, 45);
+	//LoadEx(grz, graze, 20);
+	LoadEx(swing, slash, 120);
+	
+	LoadEx(choose, selection, 45);
+	LoadEx(thundersfx, thunder, 25);
+	LoadEx(charge, chargeA, 45);
+	LoadEx(phase, chargeB, 45);
+	LoadEx(fire3, bullet3, 35);
+	LoadEx(bombsfx, bomb, 50);
+	
+	LoadEx(warnsfx, lenenwarn, 30);
+	LoadEx(icebreak, lib ~ "se_don00.wav", 50);
+	LoadEx(entrance, lib ~ "se_gun00.wav", 50);
+	
+	LoadEx(sfxBoom, lib ~ "se_explode.wav", 60);
+	LoadEx(bossBoom, "script/KevinSystem/se/snd_badexplosion.wav", 45);
+	LoadEx(bossLaugh, libKev ~ "RaspberryTickle_Giggle.wav", 60);
+
+	LoadEx(bossGlassBreak, libKev ~ "Freesound_HardGlassImpact.wav", 50);
+	LoadEx(bossGlassBreakB, libKev ~ "41348__datasoundsample__glass-shatter.wav", 80);
+	LoadEx(bossGlassDestroy, libKev ~ "173621__gevaroy__028.wav", 65);
+
+	LoadEx(sfxUnlock, libKev ~ "grunz_Success.wav", 65);
+	LoadEx(sfxSuccess, libKev ~ "jivatma07_Collection.wav", 65);
+	LoadEx(sfxError, libKev ~ "nlux_No.wav", 65);
+
+	LoadEx(supernovaCharge, libKev ~ "supernovaCharge.wav", 100);
+	LoadEx(supernovaExplode, libKev ~ "supernovaExplode.wav", 100);
+	LoadEx(sfxStatic, evilNoise, 80);
+
+}
+
+// Functions to load sounds in scripts
+
+task Shoot1{ObjSound_Play(fire1); return;}
+task Shoot2{ObjSound_Play(fire2); return;}
+task Shoot3{ObjSound_Play(fire3); return;}
+task Lit1{ObjSound_Play(light1); return;}
+task Lit2{ObjSound_Play(light2); return;}
+task GrazeSFX{ObjSound_Play(grz); return;}
+task SwordSlashSFX{ObjSound_Play(swing); return;}
+task PauseGameSFX{ObjSound_Play(pausesfx); return;}
+task SelectOptionSFX{ObjSound_Play(choose); return;}
+task LaserSFX{ObjSound_Play(laser); return;}
+task LaserBSFX{ObjSound_Play(laserB); return;}
+task ThunderSFX{ObjSound_Play(thundersfx); return;}
+task ChargeSFX{ObjSound_Play(charge); return;}
+task ChargeBreakSFX{ObjSound_Play(phase); return;}
+task BombSFX{ObjSound_Play(bombsfx); return;}
+task ExtendSFX{ObjSound_Play(extendsfx); return;}

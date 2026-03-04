@@ -1,0 +1,961 @@
+task stage1Task(){
+
+	stage1Task_Flying();
+
+	while(stageTimer < SECTION1_LENGTH){yield;}
+
+}
+
+task stage2Task(){
+
+	while(stageTimer < SECTION1_LENGTH){yield;}
+	while((length(enmFly) + length(enmGround)) > 5){yield;}
+
+	stage2Task_Flying();
+	stage2Task_Ground();
+
+	while(stageTimer < SECTION2_LENGTH){yield;}
+	
+}
+
+task stage3Task(){
+
+	while(stageTimer < SECTION2_LENGTH){yield;}
+	while((length(enmFly) + length(enmGround)) > 5){yield;}
+
+	stage3Task_Flying();	
+	stage3Task_Ground();
+
+	while(stageTimer < SECTION3_LENGTH){yield;}
+	
+}
+
+task stage4Task(){
+
+	while(stageTimer < SECTION3_LENGTH){yield;}
+	while((length(enmFly) + length(enmGround)) > 5){yield;}
+
+	stage4Task_Flying();	
+	stage4Task_Ground();
+
+	while(stageTimer < SECTION4_LENGTH){yield;}
+
+	NotifyEventAll(EV_FADE_STAGE_MUSIC, 1);
+	
+}
+
+task stage1Task_Flying(){
+
+	wait(15);
+	
+	while(stageTimer < SECTION1_LENGTH){
+
+		Wave1();
+		Wave2();
+		Wave3();
+		Wave4();
+
+		//SetCommonData("Rank", clamp(GetCommonData("Rank", 1)+0.5, 1, RANK_MAX));
+		//SetCommonData("Flying Loops Cleared", GetCommonData("Flying Loops Cleared", 0)+1);
+
+		wait(15);
+
+	}
+	
+	//Midboss();
+	
+}
+
+task stage2Task_Flying(){
+
+	wait(15);
+	
+	while(stageTimer < SECTION2_LENGTH){
+
+		Wave2();
+		wait(60);
+		Wave1();
+		wait(60);
+		Wave4();
+		wait(120);
+		Wave5();
+
+		wait(15);
+
+	}
+	
+	//Midboss();
+	
+}
+
+task stage2Task_Ground(){
+
+	wait(240);
+	
+	while(stageTimer < SECTION2_LENGTH){
+
+		WaveMid1();
+		wait(90);
+		WaveMid2();
+		wait(120);
+		WaveMid3();
+		wait(90);
+		WaveMid4();
+		wait(60);
+
+	}
+	
+	//Midboss();
+	
+}
+
+task stage3Task_Ground(){
+
+	wait(120);
+	
+	while(stageTimer < SECTION3_LENGTH){
+
+		WaveMid4();
+		wait(120);
+		WaveLarge1();
+		wait(300);
+		WaveMid3();
+		wait(120);
+		WaveMid2();
+
+		wait(15);
+
+	}
+	
+	//Midboss();
+	
+}
+
+task stage3Task_Flying(){
+
+	wait(60);
+	
+	while(stageTimer < SECTION3_LENGTH){
+
+		Wave2();
+		wait(120);
+		Wave3();
+		wait(120);
+		Wave4();
+		wait(60);
+		Wave6();
+		wait(60);
+
+	}
+	
+	//Midboss();
+	
+}
+
+task stage4Task_Flying(){
+
+	wait(60);
+	
+	while(stageTimer < SECTION4_LENGTH){
+
+		Wave2();
+		wait(60);
+
+		Wave5();
+		wait(60);
+		
+		Wave6();
+		wait(120);
+
+		Wave1();
+		wait(60);
+		
+		Wave3();
+		wait(60);
+		
+		Wave4();
+		wait(60);
+
+		wait(15);
+
+	}
+	
+	//Midboss();
+	
+}
+
+task stage4Task_Ground(){
+
+	wait(120);
+	
+	while(stageTimer < SECTION4_LENGTH){
+
+		WaveLarge1();
+		wait(120);
+		WaveMid4();
+		wait(120);
+		WaveMid3();
+		wait(120);
+		WaveMid1();
+
+		wait(15);
+
+	}
+	
+}
+
+// Large waves
+
+func WaveLarge1(){
+
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+	float speedMove = FUNC_LERP_LINEAR(2, 3.25, curRank/400);
+
+	int dense = [8, 8, 9, 10, 11, 11][min(5, floor(curRank/60))];
+	int num = [3, 4, 5, 6, 6, 7][min(5, floor(curRank/60))];
+	int del = FUNC_LERP_DECEL(11, 6, curRank/400);
+	float spd = FUNC_LERP_DECEL(5, 9, curRank/500);
+
+	func <int> _Enemy(x, graphic){
+
+		int ship = _LargeCuteShip(
+			34, del*2, 600,
+			x, -128, enemyCoolCat,
+			3000, true,
+			0.75
+		);
+
+		async{
+		
+			ObjEnemy_SetAutoDelete(ship, false);
+
+			while(YMove(ship) < 64){
+				yield;
+			}
+
+			ObjEnemy_SetAutoDelete(ship, true);
+
+		}
+		
+		//LargeExplosion(ship);
+
+		int i = 0;
+		float startAng = 0;
+
+		ObjMove_AddPatternA1(ship, 0, speedMove, 90);
+
+		async{
+			while(!Obj_IsDeleted(ship)){
+
+				int dir = i % 2 == 0 ? 1 : -1;
+				float startAng = i % 2 == 0 ? rand(-5, 0) : rand(0, 5) + i * 30;
+
+				ascent(d in 0..num){
+					ascent(k in 0..dense){
+						int bullet = CreateHueShotA1(ObjMove_GetX(ship), ObjMove_GetY(ship), FUNC_LERP_LINEAR(spd, spd * 0.95, d/num), startAng + k * 360/dense + dir * d * 2, KEV_BULLET_ALT, HUE_ORANGE, 1.5, 5+d);
+						Shoot2;
+						//_Delay(bullet, (5+d*2) * (graphic == KEV_BALL_ORANGE ? 1 : 1.5));
+					}
+				}
+
+				wait(del*4);
+				i++;
+
+			}
+		}
+
+		return ship;
+
+	}
+
+	int ship1 = _Enemy(180, KEV_BULLET_ALT);
+	wait(del*12);
+	int ship2 = _Enemy(STG_WIDTH-180, KEV_BULLET_ALT);
+
+	while(length(enmGround) > 0){yield;}
+
+}
+
+// Mid waves (2 spawners). Ground enemies (<=37 priority)
+
+func WaveMid1(){
+
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+    float spd1 = baseMoveSpeedH * (1 + MoveSpeedRankMultiplierL * curRank);
+    float spd2 = baseMoveSpeedM * (1 + MoveSpeedRankMultiplierVL * curRank);
+
+    float bulletspd1 = FUNC_LERP_LINEAR(11, 16, curRank/400);
+	int bulletdel1 = FUNC_LERP_LINEAR(30, 15, curRank/400);
+
+	float bulletspd2 = FUNC_LERP_LINEAR(7, 11, curRank/400);
+	int acceltime = FUNC_LERP_LINEAR(120, 60, curRank/400);
+	int bulletdel2 = FUNC_LERP_LINEAR(8, 3, curRank/400);
+	
+	int bulletdense1 = FUNC_LERP_LINEAR(1, 3, curRank/400);
+	int bulletspace = FUNC_LERP_LINEAR(3, 0.5, curRank/400);
+	int bulletdense2 = FUNC_LERP_LINEAR(6, 8, curRank/400);
+
+	int enmnum = FUNC_LERP_LINEAR(2, 4, curRank*1.5/400);
+	int enmdel = FUNC_LERP_LINEAR(30, 20, curRank/400);
+
+	task CreateEnemyB(float[] xArray, float yOffset){
+		
+		int enm = _MediumCuteShip(
+			37, FUNC_LERP_LINEAR(30, 20, curRank/RANK_MAX),
+			xArray[0], STG_HEIGHT/1.5, medshipRectEAlt,
+			1.0
+		);
+		float k =  GetAngleToPlayer(enm);
+
+		//enmGround ~= [enm];
+
+		ObjMove_SetDestAtFrame(enm, xArray[1], FUNC_LERP_LINEAR(STG_HEIGHT/2, STG_HEIGHT/3, curRank/RANK_MAX) - yOffset, FUNC_LERP_LINEAR(40, 20, curRank/RANK_MAX), LERP_DECELERATE);
+		ObjMove_AddPatternA2(enm, round(FUNC_LERP_LINEAR(50, 30, curRank/RANK_MAX) + bulletdel2), 0, 270, (spd2/5)/(FUNC_LERP_LINEAR(50, 20, curRank/RANK_MAX)), spd2/4, 0);
+
+	    while(!Obj_IsDeleted(enm)){
+			
+			ascent(j in 0..8){
+				if(Obj_IsDeleted(enm)){break;}
+				ascent(i in 0..bulletdense2){
+					CreateHueShotA2(MOVE_COORD(enm)[0], MOVE_COORD(enm)[1], bulletspd2/15, k + i * (360/bulletdense2), bulletspd2/acceltime, bulletspd2, 0, KEV_STAR, HUE_AZURE, 1.8, 0);
+				}
+				k += FUNC_LERP_LINEAR(12, 8, curRank/400);
+				Shoot2;
+				wait(bulletdel2);
+			}
+
+			wait(bulletdel2 * 8);
+
+        }
+
+		//enmGround = remove(enmGround, enm);
+		
+	}
+
+	ascent(i in 0..enmnum){
+		CreateEnemyB(i % 2 == 0 ? [STG_WIDTH + 32, STG_WIDTH - 160] : [-32, 160], i * 7);
+		wait(enmdel);
+		//while(length(enmGround) > 2){yield;}
+	}
+ 
+	wait(10);
+ 	while(length(enmGround) > 0){yield;}
+
+}
+
+func WaveMid2(){
+	
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+	int bulletnum = FUNC_LERP_LINEAR(3, 6, curRank/(RANK_MAX/1.5));
+	int bulletdense = FUNC_LERP_LINEAR(6, 10, curRank/(RANK_MAX/1.5));
+	float bulletspd = FUNC_LERP_LINEAR(6.5, 10.5, curRank/350);
+	int bulletdel = FUNC_LERP_LINEAR(15, 8, curRank/RANK_MAX);
+
+	float enmspd = FUNC_LERP_LINEAR(4, 6, curRank/RANK_MAX);
+	int enmnum = FUNC_LERP_LINEAR(6, 10, curRank/RANK_MAX * 1.5);
+
+    task CreateEnemyA(x, y, spin){
+		
+		int enm = _MediumCuteShip(
+            37, 45 + enmspd * 5,
+            x, -24,
+			medshipRectAAlt, 1.0
+		);
+
+		ObjEnemy_SetLife(enm, 250);
+		//enmGround ~= [enm];
+
+		ObjMove_SetDestAtFrame(enm, x, y, 45, LERP_DECELERATE);
+		
+		async{
+			wait(45 + (10 - enmspd) * 10);
+			ObjMove_AddPatternA2(enm, 0, 0, 90, enmspd/30, enmspd, 0);
+		}
+
+		async{
+			float f = GetAngleToPlayer(enm);
+
+			ObjEnemy_SetMaximumDamage(enm, 5);
+
+			wait(45);
+
+			ObjEnemy_SetMaximumDamage(enm, 999);
+
+			while(!Obj_IsDeleted(enm) && YMove(enm) < STG_HEIGHT - 48){
+				ascent(i in 0..bulletdense){
+					NewCreateFan(
+						enm, bulletnum, KEV_BULLET, HUE_RED, 1, 
+						f + i * (360/bulletdense), FUNC_LERP_LINEAR(1.1, 0.8, curRank/RANK_MAX), bulletspd, 1, 1.8,
+						0, 0,
+						PATTERN_FAN, false
+					);
+				}
+				f += 15 * spin;
+				Shoot2;
+				wait(bulletdel);
+			}
+
+			//enmGround = remove(enmGround, enm);
+		}
+
+    }
+
+	CreateEnemyA(STG_WIDTH/2, STG_HEIGHT/3, 1);
+
+	wait(80);
+
+	while(length(enmGround) > 0){yield;}
+
+	CreateEnemyA(STG_WIDTH/2 - 128, STG_HEIGHT/3, 1);
+	CreateEnemyA(STG_WIDTH/2 + 128, STG_HEIGHT/3, -1);
+
+	wait(80);
+
+	while(length(enmGround) > 0){yield;}
+
+	CreateEnemyA(STG_WIDTH/2 - 180, STG_HEIGHT/5, 1);
+	CreateEnemyA(STG_WIDTH/2 + 180, STG_HEIGHT/5, -1);
+
+	wait(80);
+
+	CreateEnemyA(STG_WIDTH/2, STG_HEIGHT/4 + 96, 1);
+
+	while(length(enmGround) > 0){yield;}
+
+}
+
+func WaveMid3(){
+
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+	int bulletnum = FUNC_LERP_LINEAR(2, 5, curRank/(RANK_MAX/1.5));
+	int bulletdense = FUNC_LERP_LINEAR(8, 10, curRank/(RANK_MAX/1.5));
+	float bulletspd = FUNC_LERP_LINEAR(7, 14, curRank/RANK_MAX);
+	int bulletdel = FUNC_LERP_LINEAR(20, 12, curRank/RANK_MAX);
+
+	float enmspd = FUNC_LERP_LINEAR(4, 6, curRank/RANK_MAX);
+
+    func <int> CreateEnemyA(){
+		
+		int enm = _MediumCuteShip(
+            37, 45 + enmspd * 5,
+            GetPlayerX(), -24, medshipRectEAlt,
+			1.0
+		);
+
+		ObjEnemy_SetLife(enm, 250);
+
+		ObjMove_SetDestAtFrame(enm, GetPlayerX(), STG_HEIGHT/4, 45, LERP_DECELERATE);
+		
+		async{
+			wait(45 + (10 - enmspd) * 10);
+			ObjMove_AddPatternA2(enm, 0, 0, 90, enmspd/30, enmspd, 0);
+		}
+
+		async{
+			int f = 0;
+
+			ObjEnemy_SetMaximumDamage(enm, 5);
+
+			wait(45);
+
+			ObjEnemy_SetMaximumDamage(enm, 999);
+
+			float despeAng = GetAngleToPlayer(enm);
+
+			while(!Obj_IsDeleted(enm) && YMove(enm) < STG_HEIGHT - 48){
+
+				// ascent(i in 0..bulletdense){
+				// 	CreateFan(
+				// 		enm, bulletnum, KEV_BULLET, 1, 
+				// 		f + i * (360/bulletdense), FUNC_LERP_LINEAR(1.1, 0.8, curRank/RANK_MAX), bulletspd, 1, 1,
+				// 		PATTERN_FAN, false
+				// 	);
+				// }
+				// f += 15;
+				// Shoot2;
+				// wait(bulletdel);
+
+				ascent(i in 0..[4, 5, 6, 7][curDiff]){
+
+					int[] fan = NewCreateFan_ReturnArray (
+						enm, [3, 3, 4, 5][curDiff], KEV_BULLET_ALT, HUE_BLUE,
+						1, despeAng + i * 360/[4, 5, 6, 7][curDiff], [2, 2.1, 2.2, 2.3][curDiff], 
+						bulletspd, bulletspd, 1.8,
+						0, 0,
+						PATTERN_FAN, false
+					);
+
+					for each(int bullet in ref fan){
+						ObjMove_AddPatternA2(bullet, 0, bulletspd*1.8, NO_CHANGE, -bulletspd/15, bulletspd/3, 0);
+						ObjMove_AddPatternA2(bullet, 34, NO_CHANGE, NO_CHANGE, bulletspd/15, bulletspd, 0);
+					}
+
+				}
+
+				despeAng += [18, 16, 15, 14][curDiff];
+
+				Shoot1;
+
+				wait(4);
+
+			}
+
+		}
+
+		return enm;
+    }
+
+	int enm = CreateEnemyA();
+
+	while(!Obj_IsDeleted(enm)){yield;}
+
+}
+
+func WaveMid4(){
+
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+    float spd1 = baseMoveSpeedH * (1 + MoveSpeedRankMultiplierL * curRank);
+    float spd2 = baseMoveSpeedM * (1 + MoveSpeedRankMultiplierVL * curRank);
+
+    float bulletspd1 = FUNC_LERP_LINEAR(3, 4, curRank/350);
+	int bulletdel1 = FUNC_LERP_LINEAR(30, 15, curRank/350);
+
+	float bulletspd2 = FUNC_LERP_LINEAR(8, 14, curRank/500);
+	int acceltime = 30;
+	int bulletdel2 = FUNC_LERP_LINEAR(25, 15, curRank/350);
+	
+	int bulletdense1 = FUNC_LERP_LINEAR(4, 7, curRank/350*1.5);
+	int bulletspace = FUNC_LERP_LINEAR(3, 0.5, curRank/350);
+	int bulletdense2 = FUNC_LERP_LINEAR(11, 18, curRank/350);
+
+	int enmdel = FUNC_LERP_LINEAR(10, 5, curRank/350);
+
+	task CreateEnemyB(float x){
+		
+		int enm = _MediumCuteShip(
+			37, FUNC_LERP_LINEAR(30, 20, curRank/RANK_MAX),
+			x, -48, medshipRectAAlt,
+			1.0
+		);
+
+		//enmGround ~= [enm];
+
+		ObjMove_SetDestAtFrame(enm, x, FUNC_LERP_LINEAR(STG_HEIGHT/5, STG_HEIGHT/4, curRank/RANK_MAX), FUNC_LERP_LINEAR(40, 20, curRank/RANK_MAX), LERP_DECELERATE);
+		ObjMove_AddPatternA2(enm, round(FUNC_LERP_LINEAR(40, 20, curRank/RANK_MAX) + bulletdel2), 0, 90, (spd2/5)/(FUNC_LERP_LINEAR(50, 20, curRank/RANK_MAX)), spd2/5, 0);
+
+		wait(FUNC_LERP_LINEAR(40, 20, curRank/RANK_MAX));
+
+		float ang = 0;
+		
+	    while(!Obj_IsDeleted(enm)){
+            ascent(i in 0..bulletdense2){
+				int bullet = CreateHueShotA2(MOVE_COORD(enm)[0], MOVE_COORD(enm)[1], bulletspd2, GetAngleToPlayer(enm) + i * (360/bulletdense2), -bulletspd2/(acceltime-15), 2, 0, KEV_BULLET_INV, HUE_VIOLET, 1.8, 0);
+				ObjMove_AddPatternA4(bullet, acceltime+5, bulletspd2/2, 0, bulletspd2/acceltime, min(18, bulletspd2*1.5), 0, KEV_STAR, GetPlayerObjectID());
+			}
+			Shoot1;
+			ang += 11;
+			wait(bulletdel2);
+        }
+
+		//enmGround = remove(enmGround, enm);
+		
+	}
+
+	while(length(enmGround) + length(enmFly) > 3){yield;}
+	
+	CreateEnemyB(STG_WIDTH/2 - 184);
+	wait(enmdel*2);
+	CreateEnemyB(STG_WIDTH/2 + 184);
+ 
+	wait(10);
+
+ 	while(length(enmGround) > 0){yield;}
+	// Enemy that fires bullets
+}
+
+// 7 waves, ends with a miniboss 
+
+func Wave1(){
+	
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+    float spd1 = baseMoveSpeedM * (1 + MoveSpeedRankMultiplierL * curRank);
+    float spd2 = baseMoveSpeedVH * (1 + MoveSpeedRankMultiplierL * curRank);
+
+    float bulletspd = FUNC_LERP_LINEAR(6, 15, curRank/500);
+	int bulletdel = FUNC_LERP_LINEAR(45, 15, curRank/500);
+	int enmnum = FUNC_LERP_LINEAR(7, 13, curRank/500);
+
+	int enmdel = FUNC_LERP_LINEAR(10, 3, curRank/500);
+
+    // Enemy that shoots no bullets
+	task CreateEnemyA(float x){
+	
+		int enm = _SmallCuteShip(
+            40, 5 * (1 + MoveSpeedRankMultiplierH * curRank),
+            x, -32, smallshipRectAAlt, 0.5
+		);
+
+		//enmFly ~= [enm];
+		
+		ObjMove_AddPatternA1(enm, 0, spd1, 90);
+
+		while(!Obj_IsDeleted(enm)){yield;}
+
+		//enmFly = remove(enmFly, enm);
+		//ObjRender_SetAngleZ(enm, 180);
+
+	}
+	
+	// Enemy that fires bullets
+
+    task CreateEnemyB(float x){
+
+		int enm = _SmallCuteShip(
+            40, 10 * (1 + MoveSpeedRankMultiplierH * curRank),
+            x, -32, smallshipRectBAlt, 0.75
+		);
+
+		//enmFly ~= [enm];
+		
+		//ObjRender_SetAngleZ(enm, 180);
+		ObjRender_SetScaleXYZ(enm, 4);
+	
+		ObjEnemy_SetLife(enm, 150);
+
+		ObjMove_SetDestAtFrame(enm, x, STG_HEIGHT/4 + rand(-64, 64), 20, LERP_DECELERATE);
+		ObjMove_AddPatternA2(enm, 30, NO_CHANGE, 90, (spd2*1.5)/(40 * (1 + MoveSpeedRankMultiplierVH * curRank * 0.25)), spd2*1.5, 0);
+
+		wait(10);
+
+        while(!Obj_IsDeleted(enm)){
+            CreateHueShotA1(MOVE_COORD(enm)[0], MOVE_COORD(enm)[1], bulletspd, GetAngleToPlayer(enm), KEV_BULLET, HUE_RED, 1.6, 1);
+			Shoot1;
+			wait(bulletdel);
+        }
+
+		//enmFly = remove(enmFly, enm);
+
+    }
+
+	ascent(i in 0..8){
+		CreateEnemyA(i % 2 == 0 ? STG_WIDTH * 2/7 + 32 : STG_WIDTH * 2/7 - 32);
+		wait(enmdel);
+	}
+
+	while(length(enmFly) > 1){yield;}
+
+	ascent(i in 0..8){
+		CreateEnemyA(i % 2 == 0 ? STG_WIDTH * 5/7 + 32 : STG_WIDTH * 5/7 - 32);
+		wait(enmdel);
+	}
+
+	while(length(enmFly) > 1){yield;}
+
+	ascent(i in 0..enmnum){
+		CreateEnemyB(GetPlayerX() + ((GetPlayerX() > STG_WIDTH/2) ? rand(-256, -100) : rand(100, 256)));
+		wait(enmdel);
+	}   
+
+	while(length(enmFly) > 1){yield;}
+}
+
+func Wave2(){
+
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+    float spd1 = FUNC_LERP_LINEAR(6, 11, curRank/500);
+    float bulletspd2 = FUNC_LERP_LINEAR(6, 11, curRank/500);
+	int bulletdel2 = FUNC_LERP_LINEAR(60, 30, curRank/500);
+
+	int enmdel2 = FUNC_LERP_LINEAR(8, 6, curRank/RANK_MAX);
+	int enmnum2 = FUNC_LERP_LINEAR(9, 14, curRank/RANK_MAX);
+
+    // Enemy that shoots bullets
+	
+    task CreateEnemyB(float val){
+
+		int enm = _SmallCuteShip(
+            40, 8 * (1 + MoveSpeedRankMultiplierH * curRank),
+            [rand(STG_WIDTH/5, STG_WIDTH/5 + 32), rand(4*STG_WIDTH/5 - 32, 4*STG_WIDTH/5)][val], -16, smallshipRectAAlt, 0.6
+		);
+	
+		ObjMove_AddPatternA1(enm, 0, spd1, GetAngleToPlayer(enm));
+
+        while(!Obj_IsDeleted(enm) && YMove(enm) < STG_HEIGHT - 32){
+		
+			int shot = CreateHueShotA2(XMove(enm), YMove(enm), bulletspd2 * 2, GetAngleToPlayer(enm), -(bulletspd2*3)/(bulletdel2), bulletspd2 * 0.4, 0, KEV_BULLET, HUE_VIOLET, 1.8, 0);
+
+			ObjMove_AddPatternA2(shot, bulletdel2 * 0.6, NO_CHANGE, NO_CHANGE, bulletspd2/15, bulletspd2*1.5, 0);
+			Shoot1;
+			wait(bulletdel2);
+        }
+
+    }
+
+	ascent(i in 1..enmnum2){
+		CreateEnemyB(i % 2 == 0 ? 0 : 1);
+		wait(enmdel2);
+	}
+
+	while(length(enmFly) > 1){yield;}
+
+}
+
+func Wave3(){
+
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+    float spd1 = baseMoveSpeedH * (1 + MoveSpeedRankMultiplierL * curRank);
+    float spd2 = baseMoveSpeedM * (1 + MoveSpeedRankMultiplierVL * curRank);
+
+    float bulletspd1 = FUNC_LERP_LINEAR(6, 12, curRank/500);
+	int bulletdel1 = FUNC_LERP_LINEAR(180, 110, curRank/500);
+	
+	int bulletdense1 = [7, 7, 9, 9, 11, 13, 15, 17][min(7, floor(curRank/40))];
+	int bulletspace = FUNC_LERP_LINEAR(21, 14, curRank/400);
+
+	int enmdel = FUNC_LERP_LINEAR(14, 8, curRank/RANK_MAX);
+
+    // Enemy that shoots no bullets
+	
+    task CreateEnemyA(float x){
+
+		int enm = _SmallCuteShip(
+            40, 10 * (1 + MoveSpeedRankMultiplierH * curRank),
+            x, -32, smallshipRectCAlt, 0.75
+		);
+	
+		//enmFly ~= [enm];
+
+		ObjEnemy_SetLife(enm, 200);
+		ObjMove_SetDestAtFrame(enm, x, STG_HEIGHT/3, 30, LERP_DECELERATE);
+		ObjMove_AddPatternA2(enm, 120, NO_CHANGE, 90, (-spd1*1.2)/(40 * (1 + MoveSpeedRankMultiplierVH * curRank * 0.08)), -spd1*2, 0);
+
+		wait(30);
+
+        while(!Obj_IsDeleted(enm)){
+			int[] fan = NewCreateFan_ReturnArray
+			(
+				enm, bulletdense1, KEV_BULLET, HUE_VIOLET, 1, 
+				0, bulletspace, bulletspd1, bulletspd1, 1.5,
+				0, 0,
+				PATTERN_FAN_AIMED, false
+			);
+			for each (int bullet in ref fan){
+				ObjMove_AddPatternA2(bullet, 0, bulletspd1, NO_CHANGE, -bulletspd1/50, bulletspd1/2, 0);
+			}
+			Shoot1;
+			wait(bulletdel1);
+        }
+
+		//enmFly = remove(enmFly, enm);
+
+    }
+
+	ascent(i in 0..6){
+		CreateEnemyA(STG_WIDTH/2 + STG_WIDTH/4 * (i % 2 == 0 ? 1 : -1) + rand(-32, 32));
+		wait(enmdel);
+	}
+
+	while(length(enmFly) > 1){yield;}
+
+	wait(FUNC_LERP_LINEAR(30, 15, curRank/RANK_MAX));
+
+}
+
+func Wave4(){
+	
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+    float spd = baseMoveSpeedM * (1 + MoveSpeedRankMultiplierL * curRank);
+
+    float bulletspd = FUNC_LERP_LINEAR(7, 12, curRank/400);
+
+	int bulletdel = FUNC_LERP_LINEAR(3, 2, curRank/RANK_MAX);
+	int bulletdel2 = FUNC_LERP_LINEAR(60, 30, curRank/RANK_MAX);
+	int bulletnum = FUNC_LERP_LINEAR(4, 7, curRank*1.5/RANK_MAX);
+
+	int enmdel = FUNC_LERP_LINEAR(20, 10, curRank/RANK_MAX);
+	//int waittime = FUNC_LERP_LINEAR(45, 30, curRank/RANK_MAX);
+	int enmnum = FUNC_LERP_LINEAR(6, 12, curRank/RANK_MAX);
+
+    // Enemy that shoots no bullets
+	
+    task CreateEnemyA(moveDir){
+		
+		int enm = _SmallCuteShip(
+            40, 15,
+            [-60, STG_WIDTH+60][moveDir], rand(STG_HEIGHT/6, STG_HEIGHT/4), smallshipRectAAlt,
+			0.7
+		);
+
+		ObjEnemy_SetAutoDelete(enm, false);
+		ObjEnemy_SetLife(enm, 100);
+		ObjEnemy_SetDamageRate(enm, 0.1, 0.1);
+		ObjMove_SetDestAtFrame(enm, [rand(80, 120), rand(STG_WIDTH-120, STG_WIDTH-80)][moveDir], MOVE_COORD(enm)[1], 15, LERP_DECELERATE);
+		ObjMove_AddPatternA2(enm, 15, spd/8, [0, 180][moveDir], spd/15, spd/2, 0);
+
+		wait(15);
+		ObjEnemy_SetDamageRate(enm, 1, 1);
+		ObjEnemy_SetAutoDelete(enm, true);
+
+        while(!Obj_IsDeleted(enm)){
+
+			ascent(i in 0..bulletnum){
+				int shot = CreateHueShotA1(MOVE_COORD(enm)[0], MOVE_COORD(enm)[1], bulletspd, 270, KEV_BULLET_ALT, HUE_RED, 1.8, 0);
+				ObjMove_AddPatternA2(shot, 0, bulletspd, NO_CHANGE, -bulletspd/15, 2, 0);
+				ObjMove_AddPatternA2(shot, 15, NO_CHANGE, GetAngleToPlayer(shot), bulletspd/15, bulletspd, 0);
+				if (i % 2 == 0) {Shoot2;}
+				wait(bulletdel);
+			}
+
+			wait(bulletdel2);
+        }
+
+    }
+
+	ascent(i in 1..enmnum){
+		CreateEnemyA(i % 2 == 0 ? 0 : 1);
+		wait(enmdel);
+	}
+ 
+ 	while(length(enmFly) > 1){yield;}
+	// Enemy that fires bullets
+}
+
+func Wave5(){
+
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+	float spd = FUNC_LERP_LINEAR(11, 15, curRank/RANK_MAX);
+	float bulletspd = FUNC_LERP_LINEAR(9, 15, curRank/RANK_MAX);
+	int bulletdel = FUNC_LERP_LINEAR(40, 20, curRank/RANK_MAX);
+	int enmdel = FUNC_LERP_LINEAR(18, 12, curRank/RANK_MAX);
+	int enmnum = FUNC_LERP_LINEAR(5, 8, curRank/RANK_MAX);
+	
+	// Up->Right or Down->Left
+    task CreateEnemyA(float x, float y, float targety){
+		
+		// int enm = _SmallShip(
+        //     40, enmdel,
+        //     x, y, 0
+		// );
+
+		int enm = _SmallCuteShip(
+            40, spd*4,
+            x, y, smallshipRectFAlt, 0.6
+		);
+	
+		ObjMove_AddPatternA1(enm, 0, spd, y > STG_HEIGHT/2 ? 270 : 90);
+		
+		async{
+			while(true){
+				if(y > STG_HEIGHT/2 ? YMove(enm) > targety : YMove(enm) < targety){yield;}
+				else{
+					ObjMove_SetAngle(enm, x > STG_WIDTH/2 ? 180 : 0);
+					return;
+				}
+			}
+		}
+
+		async{
+			while(!Obj_IsDeleted(enm)){
+				if(YMove(enm) < STG_HEIGHT/2){
+					ascent(i in -2..1){
+						int shot = CreateHueShotA2(MOVE_COORD(enm)[0], MOVE_COORD(enm)[1], bulletspd, GetAngleToPlayer(enm) - 4 + 4 * i, -bulletspd/15, 2, 0, KEV_STAR, HUE_AZURE, 2.0, 0);
+						ObjMove_AddPatternA2(shot, 20, NO_CHANGE, NO_CHANGE, bulletspd/25, bulletspd, 0);
+					}
+					Shoot1;
+				}
+				wait(bulletdel);
+			}
+		}
+
+    }
+
+	while(length(enmGround) > 1){yield;}
+
+	wait(15);
+
+	if(GetCommonData("Flying Loops Cleared", 0) % 2 == 0){
+		ascent(i in 0..enmnum){
+			CreateEnemyA(60 + (i % 2 == 0 ? 12 : -12), STG_HEIGHT+32, 128);
+			wait(enmdel);
+		}
+		ascent(i in 0..enmnum){
+			CreateEnemyA(STG_WIDTH - 60 + (i % 2 == 0 ? 12 : -12), STG_HEIGHT + 32, 128);
+			wait(enmdel);
+		}
+	}
+
+	else{
+		ascent(i in 0..enmnum){
+			CreateEnemyA(STG_WIDTH - 60 + (i % 2 == 0 ? 12 : -12), STG_HEIGHT + 32, 128);
+			wait(enmdel);
+		}
+		ascent(i in 0..enmnum){
+			CreateEnemyA(60 + (i % 2 == 0 ? 12 : -12), STG_HEIGHT+32, 128);
+			wait(enmdel);
+		}	
+	}
+
+	while(length(enmFly) > 1){yield;}
+
+	wait(FUNC_LERP_LINEAR(30, 15, curRank/RANK_MAX));
+
+}
+
+func Wave6(){
+
+	if (stageTimer > SECTION4_LENGTH){return;}
+
+    float spd1 = FUNC_LERP_LINEAR(7, 13, curRank/RANK_MAX);
+    float bulletspd2 = FUNC_LERP_LINEAR(8, 16, curRank/400);
+	int bulletdel2 = FUNC_LERP_LINEAR(50, 25, curRank/400);
+
+	int enmdel2 = FUNC_LERP_LINEAR(7, 3, curRank/RANK_MAX);
+	int enmnum2 = FUNC_LERP_LINEAR(13, 21, curRank/RANK_MAX);
+
+    // Enemy that shoots no bullets
+	
+    task CreateEnemyB(int val){
+
+		int enm = _SmallCuteShip(
+            40, 2 * (1 + MoveSpeedRankMultiplierH * curRank),
+            [rand(STG_WIDTH/5, STG_WIDTH/5 + 32), rand(4*STG_WIDTH/5 - 32, 4*STG_WIDTH/5)][val], -16, smallshipRectDAlt,
+			0.75
+		);
+	
+		//enmFly ~= [enm];
+		ObjMove_AddPatternA1(enm, 0, spd1, GetAngleToPlayer(enm));
+		ObjRender_SetAngleZ(enm, 90 - ObjMove_GetAngle(enm));
+
+        while(!Obj_IsDeleted(enm)){
+			NewCreateFan
+			(
+				enm, [3, 5, 5, 7, 7, 9][min(5, floor(curRank/50))], KEV_BULLET, HUE_VIOLET2, 1, 
+				0, 1.5, bulletspd2, bulletspd2, 1.8,
+				PATTERN_FAN_AIMED, false
+			);
+			Shoot1;
+			wait(bulletdel2);
+        }
+
+		//enmFly = remove(enmFly, enm);
+
+    }
+
+	ascent(i in 1..enmnum2){
+		CreateEnemyB(i % 2 == 0 ? 0 : 1);
+		wait(enmdel2);
+	}
+
+	while(length(enmFly) > 1){yield;}
+
+}

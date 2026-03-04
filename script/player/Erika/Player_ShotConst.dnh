@@ -1,0 +1,9 @@
+let current = GetCurrentScriptDirectory();
+let path = current ~ "Player_ShotData.dnh";
+LoadPlayerShotData(path);
+// ----- 
+
+const BULLET = 1;
+const MAGIC = 2;
+const OPTION = 3;
+

@@ -1,0 +1,36 @@
+//���������Ȃ��ł��������B
+//Do not modify.
+
+@Initialize
+{
+	TEnemy();
+}
+
+@MainLoop
+{
+	yield;
+}
+
+@Finalize
+{
+}
+
+task TEnemy
+{
+	let path = GetMainStgScriptPath();
+	let obj = ObjEnemyBossScene_Create();
+	ObjEnemyBossScene_Add(obj, 0, path);
+	ObjEnemyBossScene_LoadInThread(obj);
+	ObjEnemyBossScene_Regist(obj);
+
+	while(!Obj_IsDeleted(obj) && GetPlayerState() != STATE_END)
+	{
+		yield;
+	}
+
+	loop(15){yield;}
+
+	CloseStgScene();
+}
+
+

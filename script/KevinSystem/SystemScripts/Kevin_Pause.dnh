@@ -1,0 +1,299 @@
+//一時停止中スクリプト
+//#include "./../../script/soundtask.dnh"
+#include "script/KevinSystem/GeneralSoundLib.dnh"
+
+int STGWIDTH = GetStgFrameWidth();
+int STGHEIGHT = GetStgFrameHeight();
+
+@Initialize
+{
+	_SoundTask();
+	PauseGameSFX;
+	SetAutoDeleteObject(true);
+	//TBackground();
+	TBackgroundNew(0, 0);
+	TMenu();
+	TFunFact();
+	//_SoundTask;
+}
+
+@MainLoop
+{
+	yield;
+}
+
+@Finalize
+{
+}
+
+task TFunFact(){
+	
+	//int y = 0;
+	
+	let textchoices = [
+	
+	["Well, even a smoke break has to end, right?[r]But I like a good cup of coffee more."],
+
+	["Well, even a smoke break has to end, right?[r]But I like a good cup of coffee more."],
+	
+	];
+
+	int x = prand_int(0, length(textchoices[GetCommonData("Language", 0)])-1);
+	//y = length(textchoices);
+	
+	let objText = ObjText_Create();
+	ObjText_SetText(objText, textchoices[GetCommonData("Language", 0)][x]);
+	ObjText_SetFontSize(objText, [32, 32][GetCommonData("Language", 0)]);
+	ObjText_SetFontType(objText, "Cartesian");
+	
+	//ObjText_SetMaxWidth(objText, GetScreenWidth/2);
+	ObjText_SetHorizontalAlignment(objText, ALIGNMENT_CENTER);
+	
+	ObjText_SetFontBold(objText, true);
+	ObjText_SetFontColorTop(objText, 255, 255, 255);
+	ObjText_SetFontColorBottom(objText, 255, 255, 255);
+	ObjText_SetFontBorderType(objText, BORDER_FULL);
+	ObjText_SetFontBorderColor(objText, 0x370056);
+	ObjText_SetFontBorderWidth(objText, 3);
+	Obj_SetRenderPriorityI(objText, 10);
+	ObjRender_SetX(objText, GetScreenWidth/2);
+	ObjRender_SetY(objText, 6*STGHEIGHT/9);
+	
+}
+
+// renderX and renderY will be TOP-LEFT COORDS
+task TBackgroundNew(float renderX, renderY){
+
+	let obj = ObjPrim_Create(OBJ_SPRITE_2D);
+	Obj_SetRenderPriorityI(obj, 1);
+	
+	let currentFrameTexture = GetTransitionRenderTargetName();
+	
+	ObjPrim_SetTexture(obj, currentFrameTexture);
+	ObjSprite2D_SetSourceRect(obj, 0, 0, GetScreenWidth(), GetScreenHeight());
+	ObjSprite2D_SetDestRect(obj, 0, 0, GetScreenWidth(), GetScreenHeight());
+	
+	ObjRender_SetColor(obj, 0x593DA3);
+	
+}
+
+task TBackground
+{	
+	task TVertex(var index, var left, var top, var right, var bottom)
+	{
+		ObjPrim_SetVertexPosition(obj, index + 0, left, top, 0);
+		ObjPrim_SetVertexPosition(obj, index + 1, left, bottom, 0);
+		ObjPrim_SetVertexPosition(obj, index + 2, right, top, 0);
+		ObjPrim_SetVertexPosition(obj, index + 3, right, top, 0);
+		ObjPrim_SetVertexPosition(obj, index + 4, left, bottom, 0);
+		ObjPrim_SetVertexPosition(obj, index + 5, right, bottom, 0);
+
+		ObjPrim_SetVertexUVT(obj, index + 0, left, top);
+		ObjPrim_SetVertexUVT(obj, index + 1, left, bottom);
+		ObjPrim_SetVertexUVT(obj, index + 2, right, top);
+		ObjPrim_SetVertexUVT(obj, index + 3, right, top);
+		ObjPrim_SetVertexUVT(obj, index + 4, left, bottom);
+		ObjPrim_SetVertexUVT(obj, index + 5, right, bottom);
+
+		//STGシーン内のみアニメーション
+		if(left >= 341 && right <= 937 && top >= 45 && bottom <= 677)
+		{
+			let alpha = 255;
+			while(alpha >= 128)
+			{
+				ObjPrim_SetVertexAlpha(obj, index + 0, alpha);
+				ObjPrim_SetVertexAlpha(obj, index + 1, alpha/2);
+				ObjPrim_SetVertexAlpha(obj, index + 2, alpha/2);
+				ObjPrim_SetVertexAlpha(obj, index + 3, alpha/2);
+				ObjPrim_SetVertexAlpha(obj, index + 4, alpha/2);
+				ObjPrim_SetVertexAlpha(obj, index + 5, alpha);
+				alpha -= 255 / frame;
+
+				yield;
+			}
+		}
+	}
+
+	//分割設定
+	let frame = 30;
+	let countH = 20; //分割数
+	let countV = 30; 
+	let width = 1280 / countH;
+	let height = 720 / countV;
+	let target = GetTransitionRenderTargetName();
+	let obj = ObjPrim_Create(OBJ_PRIMITIVE_2D); //2D頂点ブジェクト生成
+	ObjPrim_SetPrimitiveType(obj, PRIMITIVE_TRIANGLELIST);
+	ObjPrim_SetVertexCount(obj, countH * countV * 6);
+	Obj_SetRenderPriorityI(obj, 0); //描画優先度を設定
+	ObjPrim_SetTexture(obj, target); //テクスチャを設定
+
+	ascent(ix in 0.. countH)
+	{
+		ascent(iy in 0.. countV)
+		{
+			let index = (ix + iy * countH) * 6;
+			let left = ix * width;
+			let right = left + width;
+			let top = iy * height;
+			let bottom = top + height;
+			TVertex(index, left, top, right, bottom);
+		}
+	}
+
+}
+
+task TMenu
+{
+	let selectIndex = 0;//選択位置
+	function TMenuItem(let index, let mx, let my, let text)
+	{
+		function CreateTextObject(let mx, let my, let text)
+		{
+			let obj = ObjText_Create();
+			ObjText_SetText(obj, text);
+			ObjText_SetFontSize(obj, 32);
+			ObjText_SetFontType(obj, "Aquire");
+			ObjText_SetFontBold(obj, true);
+			ObjText_SetHorizontalAlignment(obj, ALIGNMENT_CENTER);
+			//ObjText_SetMaxWidth(obj, STGWIDTH);
+			ObjText_SetFontColorTop(obj, 155, 45, 175);
+			ObjText_SetFontColorBottom(obj, 200, 80, 255);
+			ObjText_SetFontBorderType(obj, BORDER_FULL);
+			ObjText_SetFontBorderColor(obj, 0x330e4b);
+			ObjText_SetFontBorderWidth(obj, 3.5);
+			Obj_SetRenderPriorityI(obj, 10);
+			ObjRender_SetX(obj, mx);
+			ObjRender_SetY(obj, my);
+			return obj;
+		}
+
+		let objText = CreateTextObject(mx, my, text);
+		let objSelect = CreateTextObject(mx, my, text);
+		ObjRender_SetBlendType(objSelect, BLEND_ADD_RGB);
+		
+		async{
+			loop
+			{
+				Obj_SetVisible(objSelect, index == selectIndex);
+				yield;
+			}
+		}
+		
+		return objText;
+	}
+
+	//メニュー配置
+
+	let textchoices = ["", ""];
+	int x = prand_int(0, length(textchoices)-1);
+	let objText = ObjText_Create();
+	ObjText_SetText(objText, textchoices[x]);
+	ObjText_SetFontSize(objText, 16);
+	ObjText_SetFontType(objText, "Formal_Future_More_Letter_Gap");
+	
+	//ObjText_SetMaxWidth(objText, STGWIDTH);
+	ObjText_SetHorizontalAlignment(objText, ALIGNMENT_CENTER);
+	
+	ObjText_SetFontBold(objText, true);
+	ObjText_SetFontColorTop(objText, 75, 255, 255);
+	ObjText_SetFontColorBottom(objText, 180, 255, 255);
+	ObjText_SetFontBorderType(objText, BORDER_FULL);
+	ObjText_SetFontBorderColor(objText,0, 0, 0);
+	ObjText_SetFontBorderWidth(objText, 2);
+	Obj_SetRenderPriorityI(objText, 10);
+	ObjRender_SetX(objText, GetScreenWidth/2);
+	ObjRender_SetY(objText, 75);
+	
+	let mx = GetScreenWidth/2;
+	let my = GetScreenHeight/3;
+	let texts = ["Resume Your Journey", "Return To Title", "Rewind To The Start"];
+	var countMenu = length(texts);
+	ascent(var iText in 0 .. countMenu)
+	{
+		int text = TMenuItem(iText, mx, my, texts[iText]);
+		my += 40;
+	}
+
+	//キー状態がリセットされるまで待機
+	while(GetVirtualKeyState(VK_PAUSE) != KEY_FREE){yield;}
+
+	//メニュー選択処理
+	let frameKeyHold = 0;//キー押しっぱなしフレーム数
+	//PauseGameSFX;
+	loop
+	{
+		//決定
+		if(GetVirtualKeyState(VK_OK) == KEY_PULL)
+		{
+			let listResult = [RESULT_CANCEL, RESULT_END, RESULT_RETRY];
+			SetScriptResult(listResult[selectIndex]);
+			CloseScript(GetOwnScriptID());
+			return;
+		}
+
+		//キャンセル
+		if(GetVirtualKeyState(VK_CANCEL) == KEY_PULL || GetVirtualKeyState(VK_PAUSE) == KEY_PULL)
+		{
+			SetScriptResult(RESULT_CANCEL);
+			CloseScript(GetOwnScriptID());
+			return;
+		}
+
+		//カーソル移動
+		if(GetVirtualKeyState(VK_UP) == KEY_PUSH)
+		{
+			SelectOptionSFX;
+			selectIndex--;
+		}
+		else if(GetVirtualKeyState(VK_DOWN) == KEY_PUSH)
+		{
+			SelectOptionSFX;
+			selectIndex++;
+		}
+		else if(GetVirtualKeyState(VK_UP) == KEY_HOLD)
+		{
+			frameKeyHold++;
+			if(frameKeyHold == 30 || (frameKeyHold > 30 && (frameKeyHold % 10 == 0)))
+			{
+				SelectOptionSFX;
+				selectIndex--;
+			}
+		}
+		else if(GetVirtualKeyState(VK_DOWN) == KEY_HOLD)
+		{
+			frameKeyHold++;
+			if(frameKeyHold == 30 || (frameKeyHold > 30 && (frameKeyHold % 10 == 0)))
+			{
+				SelectOptionSFX;
+				selectIndex++;
+			}
+		}
+		else
+		{
+			frameKeyHold = 0;
+		}
+
+		if(selectIndex < 0) 
+		{
+			selectIndex = countMenu - 1;
+		}
+		else
+		{
+			selectIndex %= countMenu;
+		}
+		if(GetKeyState(KEY_R) == KEY_PUSH){
+			SetScriptResult(RESULT_RETRY);
+			CloseScript(GetOwnScriptID());
+			return;
+		}
+		if(GetKeyState(KEY_Q) == KEY_PUSH){
+			SetScriptResult(RESULT_END);
+			CloseScript(GetOwnScriptID());
+			return;
+		}
+		yield;
+	}
+}
+
+
+

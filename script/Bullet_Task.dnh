@@ -1,0 +1,313 @@
+function <int> CreateFan (int parent, int way, int graphic, int stack, 
+	float ang, float angspace, float spd1, float spd2, float scaleBullet,
+	int type, bool reflect){
+
+	int objPattern = ObjPatternShot_Create();
+	
+	ObjPatternShot_SetParentObject(objPattern, parent);
+	
+	//if(ObjEnemyBossScene_GetInfo(GetEnemyBossSceneObjectID(), INFO_CURRENT_LIFE) == 0){Obj_Delete(objPattern); return;}
+	
+	ObjPatternShot_SetPatternType(objPattern, type); // PATTERN_FAN or PATTERN_FAN_AIMED
+	ObjPatternShot_SetShotType(objPattern, OBJ_SHOT);
+	ObjPatternShot_SetInitialBlendMode(objPattern, BLEND_ALPHA);
+	
+	ObjPatternShot_SetShotCount(objPattern, way, stack);
+	ObjPatternShot_SetSpeed(objPattern, spd1, spd2);
+	ObjPatternShot_SetAngle(objPattern, ang, angspace);
+	
+	ObjPatternShot_SetBasePointOffset(objPattern, 0, 0);
+	//ObjPatternShot_SetDelay(objPattern, 15);
+	ObjPatternShot_SetGraphic(objPattern, graphic);
+	
+	//Shoot2;
+	let arrayPattern = ObjPatternShot_FireReturn(objPattern);
+	
+	ascent(i in -1..length(arrayPattern)-1){
+				if(
+			ObjShot_GetImageID(arrayPattern[i]) == SHOT_BULLET_DMAGENTA ||
+			ObjShot_GetImageID(arrayPattern[i]) == SHOT_BULLET_DRED ||
+			ObjShot_GetImageID(arrayPattern[i]) == SHOT_BULLET_DAQUA 
+			)
+		{
+			_BulletRescale(arrayPattern[i], scaleBullet * 1.4, true, 1);
+		}
+		else{
+			_BulletRescale(arrayPattern[i], scaleBullet, true, 1);
+		}
+		_Delay(arrayPattern[i], 5);
+		//Obj_SetRenderPriorityI(arrayPattern[i], 51);
+	}
+
+	for each (int bullet in ref arrayPattern){
+		if (reflect) {_ReflectToPlayer(bullet);}
+	}
+	
+	async{
+		wait(300);
+		Obj_Delete(objPattern);
+		return;
+	}
+	
+	return objPattern;
+	
+}
+
+function <int> CreateLine(
+	int parent, int way, int stack, 
+	float ang, float angspace, 
+	float spd1, float spd2, float scaleBullet,
+	int graphic
+	){
+
+	int objPattern = ObjPatternShot_Create();
+	
+	ObjPatternShot_SetParentObject(objPattern, parent);
+	
+	//if(ObjEnemyBossScene_GetInfo(GetEnemyBossSceneObjectID(), INFO_CURRENT_LIFE) == 0){Obj_Delete(objPattern); return;}
+	
+	ObjPatternShot_SetPatternType(objPattern, PATTERN_LINE);
+	ObjPatternShot_SetShotType(objPattern, OBJ_SHOT);
+	ObjPatternShot_SetInitialBlendMode(objPattern, BLEND_ALPHA);
+	
+	ObjPatternShot_SetShotCount(objPattern, way, stack);
+	ObjPatternShot_SetSpeed(objPattern, spd1, spd2);
+	ObjPatternShot_SetAngle(objPattern, ang, angspace);
+	
+	ObjPatternShot_SetBasePointOffset(objPattern, 0, 0);
+	ObjPatternShot_SetGraphic(objPattern, graphic);
+	
+	return objPattern;
+	
+}
+
+function <int[]> CreateFan_ReturnArray(int parent, int way, int graphic, int stack, 
+	float ang, float angspace, float spd1, float spd2, float scaleBullet,
+	float xOffset, float yOffset,
+	int type, bool reflect){
+
+	int objPattern = ObjPatternShot_Create();
+	
+	ObjPatternShot_SetParentObject(objPattern, parent);
+	
+	//if(ObjEnemyBossScene_GetInfo(GetEnemyBossSceneObjectID(), INFO_CURRENT_LIFE) == 0){Obj_Delete(objPattern); return;}
+	
+	ObjPatternShot_SetPatternType(objPattern, type); // PATTERN_FAN or PATTERN_FAN_AIMED
+	ObjPatternShot_SetShotType(objPattern, OBJ_SHOT);
+	ObjPatternShot_SetInitialBlendMode(objPattern, BLEND_ALPHA);
+	
+	ObjPatternShot_SetShotCount(objPattern, way, stack);
+	ObjPatternShot_SetSpeed(objPattern, spd1, spd2);
+	ObjPatternShot_SetAngle(objPattern, ang, angspace);
+	
+	ObjPatternShot_SetBasePointOffset(objPattern, xOffset, yOffset);
+	//ObjPatternShot_SetDelay(objPattern, 15);
+	ObjPatternShot_SetGraphic(objPattern, graphic);
+	
+	//Shoot2;
+	let arrayPattern = ObjPatternShot_FireReturn(objPattern);
+	
+	ascent(i in -1..length(arrayPattern)-1){
+				if(
+			ObjShot_GetImageID(arrayPattern[i]) == SHOT_BULLET_DMAGENTA ||
+			ObjShot_GetImageID(arrayPattern[i]) == SHOT_BULLET_DRED ||
+			ObjShot_GetImageID(arrayPattern[i]) == SHOT_BULLET_DAQUA 
+			)
+		{
+			_BulletRescale(arrayPattern[i], scaleBullet * 1.4, true, 1);
+		}
+		else{
+			_BulletRescale(arrayPattern[i], scaleBullet, true, 1);
+		}
+		_Delay(arrayPattern[i], 5);
+		//Obj_SetRenderPriorityI(arrayPattern[i], 51);
+	}
+
+	for each (int bullet in ref arrayPattern){
+		if (reflect) {_ReflectToPlayer(bullet);}
+	}
+	
+	async{
+		wait(300);
+		Obj_Delete(objPattern);
+		return;
+	}
+	
+	return arrayPattern;
+	
+}
+
+// Overload
+
+function <int> CreateFan (int parent, int way, int graphic, int stack, 
+	float ang, float angspace, float spd1, float spd2, float scaleBullet,
+	float xOffset, float yOffset,
+	int type, bool reflect){
+
+	int objPattern = ObjPatternShot_Create();
+	
+	ObjPatternShot_SetParentObject(objPattern, parent);
+	
+	//if(ObjEnemyBossScene_GetInfo(GetEnemyBossSceneObjectID(), INFO_CURRENT_LIFE) == 0){Obj_Delete(objPattern); return;}
+	
+	ObjPatternShot_SetPatternType(objPattern, type); // PATTERN_FAN or PATTERN_FAN_AIMED
+	ObjPatternShot_SetShotType(objPattern, OBJ_SHOT);
+	ObjPatternShot_SetInitialBlendMode(objPattern, BLEND_ALPHA);
+	
+	ObjPatternShot_SetShotCount(objPattern, way, stack);
+	ObjPatternShot_SetSpeed(objPattern, spd1, spd2);
+	ObjPatternShot_SetAngle(objPattern, ang, angspace);
+	
+	ObjPatternShot_SetBasePointOffset(objPattern, xOffset, yOffset);
+	//ObjPatternShot_SetDelay(objPattern, 15);
+	ObjPatternShot_SetGraphic(objPattern, graphic);
+	
+	//Shoot2;
+	let arrayPattern = ObjPatternShot_FireReturn(objPattern);
+	
+	ascent(i in -1..length(arrayPattern)-1){
+				if(
+			ObjShot_GetImageID(arrayPattern[i]) == SHOT_BULLET_DMAGENTA ||
+			ObjShot_GetImageID(arrayPattern[i]) == SHOT_BULLET_DRED ||
+			ObjShot_GetImageID(arrayPattern[i]) == SHOT_BULLET_DAQUA 
+			)
+		{
+			_BulletRescale(arrayPattern[i], scaleBullet * 1.4, true, 1);
+		}
+		else{
+			_BulletRescale(arrayPattern[i], scaleBullet, true, 1);
+		}
+		_Delay(arrayPattern[i], 5);
+		//Obj_SetRenderPriorityI(arrayPattern[i], 51);
+	}
+
+	for each (int bullet in ref arrayPattern){
+		if (reflect) {_ReflectToPlayer(bullet);}
+	}
+	
+	async{
+		wait(300);
+		Obj_Delete(objPattern);
+		return;
+	}
+	
+	return objPattern;
+	
+}
+
+task _ReflectToPlayer(int target){
+
+	ObjShot_SetAutoDelete(target, false);
+	
+	while(!Obj_IsDeleted(target)){
+		if (ObjMove_GetX(target) <= -1 || ObjMove_GetX(target) >= GetStgFrameWidth()+1){
+			ObjMove_AddPatternA4(target, 0, 8, 0, NO_CHANGE, NO_CHANGE, 0, NO_CHANGE, GetPlayerObjectID());
+			ObjShot_SetAutoDelete(target, true);
+			break;
+		}
+		yield;
+	}
+		
+}	
+
+task _BulletRescale(target, float scale, bool hitboxscale, hitboxlevel){
+
+	ObjRender_SetScaleXYZ(target, scale, scale, 1);
+	
+	if (hitboxscale){
+		ObjShot_SetIntersectionScaleXY(target, scale*hitboxlevel, scale*hitboxlevel);
+		return;
+	}
+	
+	else{return;}
+	
+}
+
+task SpawnSpiral(
+	int target,
+	int spiralStack, int spiralDense,
+	float angOffset, 
+	float spiralSpd1, spiralSpd2, int spiralDelay,
+	int bulletGraphic, float bulletScale,
+	float angStart, int spinDir
+	){
+
+	int curAngle = 0;
+	int shotNum = 0;
+
+	async{
+
+		int deleted = false;
+
+		while(ObjEnemy_GetInfo(target, INFO_LIFE) > 0){
+			
+			ascent(i in 0..spiralDense){
+
+				if(ObjEnemy_GetInfo(target, INFO_LIFE) <= 0){break;}
+				
+				int shot = CreateFan(target, 1, bulletGraphic, spiralStack, 
+					angStart + i * 360/spiralDense + curAngle, 0, spiralSpd1, spiralSpd2, 
+					bulletScale,
+					0, 0,
+					PATTERN_FAN, false
+				);
+
+				if(ObjEnemy_GetInfo(target, INFO_LIFE) <= 0){Obj_Delete(shot); break;}
+				
+				else if(shotNum > 16){return;}
+				
+				else{Shoot1;}
+
+			}
+
+			shotNum++;
+			curAngle += spinDir * angOffset;
+			wait(spiralDelay);
+			
+		}
+	}
+
+}
+
+task SpawnSpiralWithOffset(
+	int target, float xOffset, float yOffset,
+	int spiralStack, int spiralDense,
+	float angOffset, 
+	float spiralSpd1, spiralSpd2, int spiralDelay,
+	int bulletGraphic, float bulletScale,
+	float angStart, int spinDir
+	){
+
+	int curAngle = 0;
+	int shotNum = 0;
+
+	async{
+		while(ObjEnemy_GetInfo(target, INFO_LIFE) > 0){
+			
+			ascent(i in 0..spiralDense){
+
+				if(ObjEnemy_GetInfo(target, INFO_LIFE) <= 0){break;}
+				
+				int shot = CreateFan(target, 1, bulletGraphic, spiralStack, 
+					angStart + i * 360/spiralDense + curAngle, 0, spiralSpd1, spiralSpd2, 
+					bulletScale,
+					xOffset, yOffset,
+					PATTERN_FAN, false
+				);
+
+				if(ObjEnemy_GetInfo(target, INFO_LIFE) <= 0){Obj_Delete(shot); break;}
+				
+				else if(shotNum > 48){}
+
+				else{Shoot1;}
+
+			}
+
+			shotNum++;
+			curAngle += spinDir * angOffset;
+			wait(spiralDelay);
+			
+		}
+	}
+
+}

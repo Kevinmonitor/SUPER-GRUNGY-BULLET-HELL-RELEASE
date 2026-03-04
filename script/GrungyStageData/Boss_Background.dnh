@@ -1,0 +1,124 @@
+//------------------------------------------
+
+// BACKGROUND FILES
+
+//------------------------------------------
+
+// CODE
+
+int BG = _Create2DImage("script/GrungyTextures/EvilBG.png", [0, 0, 1280, 1862]);
+Obj_SetVisible(BG, false);
+
+int order = 0;
+
+task Background(){
+	
+	let POINTER_BOSS = LoadCommonDataValuePointer("TrueBossReveal", false);
+
+	float scrollSpeed = 18;
+	float curScroll = 0;
+
+	ObjRender_SetAlpha(BG, 255);
+	Obj_SetVisible(BG, true);
+	Obj_SetRenderPriorityI(BG, 28);
+
+	while(GetCommonDataPtr(POINTER_BOSS, false) == true){
+	
+		//ObjSprite2D_SetDestRect(stageImg, 0, 0, STG_WIDTH/2, STG_HEIGHT/2);
+
+		ObjSprite2D_SetSourceRect(BG, 0, curScroll, 1280, curScroll+1862);
+
+		curScroll -= scrollSpeed;
+
+		// scrollSpeed = min(maxscrollSpeed, scrollSpeed+0.2);
+		// phase1AEndScroll = [curScroll, curScrollA];
+
+		yield;
+	
+	}
+
+	Obj_SetVisible(BG, false);
+	
+}
+
+// task CityBackground02(){
+
+// 	float scrollSpeed = 4;
+// 	float curScroll = 0;
+
+// 	for each (img in ref BGGrunge){
+// 		ObjRender_SetAlpha(img, 0);
+// 		Obj_SetVisible(img, false);
+// 	}
+
+// 	for each (img in ref BGCute){
+// 		ObjRender_SetAlpha(img, 255);
+// 		Obj_SetVisible(img, true);
+// 	}
+	
+// 	async{
+
+// 		// BG prep
+
+// 		// ascent(i in 0..30){
+// 		// 	ascent(f in 0..5){
+// 		// 		ObjRender_SetAlpha(BGGrunge[f], FUNC_LERP_LINEAR(0, 255, i/30));
+// 		// 	}
+// 		// 	yield;
+// 		// }
+
+// 		ascent(f in 0..5){
+
+// 			Obj_SetRenderPriorityI(BGGrunge[f], 21+f);
+// 			Obj_SetRenderPriorityI(BGCute[f], 21+f);
+
+// 			ObjRender_SetPosition(BGCute[f], STG_WIDTH/2, STG_HEIGHT/2, 1);
+// 			ObjRender_SetPosition(BGGrunge[f], STG_WIDTH/2, STG_HEIGHT/2, 1);
+
+// 		}
+
+// 		wait(240);
+
+// 		ObjSound_Play(objBGMCute);
+// 		currentlyPlayingBGM = objBGMCute;
+
+// 	}
+
+// 	while(true){
+	
+// 		//ObjSprite2D_SetDestRect(stageImg, 0, 0, STG_WIDTH/2, STG_HEIGHT/2);
+
+// 		ascent(i in 0..5){
+// 			ObjSprite2D_SetSourceRect(BGCute[i], (curScroll * (1.25 ^ i)), 0, (curScroll * (1.25 ^ i))+1280, 720);
+// 		}
+
+// 		curScroll += scrollSpeed;
+
+// 		// scrollSpeed = min(maxscrollSpeed, scrollSpeed+0.2);
+// 		// phase1AEndScroll = [curScroll, curScrollA];
+
+// 		yield;
+	
+// 	}
+	
+// }
+
+// task _Screenshake(shaketime, intensity){
+
+// 	float baseintensity = intensity;
+// 	float shakeno = shaketime;
+	
+// 	ascent(i in 0..shakeno){
+// 		Set2DCameraFocusX(GetStgFrameWidth/2 + prand(-intensity, intensity));
+// 		Set2DCameraFocusY(GetStgFrameHeight/2 + prand(-intensity, intensity));
+// 		intensity = Interpolate_Decelerate(0, baseintensity, 1-i/shakeno);
+// 		shaketime--;
+// 		yield;
+// 	}
+	
+// 	while(shaketime > 0){yield;}
+	
+// 	Set2DCameraFocusX(GetStgFrameWidth/2);
+// 	Set2DCameraFocusY(GetStgFrameHeight/2);
+// 	yield;
+// }

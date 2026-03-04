@@ -1,0 +1,893 @@
+let texEnm = "script/StageData/StageLib/StageLib_Placeholder.png";
+let texEnm2 = "script/StageData/StageLib/StageLib_Part2.png";
+#include "./Stage_Values.dnh"
+
+float deadZone = 16;
+
+LoadTextureEx(texEnm, true, true);
+//ObjRender_SetTextureFilter(texEnm, FILTER_POINT, FILTER_POINT, FILTER_POINT);
+
+// creating enemy lifebars
+
+task CreateEnemyLifebar(int enm, float HP){
+
+	float GAUGE_WIDTH = 30;
+	float GAUGE_LENGTH = 224;
+
+	float x, y;
+
+	let objGaugeFill = CreateEffectObject(0, 0, texEnm, "NORMAL", 780, 80, 1012, 114);
+
+	let objGauge = _Create2DImage(texEnm, [768, 0, 1024, 64]);
+	//let objGaugeFill = _Create2DImage(texEnm, [768, 64, 1024, 128]);
+
+	Obj_SetRenderPriorityI(objGauge, 52);
+	Obj_SetRenderPriorityI(objGaugeFill, 51);
+
+	ObjRender_SetScaleXYZ(objGauge, 0.5);
+	ObjRender_SetScaleXYZ(objGaugeFill, 0.5);
+
+	ObjRender_SetAlpha(objGauge, 180);
+	ObjRender_SetAlpha(objGaugeFill, 255);
+
+	while(ObjEnemy_GetInfo(enm, INFO_LIFE) > 0){
+
+		x = XMove(enm); y = YMove(enm);
+
+		ObjSprite2D_SetDestRect(objGaugeFill, 0, 0, ((ObjEnemy_GetInfo(enm, INFO_LIFE)/(HP)))*GAUGE_LENGTH, GAUGE_WIDTH);
+		ObjRender_SetPosition(objGaugeFill, x - 56, y - 54, 0);
+		ObjRender_SetPosition(objGauge, x, y - 48, 0);
+
+		yield;
+
+	}
+
+	Obj_Delete(objGauge);
+	Obj_Delete(objGaugeFill);
+
+}
+
+function <int> CreateUmbrellaEnemy(
+	int renderPriority, int[] rect,
+	float enmX, enmY, scale, hitbox,
+	int invinTime, int killTime, int enmHealth, int itemDropPoint, int itemDropChain
+	){
+	
+	// Spawns enemy.
+	
+	int enm = _CreateEnemy(
+	enmX, enmY, enmX, enmY, 5,
+	scale, scale,
+	enmHealth, hitbox, 0,
+	texEnm,
+	rect[0], rect[1], rect[2], rect[3]);
+	
+	Obj_SetRenderPriorityI(enm, renderPriority);
+	
+	async{
+		while(!Obj_IsDeleted(enm)){
+			ObjRender_SetAngleZ(enm, ObjRender_GetAngleZ(enm)+1.5);
+			yield;
+		}
+	}
+	
+	async{
+	
+		ObjEnemy_SetDamageRate(enm, 0, 0);
+		
+		wait(invinTime);
+		
+		ObjEnemy_SetAutoDelete(enm, true);
+	
+	}
+	
+	_EnemyItemDrop(
+	enm, true,
+	itemDropPoint, itemDropChain,
+	itemDropPoint*2+(GetCommonDataPtr(POINTER_RANK, 1)-1)*2, itemDropChain*2+(GetCommonDataPtr(POINTER_RANK, 1)-1)*2, 
+	killTime, hitbox*2.5
+	);
+	
+	return enm;
+
+}
+
+function <int> _Missile(
+	int renderPriority, invinTime,
+	float enmX, float enmY, int[] rectArray
+	){
+
+	// Spawns enemy.
+
+	int spd = 5;
+	
+	int enm = _CreateEnemy(
+	enmX, enmY, 
+	enmX, enmY, 
+	5, 0.75, 0.75,
+	popcornHP, popcornHitbox, 0,
+	texEnm,
+	rectArray);
+	
+	ObjRender_SetTextureFilter(enm, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	Obj_SetRenderPriorityI(enm, renderPriority);
+
+	int frame = 0;
+
+	async{
+
+		while(!Obj_IsDeleted(enm)){
+
+			// Deadzone
+			invinTime--;
+			if(invinTime > 0){ObjEnemy_SetDamageRate(enm, 0, 0);}
+			else{ObjEnemy_SetDamageRate(enm, 1, 1);}
+
+			yield;
+
+		}
+
+	}
+
+	_EnemyItemDrop(
+		enm,
+		smallFlyingEnm_itemPointMin * 0.5, smallFlyingEnm_itemPointMax * 0.5,
+		popcornHitbox
+	);
+	
+	return enm;
+	
+}
+
+function <int> _SmallShip(
+	int renderPriority, invinTime,
+	float enmX, float enmY, int[] rectArray
+	){
+
+	// Spawns enemy.
+
+	int spd = 5;
+	
+	int enm = _CreateEnemy(
+	enmX, enmY, 
+	enmX, enmY, 
+	5, 0.5, 0.5,
+	smallEnemyHP, smallEnemyHitbox, 0,
+	texEnm,
+	rectArray);
+	
+	ObjSprite2D_SetSourceRect(enm, rectArray[0], rectArray[1], rectArray[2], rectArray[3]);
+	ObjRender_SetTextureFilter(enm, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	Obj_SetRenderPriorityI(enm, renderPriority);
+
+	int frame = 0;
+
+	async{
+
+		while(!Obj_IsDeleted(enm)){
+
+			// Deadzone
+			invinTime--;
+			if(invinTime > 0){ObjEnemy_SetDamageRate(enm, 0.2, 0.2);}
+			else{ObjEnemy_SetDamageRate(enm, 1, 1);}
+
+			yield;
+
+		}
+
+	}
+
+	_EnemyItemDrop(
+		enm,
+		smallFlyingEnm_itemPointMin, smallFlyingEnm_itemPointMax,
+		smallEnemyHitbox
+	);
+	
+	return enm;
+	
+}
+
+function <int> _MediumShip(
+	int renderPriority, invinTime,
+	float enmX, float enmY, int[] rectArray
+	){
+
+	// Spawns enemy.
+
+	int spd = 5;
+	
+	int enm = _CreateEnemy(
+	enmX, enmY, 
+	enmX, enmY, 
+	5, 0.6, 0.6,
+	medEnemyHP, medEnemyHitbox, 0,
+	texEnm,
+	rectArray);
+	
+	ObjRender_SetTextureFilter(enm, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	Obj_SetRenderPriorityI(enm, renderPriority);
+
+	int frame = 0;
+
+	async{
+
+		while(!Obj_IsDeleted(enm)){
+
+			// Deadzone
+			invinTime--;
+			if(invinTime > 0){ObjEnemy_SetDamageRate(enm, 0.2, 0.2);}
+			else{ObjEnemy_SetDamageRate(enm, 1, 1);}
+
+			yield;
+
+		}
+
+	}
+
+	LargeExplosion(enm, 32, 8);
+	_EnemyItemDrop(
+		enm,
+		medFlyingEnm_itemPointMin, medFlyingEnm_itemPointMax,
+		medEnemyHitbox
+	);
+	
+	return enm;
+	
+}
+
+function <int> _MediumShip(
+	int renderPriority, invinTime,
+	float enmX, float enmY, int[] rectArray,
+	float HP
+	){
+
+	// Spawns enemy.
+
+	int spd = 5;
+	
+	int enm = _CreateEnemy(
+	enmX, enmY, 
+	enmX, enmY, 
+	5, 0.6, 0.6,
+	HP, medEnemyHitbox, 0,
+	texEnm,
+	rectArray);
+	
+	ObjRender_SetTextureFilter(enm, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	Obj_SetRenderPriorityI(enm, renderPriority);
+
+	int frame = 0;
+
+	async{
+
+		while(!Obj_IsDeleted(enm)){
+
+			// Deadzone
+			invinTime--;
+			if(invinTime > 0){ObjEnemy_SetDamageRate(enm, 0.2, 0.2);}
+			else{ObjEnemy_SetDamageRate(enm, 1, 1);}
+
+			yield;
+
+		}
+
+	}
+
+	LargeExplosion(enm, 32, 8);
+	_EnemyItemDrop(
+		enm,
+		medFlyingEnm_itemPointMin, medFlyingEnm_itemPointMax,
+		medEnemyHitbox
+	);
+	
+	return enm;
+	
+}
+
+function <int> _LargeShip(
+	int renderPriority, invinTime,
+	float enmX, float enmY, int[] rectArray
+	){
+
+	// Spawns enemy.
+
+	int spd = 5;
+	
+	int enm = _CreateEnemy(
+	enmX, enmY, 
+	enmX, enmY, 
+	5, 1.0, 1.0,
+	largeEnemyHP, largeEnemyHitbox, 0,
+	texEnm,
+	rectArray);
+	
+	ObjRender_SetTextureFilter(enm, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	Obj_SetRenderPriorityI(enm, renderPriority);
+	CreateEnemyLifebar(enm, largeEnemyHP);
+
+	int frame = 0;
+
+	async{
+
+		while(!Obj_IsDeleted(enm)){
+
+			// Deadzone
+			invinTime--;
+			if(invinTime > 0){ObjEnemy_SetDamageRate(enm, 0.1, 0.1);}
+			else{ObjEnemy_SetDamageRate(enm, 1, 1);}
+
+			yield;
+
+		}
+
+	}
+
+	LargeExplosion_Cancel(enm, 32, 8);
+
+	_EnemyItemDrop(
+		enm,
+		medFlyingEnm_itemPointMin, medFlyingEnm_itemPointMax,
+		medEnemyHitbox
+	);
+	
+	return enm;
+	
+}
+
+function <int> _LargeShip(
+	int renderPriority, invinTime,
+	float enmX, float enmY, int[] rectArray, float enemyHP
+	){
+
+	// Spawns enemy.
+
+	int spd = 5;
+	
+	int enm = _CreateEnemy(
+	enmX, enmY, 
+	enmX, enmY, 
+	5, 1.0, 1.0,
+	enemyHP, largeEnemyHitbox, 0,
+	texEnm,
+	rectArray);
+	
+	ObjRender_SetTextureFilter(enm, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	Obj_SetRenderPriorityI(enm, renderPriority);
+	CreateEnemyLifebar(enm, enemyHP);
+
+	int frame = 0;
+
+	async{
+
+		while(!Obj_IsDeleted(enm)){
+
+			// Deadzone
+			invinTime--;
+			if(invinTime > 0){ObjEnemy_SetDamageRate(enm, 0.1, 0.1);}
+			else{ObjEnemy_SetDamageRate(enm, 1, 1);}
+
+			yield;
+
+		}
+
+	}
+
+	LargeExplosion_Cancel(enm, 32, 8);
+
+	_EnemyItemDrop(
+		enm,
+		medFlyingEnm_itemPointMin, medFlyingEnm_itemPointMax,
+		medEnemyHitbox
+	);
+	
+	return enm;
+	
+}
+
+
+// help
+
+
+function <int> _LargeShip(
+	int renderPriority, invinTime, lifeTime,
+	float enmX, float enmY, int[] rectArray, float enemyHP
+	){
+
+	// Spawns enemy.
+
+	int spd = 5;
+	
+	int enm = _CreateEnemy(
+	enmX, enmY, 
+	enmX, enmY, 
+	5, 1.0, 1.0,
+	enemyHP, largeEnemyHitbox, 0,
+	lifeTime,
+	texEnm,
+	rectArray);
+	
+	ObjRender_SetTextureFilter(enm, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	Obj_SetRenderPriorityI(enm, renderPriority);
+	CreateEnemyLifebar(enm, enemyHP);
+
+	int frame = 0;
+
+	async{
+
+		while(!Obj_IsDeleted(enm)){
+
+			// Deadzone
+			invinTime--;
+			if(invinTime > 0){ObjEnemy_SetDamageRate(enm, 0.1, 0.1);}
+			else{ObjEnemy_SetDamageRate(enm, 1, 1);}
+
+			yield;
+
+		}
+
+	}
+
+	LargeExplosion_Cancel(enm, 32, 8);
+
+	_EnemyItemDrop(
+		enm,
+		medFlyingEnm_itemPointMin, medFlyingEnm_itemPointMax,
+		medEnemyHitbox
+	);
+	
+	return enm;
+	
+}
+
+function <int> _LargeShip(
+	int renderPriority, invinTime, lifeTime,
+	float enmX, float enmY, int[] rectArray, float enemyHP, bool cancel
+	){
+
+	// Spawns enemy.
+
+	int spd = 5;
+	
+	int enm = _CreateEnemy(
+	enmX, enmY, 
+	enmX, enmY, 
+	5, 1.0, 1.0,
+	enemyHP, largeEnemyHitbox, 0,
+	lifeTime,
+	texEnm,
+	rectArray);
+	
+	ObjRender_SetTextureFilter(enm, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	Obj_SetRenderPriorityI(enm, renderPriority);
+	CreateEnemyLifebar(enm, enemyHP);
+
+	int frame = 0;
+
+	async{
+
+		while(!Obj_IsDeleted(enm)){
+
+			// Deadzone
+			invinTime--;
+			if(invinTime > 0){ObjEnemy_SetDamageRate(enm, 0.1, 0.1);}
+			else{ObjEnemy_SetDamageRate(enm, 1, 1);}
+
+			yield;
+
+		}
+
+	}
+
+	if (cancel) {LargeExplosion_Cancel(enm, 32, 8);}
+	else {LargeExplosion(enm, 32, 8);}
+
+	_EnemyItemDrop(
+		enm,
+		medFlyingEnm_itemPointMin, medFlyingEnm_itemPointMax,
+		medEnemyHitbox
+	);
+	
+	return enm;
+	
+}
+
+function CreateLargeSpinningEnemy(
+	int renderPriority, invinTime,
+	float enmX, float enmY, 
+	float startAng,
+	float angChangeSpeed,
+	float startScale, float endScale,
+	float startAlpha, float endAlpha,
+	float startSpaceX, float startSpaceY,
+	float endSpaceX, float endSpaceY,
+	float spaceMovementTime,
+	int leaveTime,
+	int[] rectArray, float enemyHP
+	){
+
+
+	// lifetime is 99999 to prevent the enemy just randomly exploding
+
+	float spaceX = startSpaceX;
+	float spaceY = startSpaceY;
+
+	int enm = _LargeShip(
+		renderPriority, invinTime, 99999,
+		enmX, enmY, rectArray, enemyHP
+	);
+
+	// movement
+	async{
+
+		while(!Obj_IsDeleted(enm)){
+
+			ObjMove_SetPosition(enm, enmX + spaceX * cos(startAng), enmY + spaceY * sin(startAng));
+			ObjRender_SetAngleZ(enm, startAng + 180);
+
+			startAng += angChangeSpeed;
+
+			yield;
+
+		}
+
+	}
+
+	// space
+	async{
+
+		ascent(i in 0..spaceMovementTime){
+			
+			spaceX = FUNC_LERP_SMOOTH(startSpaceX, endSpaceX, i/spaceMovementTime);
+			spaceY = FUNC_LERP_SMOOTH(startSpaceY, endSpaceY, i/spaceMovementTime);
+			ObjRender_SetScaleXYZ(enm, FUNC_LERP_SMOOTH(startScale, endScale, i/spaceMovementTime));
+
+			yield;
+		}
+		
+	}
+
+	// alpha
+	async{
+
+		ascent(i in 0..max(1, invinTime-10)){
+			ObjRender_SetAlpha(enm, FUNC_LERP_SMOOTH(startAlpha, endAlpha, i/max(1, invinTime-10)));
+			yield;
+		}
+
+	}
+
+	// the enemy leaves
+
+	async{
+
+		ascent(i in 0..leaveTime){
+			yield;
+		}
+		if(Obj_IsDeleted(enm)){return;}
+		else{
+
+			ascent(i in 0..120){
+				
+				spaceX = FUNC_LERP_SMOOTH(endSpaceX, STG_WIDTH * 4, i/120);
+				spaceY = FUNC_LERP_SMOOTH(endSpaceY, STG_WIDTH * 4, i/120);
+
+				yield;
+
+			}
+
+		}
+
+	}
+
+	return enm;
+
+}
+
+// texEnm2
+function <int> _MinibossShip(
+	int renderPriority, invinTime, lifeTime,
+	float enmX, float enmY, int[] rectArray, float enemyHP
+	){
+
+	// Spawns enemy.
+
+	int spd = 5;
+	
+	int enm = _CreateEnemy(
+	enmX, enmY, 
+	enmX, enmY, 
+	5, 0.8, 0.8,
+	enemyHP, largeEnemyHitbox * 1.1, 2,
+	lifeTime,
+	texEnm2,
+	rectArray);
+	
+	ObjRender_SetTextureFilter(enm, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	Obj_SetRenderPriorityI(enm, renderPriority);
+	CreateEnemyLifebar(enm, enemyHP);
+
+	int frame = 0;
+
+	async{
+
+		while(!Obj_IsDeleted(enm)){
+
+			// Deadzone
+			invinTime--;
+			if(invinTime > 0){ObjEnemy_SetDamageRate(enm, 0.1, 0.1);}
+			else{ObjEnemy_SetDamageRate(enm, 1, 1);}
+
+			yield;
+
+		}
+
+	}
+
+	LargeExplosion_Cancel(enm, 32, 8);
+
+	_EnemyItemDrop(
+		enm,
+		medFlyingEnm_itemPointMin * 2, medFlyingEnm_itemPointMax * 2,
+		largeEnemyHitbox
+	);
+	
+	return enm;
+	
+}
+
+
+task LargeExplosion(target, explosionSize, explosionTime){
+
+	float enmX = 0, enmY = 0;
+
+	while(ObjEnemy_GetInfo(target, INFO_LIFE) > 0){
+		enmX = ObjMove_GetX(target);
+		enmY = ObjMove_GetY(target);
+		yield;
+	}
+
+	if(
+		enmX < -16 || enmX > STG_WIDTH + 16
+		|| enmY < -16 || enmY > STG_HEIGHT + 16
+	)
+	{return;}
+
+	//DeleteShotAll(TYPE_ALL, TYPE_ITEM);
+	
+	ascent(i in 0..explosionTime){
+		NotifyEvent(GetCommonDataPtr(SYSTEMID_PTR, "0"), EV_EXPLODE, [enmX + prand(-explosionSize, explosionSize), enmY + prand(-explosionSize, explosionSize)]);
+		wait(4);
+	}
+
+	ascent(i in 0..20){
+		NotifyEvent(GetCommonDataPtr(SYSTEMID_PTR, "0"), EV_EXPLODE, [enmX + prand(-explosionSize, explosionSize), enmY + prand(-explosionSize, explosionSize)]);
+	}
+
+	//ObjSound_Play(bossBoom);
+
+}
+
+task MediumExplosion_Cancel(target, explosionSize, explosionTime){
+
+	float enmX = 0, enmY = 0;
+
+	enmX = ObjMove_GetX(target);
+	enmY = ObjMove_GetY(target);
+
+	DeleteShotAll(TYPE_ALL, TYPE_ITEM);
+	
+	ascent(i in 0..explosionTime){
+		NotifyEvent(GetCommonDataPtr(SYSTEMID_PTR, "0"), EV_EXPLODE, [enmX + prand(-explosionSize, explosionSize), enmY + prand(-explosionSize, explosionSize)]);
+		ObjSound_Play(bossBoom);
+		wait(4);
+	}
+
+	ascent(i in 0..30){
+		NotifyEvent(GetCommonDataPtr(SYSTEMID_PTR, "0"), EV_EXPLODE, [enmX + prand(-explosionSize, explosionSize), enmY + prand(-explosionSize, explosionSize)]);
+	}
+
+	ObjSound_Play(bossBoom);
+
+}
+
+task LargeExplosion_Cancel(target, explosionSize, explosionTime){
+
+	float enmX = 0, enmY = 0;
+
+	while(ObjEnemy_GetInfo(target, INFO_LIFE) > 0){
+		enmX = ObjMove_GetX(target);
+		enmY = ObjMove_GetY(target);
+		yield;
+	}
+
+	if(
+		enmX < -24 || enmX > STG_WIDTH + 24
+		|| enmY < -24 || enmY > STG_HEIGHT + 24
+	)
+	{return;}
+
+	DeleteShotAll(TYPE_SHOT, TYPE_ITEM);
+	
+	ascent(i in 0..explosionTime){
+		NotifyEvent(GetCommonDataPtr(SYSTEMID_PTR, "0"), EV_EXPLODE, [enmX + prand(-explosionSize, explosionSize), enmY + prand(-explosionSize, explosionSize)]);
+		ObjSound_Play(bossBoom);
+		wait(4);
+	}
+
+	ascent(i in 0..30){
+		NotifyEvent(GetCommonDataPtr(SYSTEMID_PTR, "0"), EV_EXPLODE, [enmX + prand(-explosionSize, explosionSize), enmY + prand(-explosionSize, explosionSize)]);
+	}
+
+	ObjSound_Play(bossBoom);
+
+}
+
+task LargeExplosion_Cancel_Boss(pos, explosionSize, explosionTime){
+
+	DeleteShotAll(TYPE_ALL, TYPE_ITEM);
+	
+	ascent(i in 0..explosionTime){
+		NotifyEvent(GetCommonDataPtr(SYSTEMID_PTR, "0"), EV_EXPLODE, [pos[0] + prand(-explosionSize, explosionSize), pos[1] + prand(-explosionSize, explosionSize)]);
+		ObjSound_Play(bossBoom);
+		wait(4);
+	}
+
+	ascent(i in 0..30){
+		NotifyEvent(GetCommonDataPtr(SYSTEMID_PTR, "0"), EV_EXPLODE, [pos[0] + prand(-explosionSize, explosionSize), pos[1] + prand(-explosionSize, explosionSize)]);
+	}
+
+	ObjSound_Play(bossBoom);
+
+}
+
+task _MiniRatePopup(float enmX, float enmY, float rate){
+
+	float time = 30; // Time that the text objects (appear+)last on screen
+	float timeDisappear = 15; // Fade time
+	float size = 180 * clamp(rate/4, 0.25, 1);
+	float yDes = 80; // Destination text object moves to, relative to enmY 
+	string font = "TypeR";
+	float borderSize = 8  * clamp(rate/4, 0.25, 1);
+
+	int rateRounded = clamp(floor(rate), 1, 4);
+
+	string textResult = "";
+
+	if (GetCommonDataPtr(POINTER_BURSTMODE, false) == false){
+		alternative(rateRounded)
+		case(1){
+			size = 50;
+			yDes = 80;
+			textResult = IntToString(rateRounded) ~ "[font sz=25 oy=25]x";
+		}
+		case(2){
+			size = 70;
+			yDes = 105;
+			textResult = IntToString(rateRounded) ~ "[font sz=32 oy=30]x";
+		}
+		case(3){
+			size = 80;
+			yDes = 120;
+			textResult = IntToString(rateRounded) ~ "[font sz=38 oy=40]x";
+		}
+		case(4){
+			size = 150;
+			yDes = 135;
+			textResult = IntToString(rateRounded) ~ "[font sz=47 oy=70]x";
+		}
+	}
+
+	else{
+
+		alternative(rateRounded)
+		case(1){
+			size = 90;
+			yDes = 80;
+			textResult = IntToString(rateRounded*2) ~ "[font sz=42 oy=50]x";
+		}
+		case(2){
+			size = 110;
+			yDes = 105;
+			textResult = IntToString(rateRounded*2) ~ "[font sz=50 oy=60]x";
+		}
+		case(3){
+			size = 120;
+			yDes = 120;
+			textResult = IntToString(rateRounded*2) ~ "[font sz=62 oy=70]x";
+		}
+		case(4){
+			size = 180;
+			yDes = 135;
+			textResult = IntToString(rateRounded*2) ~ "[font sz=69 oy=100]x";
+		}
+
+	}
+
+	int pointText = CreateTextObject(
+		enmX, enmY, size,
+		textResult, font,
+		0x7699FF, 0xFFFFFF,
+		0x2A00C0, size/20,
+		44
+	);
+
+	ObjText_SetSidePitch(pointText, 1);
+
+	if (GetCommonDataPtr(POINTER_BURSTMODE, false) == true){
+
+		ObjText_SetFontBorderColor(pointText, 0xFF581A);
+		ObjText_SetFontColorTop(pointText, 0xFF9C30);
+
+	}
+
+	else{
+
+		ObjText_SetFontBorderColor(pointText, 0x190371);
+		ObjText_SetFontColorTop(pointText, 0x3071FF);
+
+	}
+	
+	ObjText_SetFontBold(pointText, true);
+	ObjText_SetHorizontalAlignment(pointText, ALIGNMENT_CENTER);
+	
+	async{
+		if(rateRounded >= 4){
+			
+			if (GetCommonDataPtr(POINTER_BURSTMODE, false) == true && rateRounded == 4){
+
+				ascent(i in 0..(time+timeDisappear)){
+
+					if (i % 2 == 0){
+						ObjText_SetFontBorderColor(pointText, 0xFFFC4D);
+						ObjText_SetFontColorTop(pointText, 0xFFFC4D);
+					}
+
+					else{
+						ObjText_SetFontBorderColor(pointText, 0xFF2700);
+						ObjText_SetFontColorTop(pointText, 0xFF9C30);
+					}
+
+					yield;
+
+				}
+
+			}
+
+
+			else if (GetCommonDataPtr(POINTER_BURSTMODE, false) == false && rateRounded == 4){
+
+				ascent(i in 0..(time+timeDisappear)){
+
+					if (i % 2 == 0){
+						ObjText_SetFontBorderColor(pointText, 0x4DD7FF);
+						ObjText_SetFontColorTop(pointText, 0x4DD7FF);
+					}
+
+					else{
+						ObjText_SetFontBorderColor(pointText, 0x0012FF);
+						ObjText_SetFontColorTop(pointText, 0x3071FF);
+					}
+
+					yield;
+
+				}
+
+			}
+
+		}
+	}
+
+	ascent(i in 0..time){
+		ObjRender_SetY(pointText, clamp(Interpolate_Decelerate(enmY, enmY-yDes, i/time), 0, STG_HEIGHT));
+		yield;
+	}
+
+	ascent(i in 0..timeDisappear){
+		ObjRender_SetY(pointText, clamp(ObjRender_GetY(pointText)-1, 0, STG_HEIGHT));
+		ObjRender_SetAlpha(pointText, Interpolate_Decelerate(255, 0, i/timeDisappear));
+		yield;
+	}
+	
+	Obj_Delete(pointText);
+
+}

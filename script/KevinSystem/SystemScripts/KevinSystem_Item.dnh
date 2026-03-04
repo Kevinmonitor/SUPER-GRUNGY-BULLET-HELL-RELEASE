@@ -1,0 +1,606 @@
+// Item script
+
+float widthSTG = GetStgFrameWidth();
+float heightSTG = GetStgFrameHeight();
+
+int SPECIAL_BOOST_COUNT = 0;
+
+float rateReduceNormal = 100/120;
+float rateReduceCashin = 100/180;
+
+float yDesA = 50;
+float yDesB = 25;
+int time = 15;
+int timeDisappear = 10;
+
+string font = "Aquire";
+
+int[] scorePopup = [];
+
+#include "script/KevinSystem/SystemScripts/Lib_Const.dnh"
+
+#include "./Kevin_ItemConst.dnh"
+#include "./Kevin_ItemLib.dnh"
+#include "./ItemSoundLib.dnh"
+
+@Initialize{
+
+	SetAutoDeleteObject(true);
+	_ItemSoundTask();
+	SetDefaultBonusItemEnable(false);
+	LoadItemData(GetCurrentScriptDirectory ~ "./Kevin_ItemData.dnh");
+	
+	//SetAreaCommonData("Config", "ScoreDisplayType", 2); // debug
+	SetAreaCommonData("ScriptID", "ItemID", GetOwnScriptID());
+	SetItemAutoDeleteClip(128, 128, 128, 128);
+	//SetCommonDataPtr("ItemIDPtr", GetOwnScriptID());
+	
+}
+
+int objPlayer = GetPlayerObjectID();
+float tmpSpd = 0, tmpScl = 0, tmpMtp = 0;
+
+@MainLoop{
+
+	//SetCommonDataPtr(SCOREDISPLAY_PTR, 1);
+
+	widthSTG = GetStgFrameWidth();
+	heightSTG = GetStgFrameHeight();
+	
+	for each(item in GetItemIdInCircleA1(widthSTG/2, heightSTG/2, heightSTG)){
+
+		ObjItem_SetAutoDelete(item, true);
+		
+		tmpSpd = ObjMove_GetSpeed(item);
+		tmpMtp = ObjItem_IsMoveToPlayer(item);
+		
+		if(tmpSpd >= 0){
+			if (!tmpMtp && GetPlayerState() != STATE_DOWN && !Obj_IsDeleted(item)){
+				ObjItem_SetMoveToPlayer(item, true);
+			}
+		}
+		
+		if(tmpMtp) {
+			ObjMove_SetAngle(item, GetAngleToPlayer(item));
+			ObjMove_SetAcceleration(item, 1);
+			ObjMove_SetMaxSpeed(item, 16);
+		}	
+
+	}
+
+	yield;
+
+}
+
+@Event 
+{
+	alternative (GetEventType())
+
+	case (EV_GET_ITEM){
+	
+		let obj = GetEventArgument(0);
+		
+		alternative(obj)
+		
+		case(POINT_ITEM){	
+
+			// x1 rate = 1000 points
+
+			AddScore(1000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0));	
+			ObjSound_Play(CancelSFX);
+			SetCommonDataPtr(POINTER_MULTIPLIER, round(GetCommonDataPtr(POINTER_MULTIPLIER, 1.0)+1.0));
+			SetCommonDataPtr(POINTER_BURSTGAUGE, GetCommonDataPtr(POINTER_BURSTGAUGE, 1.0) + 0.5 * PlayerBurstGain[GetCommonDataPtr(POINTER_PLAYERNUM, 0)]);
+			SetCommonDataPtr(POINTER_TRUERANK, GetCommonDataPtr(POINTER_TRUERANK, 1)+0.01*RankSpeed[GetCommonDataPtr(POINTER_DIFFICULTYNUM, 0)]);
+
+		}
+
+		case(BLUE_FLAKE){	
+
+			// x1 rate = 1000 points
+
+			AddScore(100 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0));	
+			ObjSound_Play(CancelSFX);
+			SetCommonDataPtr(POINTER_MULTIPLIER, GetCommonDataPtr(POINTER_MULTIPLIER, 1.0)+0.1);
+			SetCommonDataPtr(POINTER_BURSTGAUGE, GetCommonDataPtr(POINTER_BURSTGAUGE, 1.0) + 0.05 * PlayerBurstGain[GetCommonDataPtr(POINTER_PLAYERNUM, 0)]);
+
+		}
+
+		case(GOLD_POINT){	
+
+			// x1 rate = 1000 points
+
+			AddScore(2000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0));	
+			ObjSound_Play(CancelSFX);
+			SetCommonDataPtr(POINTER_MULTIPLIER, round(GetCommonDataPtr(POINTER_MULTIPLIER, 1.0) + 2.0));
+			SetCommonDataPtr(POINTER_BURSTGAUGE, GetCommonDataPtr(POINTER_BURSTGAUGE, 1.0) + PlayerBurstGainGoldMult[GetCommonDataPtr(POINTER_PLAYERNUM, 0)] * PlayerBurstGain[GetCommonDataPtr(POINTER_PLAYERNUM, 0)]);
+			SetCommonDataPtr(POINTER_TRUERANK, GetCommonDataPtr(POINTER_TRUERANK, 1)+0.02*RankSpeed[GetCommonDataPtr(POINTER_DIFFICULTYNUM, 0)]);
+
+		}
+
+		case(GOLD_FLAKE){	
+
+			// x1 rate = 1000 points
+
+			AddScore(200 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0));	
+			ObjSound_Play(CancelSFX);
+			SetCommonDataPtr(POINTER_MULTIPLIER, GetCommonDataPtr(POINTER_MULTIPLIER, 1.0)+0.2);
+			SetCommonDataPtr(POINTER_BURSTGAUGE, GetCommonDataPtr(POINTER_BURSTGAUGE, 1.0)+ (PlayerBurstGainGoldMult[GetCommonDataPtr(POINTER_PLAYERNUM, 0)]/10) * PlayerBurstGain[GetCommonDataPtr(POINTER_PLAYERNUM, 0)]);
+			SetCommonDataPtr(POINTER_TRUERANK, GetCommonDataPtr(POINTER_TRUERANK, 1)+0.002*RankSpeed[GetCommonDataPtr(POINTER_DIFFICULTYNUM, 0)]);
+
+		}
+		
+		case(LIFE_UP){	
+			AddScore(500000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0));		
+			SetPlayerLife(GetPlayerLife()+1);	
+			ObjSound_Play(SpellSFX);
+		}
+		
+	}
+	
+	case (EV_CANCEL_ITEM) {
+	
+		let obj = GetEventArgument(0);
+		let type = GetEventArgument(1);
+		
+		//ObjItem_SetMoveToPlayer(obj, false);
+		ObjMove_CancelMovement(obj);
+		
+		//_CancelHandling(obj, type);
+	
+	}
+
+	case (EV_COLLECT_ITEM){
+	
+		let obj = GetEventArgument(0);
+		let type = GetEventArgument(1);
+		let typeCollect = GetEventArgument(2);
+		
+		//WriteLog(type);
+		//_MoveToPlayer(obj, type, typeCollect); // Separate task is used to move the object to the player at customized speeds.
+		
+	}
+	
+	case(EV_DROP_POINT_ENEMY){
+		// Drop point or gold point
+		float[] position = GetEventArgument(0);
+		float[] playerpos = GetEventArgument(1);
+		float enemyhitbox = GetEventArgument(2);
+
+		float dist = clamp(distance(position[0], position[1], playerpos[0], playerpos[1]), 1, 999);
+		float val = 240; // 600 = 4x, 150 = 1x
+
+		float scoreSize = 0.5;
+		int pointMin = GetEventArgument(4);
+		int pointMax = GetEventArgument(5);
+		int finalPoint = 1;
+
+		let sys = GetCommonDataPtr(SYSTEMID_PTR, "0");
+
+		NotifyEvent(sys, EV_REQUEST_SHOT_ITEMIZE, [position[0], position[1]]);
+
+		if (dist <= val * 0.99) {finalPoint = pointMax; scoreSize = 1.2;}
+		else if (dist >= 1.99  * val) {finalPoint = pointMin; scoreSize = 0.3;}
+		else{
+			finalPoint = Interpolate_Smooth(pointMax, pointMin, dist/(val*2));
+			scoreSize = Interpolate_Smooth(1.2, 0.3, dist/(val*2));
+		}
+
+		//WriteLog(finalPoint);
+		//WriteLog(val/dist);
+		//WriteLog(scoreSize);
+
+		bool burstRadiusCheck = false;
+
+		for each(int radius in GetCommonDataPtr(BURSTRADIUS_PTR, [])){
+
+			if(IsIntersected_Circle_Circle(position[0], position[1], enemyhitbox, ObjMove_GetX(radius), ObjMove_GetY(radius), 220)){
+				burstRadiusCheck = true;
+			}
+
+		}
+
+		if(GetCommonDataPtr(POINTER_BURSTMODE, false) == true){burstRadiusCheck = true;}
+
+		if(GetCommonDataPtr(SCOREDISPLAY_PTR, 2) >= 1){
+			_MiniRatePopup(position[0], position[1], (val*4)/dist, burstRadiusCheck);
+		}
+
+		if(GetCommonDataPtr(POINTER_BURSTMODE, false) == true || burstRadiusCheck){
+
+			loop(finalPoint){
+
+				CreateScoreItem(GOLD_POINT, position[0]+rand(-enemyhitbox * 1.25, enemyhitbox * 1.25), position[1]+rand(-enemyhitbox * 1.25, enemyhitbox * 1.25));
+
+			}
+
+			if(GetCommonDataPtr(EFFECTCUT_PTR, 0) < 3 && GetCommonDataPtr(SCOREDISPLAY_PTR, 0) != 1)
+			// position -> score -> scale -> color -> length
+			{
+				if(GetCommonDataPtr(SCOREDISPLAY_PTR, 0) == 0){
+
+					NotifyEvent(
+						GetCommonDataPtr(SYSTEMID_PTR, 0), 
+						EV_SCORE_POPUP_GOLD, 
+						[position[0], position[1]], 
+						finalPoint * 1000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0) * 2,
+						scoreSize
+					);
+
+				}
+
+				else{
+
+					NotifyEvent(
+						GetCommonDataPtr(SYSTEMID_PTR, 0), 
+						EV_SCORE_POPUP_GOLD, 
+						[position[0], position[1]], 
+						finalPoint * 1000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0) * 2,
+						scoreSize/1.5
+					);
+
+				}
+
+			}
+
+		}
+
+		else{
+
+			loop(finalPoint){
+
+				CreateScoreItem(POINT_ITEM, position[0]+rand(-enemyhitbox * 1.25, enemyhitbox * 1.25), position[1]+rand(-enemyhitbox * 1.25, enemyhitbox * 1.25));
+
+			}
+
+			if(GetCommonDataPtr(EFFECTCUT_PTR, 0) < 3 && GetCommonDataPtr(SCOREDISPLAY_PTR, 0) != 1)
+			// position -> score -> scale -> color -> length
+			{
+
+				if(GetCommonDataPtr(SCOREDISPLAY_PTR, 0) == 0){
+					NotifyEvent(
+						GetCommonDataPtr(SYSTEMID_PTR, 0), 
+						EV_SCORE_POPUP, 
+						[position[0], position[1]], 
+						finalPoint * 1000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0),
+						scoreSize
+					);
+				}
+
+				else{
+					NotifyEvent(
+						GetCommonDataPtr(SYSTEMID_PTR, 0), 
+						EV_SCORE_POPUP, 
+						[position[0], position[1]], 
+						finalPoint * 1000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0),
+						scoreSize/1.5
+					);
+				}
+
+			}
+
+		}
+
+	}
+
+	// Event arguments: Enemy X, Enemy Y, Item Drop Amount, Item Drop Type
+
+	case(EV_SINGLE_ITEM_DROP){	
+	}
+	
+	case(EV_DROP_EXTEND){
+		CreateExtendItem(LIFE_UP, GetEventArgument(0), GetEventArgument(1));
+	}
+
+	case(EV_DELETE_SHOT_IMMEDIATE){
+
+		let sys = GetCommonDataPtr(SYSTEMID_PTR, "0");
+
+		NotifyEvent(sys, EV_REQUEST_SHOT_DELETE, [GetEventArgument(1)[0], GetEventArgument(1)[1]]); // Position of shot
+
+	}
+
+
+	case (EV_DELETE_SHOT_TO_ITEM){
+	
+		float[] position = GetEventArgument(1);
+		let sys = GetCommonDataPtr(SYSTEMID_PTR, "0");
+
+		if(position[0] < 0 &&
+			position[1] < 0){
+
+		} 
+
+		else{
+
+			NotifyEvent(sys, EV_REQUEST_SHOT_ITEMIZE, [GetEventArgument(1)[0], GetEventArgument(1)[1]]);
+
+			bool burstRadiusCheck = false;
+
+			for each(int radius in GetCommonDataPtr(BURSTRADIUS_PTR, [])){
+
+				if(IsIntersected_Point_Circle(position[0], position[1], ObjMove_GetX(radius), ObjMove_GetY(radius), 220)){
+					burstRadiusCheck = true;
+				}
+
+			}
+			
+
+			if(
+				
+				(GetCommonDataPtr(POINTER_BURSTMODE, false) == true && IsPlayerSpellActive() == true && GetPlayerState() == STATE_NORMAL)
+				||
+				(burstRadiusCheck)
+				
+			){
+
+				CreateScoreItem(GOLD_FLAKE, position[0], position[1]);
+
+				if(GetCommonDataPtr(EFFECTCUT_PTR, 0) < 1)
+				// position -> score -> scale -> color -> length
+				{
+
+					if(GetCommonDataPtr(SCOREDISPLAY_PTR, 0) != 2){
+						NotifyEvent(
+							GetCommonDataPtr(SYSTEMID_PTR, 0), 
+							EV_SCORE_POPUP_GOLD, 
+							[position[0], position[1]], 
+							1000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0) * 2,
+							0.3
+						);
+					}
+					else{
+						NotifyEvent(
+							GetCommonDataPtr(SYSTEMID_PTR, 0), 
+							EV_SCORE_POPUP_GOLD, 
+							[position[0], position[1]], 
+							1000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0) * 2,
+							0.25
+						);
+					}
+
+				}
+
+			}
+
+			else if (GetPlayerState() == STATE_DOWN){
+				
+			}
+
+			else{
+
+				CreateScoreItem(BLUE_FLAKE, position[0], position[1]);
+
+				if(GetCommonDataPtr(EFFECTCUT_PTR, 0) < 1)
+				// position -> score -> scale -> color -> length
+				{
+					if(GetCommonDataPtr(SCOREDISPLAY_PTR, 0) != 2){
+						NotifyEvent(
+							GetCommonDataPtr(SYSTEMID_PTR, 0), 
+							EV_SCORE_POPUP, 
+							[position[0], position[1]], 
+							1000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0) * 2,
+							0.3
+						);
+					}
+
+					else{
+						NotifyEvent(
+							GetCommonDataPtr(SYSTEMID_PTR, 0), 
+							EV_SCORE_POPUP, 
+							[position[0], position[1]], 
+							1000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0) * 2,
+							0.25
+						);
+					}
+				}
+
+			}
+
+		}
+		
+	}
+
+}
+
+task _CancelHandling(int IDItem, int typeItem){
+
+	ObjMove_CancelMovement(IDItem);
+	
+	while(GetPlayerState() != STATE_NORMAL){yield;}
+	
+	_MoveToPlayer(IDItem, typeItem, 0);
+	
+}
+
+task _MoveToPlayer(obj, type, typeCollect){
+
+	ObjItem_SetAutoDelete(obj, false);
+	ObjMove_SetAcceleration(obj, 16);
+	//ObjMove_SetMaxSpeed(obj, 2);
+	
+	while (!Obj_IsDeleted(obj)) {
+		ObjMove_SetAngle(obj, GetAngleToPlayer(obj));
+		//WriteLog(ObjMove_GetSpeed(obj));
+		yield;
+	}
+
+}
+
+
+// Text popups. When enemy is defeated, text objects appear showing the number of PIV and point items collected.
+
+function CreateTextObject(
+	float mx, my, size,
+	string text, font,
+	int colorTop, colorBottom,
+	int borderColor, borderWidth,
+	int renderPriority
+	){
+	
+	let obj = ObjText_Create();
+	ObjText_SetText(obj, text);
+	ObjText_SetFontSize(obj, size);
+	ObjText_SetFontType(obj, font);
+	ObjText_SetFontColorTop(obj, colorTop);
+	ObjText_SetFontColorBottom(obj, colorBottom);
+	ObjText_SetFontBorderType(obj, BORDER_FULL);
+	ObjText_SetFontBorderColor(obj, borderColor);
+	ObjText_SetFontBorderWidth(obj, borderWidth);
+	Obj_SetRenderPriorityI(obj, renderPriority);
+	ObjRender_SetX(obj, mx);
+	ObjRender_SetY(obj, my);
+	return obj;
+	
+}
+
+task _MiniRatePopup(float enmX, float enmY, float rate, int isBurst){
+
+	float time = 30; // Time that the text objects (appear+)last on screen
+	float timeDisappear = 15; // Fade time
+	float size = 180 * clamp(rate/4, 0.25, 1);
+	float yDes = 80; // Destination text object moves to, relative to enmY 
+	string font = "TypeR";
+	float borderSize = 8  * clamp(rate/4, 0.25, 1);
+
+	int rateRounded = clamp(floor(rate), 1, 4);
+
+	string textResult = "";
+
+	if (!isBurst){
+		alternative(rateRounded)
+		case(1){
+			size = 50;
+			yDes = 80;
+			textResult = IntToString(rateRounded) ~ "[font sz=25 oy=25]x";
+		}
+		case(2){
+			size = 70;
+			yDes = 105;
+			textResult = IntToString(rateRounded) ~ "[font sz=32 oy=30]x";
+		}
+		case(3){
+			size = 80;
+			yDes = 120;
+			textResult = IntToString(rateRounded) ~ "[font sz=38 oy=40]x";
+		}
+		case(4){
+			size = 150;
+			yDes = 135;
+			textResult = IntToString(rateRounded) ~ "[font sz=47 oy=70]x";
+		}
+	}
+
+	else{
+
+		alternative(rateRounded)
+		case(1){
+			size = 90;
+			yDes = 80;
+			textResult = IntToString(rateRounded*2) ~ "[font sz=42 oy=50]x";
+		}
+		case(2){
+			size = 110;
+			yDes = 105;
+			textResult = IntToString(rateRounded*2) ~ "[font sz=50 oy=60]x";
+		}
+		case(3){
+			size = 120;
+			yDes = 120;
+			textResult = IntToString(rateRounded*2) ~ "[font sz=62 oy=70]x";
+		}
+		case(4){
+			size = 180;
+			yDes = 135;
+			textResult = IntToString(rateRounded*2) ~ "[font sz=69 oy=100]x";
+		}
+
+	}
+
+	int pointText = CreateTextObject(
+		enmX, enmY, size,
+		textResult, font,
+		0x7699FF, 0xFFFFFF,
+		0x2A00C0, size/20,
+		44
+	);
+
+	ObjText_SetSidePitch(pointText, 1);
+
+	if (isBurst){
+
+		ObjText_SetFontBorderColor(pointText, 0xFF581A);
+		ObjText_SetFontColorTop(pointText, 0xFF9C30);
+
+	}
+
+	else{
+
+		ObjText_SetFontBorderColor(pointText, 0x190371);
+		ObjText_SetFontColorTop(pointText, 0x3071FF);
+
+	}
+	
+	ObjText_SetFontBold(pointText, true);
+	ObjText_SetHorizontalAlignment(pointText, ALIGNMENT_CENTER);
+	
+	async{
+		if(rateRounded >= 4){
+			
+			if (isBurst && rateRounded == 4){
+
+				ascent(i in 0..(time+timeDisappear)){
+
+					if (i % 2 == 0){
+						ObjText_SetFontBorderColor(pointText, 0xFFFC4D);
+						ObjText_SetFontColorTop(pointText, 0xFFFC4D);
+					}
+
+					else{
+						ObjText_SetFontBorderColor(pointText, 0xFF2700);
+						ObjText_SetFontColorTop(pointText, 0xFF9C30);
+					}
+
+					yield;
+
+				}
+
+			}
+
+
+			else if (!isBurst && rateRounded == 4){
+
+				ascent(i in 0..(time+timeDisappear)){
+
+					if (i % 2 == 0){
+						ObjText_SetFontBorderColor(pointText, 0x4DD7FF);
+						ObjText_SetFontColorTop(pointText, 0x4DD7FF);
+					}
+
+					else{
+						ObjText_SetFontBorderColor(pointText, 0x0012FF);
+						ObjText_SetFontColorTop(pointText, 0x3071FF);
+					}
+
+					yield;
+
+				}
+
+			}
+
+		}
+	}
+
+	ascent(i in 0..time){
+		ObjRender_SetY(pointText, clamp(Interpolate_Decelerate(enmY, enmY-yDes, i/time), 0, STG_HEIGHT));
+		yield;
+	}
+
+	ascent(i in 0..timeDisappear){
+		ObjRender_SetY(pointText, clamp(ObjRender_GetY(pointText)-1, 0, STG_HEIGHT));
+		ObjRender_SetAlpha(pointText, Interpolate_Decelerate(255, 0, i/timeDisappear));
+		yield;
+	}
+	
+	Obj_Delete(pointText);
+
+}

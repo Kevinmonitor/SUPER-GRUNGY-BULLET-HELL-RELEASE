@@ -1,0 +1,44 @@
+// Initialise common data
+
+if(IsCommonDataAreaExists("Ingame") == false){
+	CreateCommonDataArea("Ingame");
+	SetAreaCommonData("Ingame", "currentvalue", 10000);
+	SetAreaCommonData("Ingame", "ChainAmount", 1);
+}
+else{}
+
+if(IsCommonDataAreaExists("ScriptID") == false){
+	CreateCommonDataArea("ScriptID");
+	SetAreaCommonData("ScriptID", "SystemID", 0);
+	SetAreaCommonData("ScriptID", "ItemID", 0);
+}
+else{}
+	
+if(IsCommonDataAreaExists("ChainChecks") == false){
+	CreateCommonDataArea("ChainChecks");
+	SetAreaCommonData("ChainChecks", "IsChaining", false);
+}
+else{}
+
+if(IsCommonDataAreaExists("Ingame") == false){
+	CreateCommonDataArea("Ingame");
+	SetAreaCommonData("Ingame", "currentvalue", 10000);
+	SetAreaCommonData("Ingame", "ChainAmount", 1);
+}
+else{}
+
+if(IsCommonDataAreaExists("ScriptID") == false){
+	CreateCommonDataArea("ScriptID");
+	SetAreaCommonData("ScriptID", "SystemID", 0);
+	SetAreaCommonData("ScriptID", "ItemID", 0);
+}
+else{}
+	
+// safeguarding. because this is a BTICH ASS MOTHERFUCKER.
+if(IsCommonDataAreaExists("Config") == false){
+	CreateCommonDataArea("Config");
+	//SetAreaCommonData("ChainChecks", "IsChaining", false);
+}
+else{}
+	
+	

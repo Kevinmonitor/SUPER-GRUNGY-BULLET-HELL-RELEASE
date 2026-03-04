@@ -1,0 +1,759 @@
+
+int[] enmArray = [];
+bool isRankDemonstrationEnd = false;
+
+function <int> AimedEnemy(enmX, enmY, targetX, targetY, frameMove, rank){
+
+    int ship = _SmallShip(
+        42, frameMove,
+        enmX, enmY, smallshipRectA
+    );
+
+    async{
+        ObjMove_SetDestAtFrame(ship, targetX, targetY, frameMove, LERP_DECELERATE);
+        wait(frameMove);
+        FireTask();
+        wait(frameMove * 2);
+        ObjMove_SetDestAtFrame(ship, targetX, STG_HEIGHT + 256, frameMove * 4, LERP_ACCELERATE);
+    }
+
+    task FireTask(){
+
+        int bulletDel = max(10, FUNC_LERP_LINEAR(40, 10, rank/400));
+        int bulletDense = [1, 3, 5][min(2, floor(rank/80))];
+        float bulletAng = [0, 1.2, 1.4, 1.6, 2.0][min(4, floor(rank/60))];
+        float bulletSpeed = 7.9 * (1.0009 ^ rank);
+
+        while(!Obj_IsDeleted(ship)){
+            CreateFan (ship, bulletDense, SHOT_BULLET_DMAGENTA, 1, 
+            0, bulletAng, bulletSpeed, 1, 1,
+            PATTERN_FAN_AIMED, false);
+            Shoot2;
+            wait(bulletDel);
+            yield;
+        }
+
+        return;
+    }
+
+    return ship;
+
+}
+
+function <int> MediumEnemyA(enmX, enmY, targetX, targetY, leaveX, leaveY, frameMove, rank){
+
+    int ship = _MediumShip(
+        42, frameMove,
+        enmX, enmY, medshipRectA
+    );
+
+    enmArray ~= [ship];
+    WriteLog("cur length:" ~ ToString(length(enmArray)));
+    
+    async{
+        while(!Obj_IsDeleted(ship)){yield;}
+        enmArray = remove(enmArray, ship);
+        WriteLog("cur length after removal:" ~ ToString(length(enmArray)));
+    }
+
+    async{
+        ObjEnemy_SetAutoDelete(ship, false);
+        ObjRender_SetAngleZ(ship, 180);
+        ObjMove_SetDestAtFrame(ship, targetX, targetY, frameMove, LERP_DECELERATE);
+        wait(frameMove);
+        FireTask();
+        ObjEnemy_SetAutoDelete(ship, true);
+        wait(frameMove * 2);
+        ObjMove_SetDestAtFrame(ship, leaveX, leaveY, frameMove * 4, LERP_ACCELERATE);
+    }
+
+    task FireTask(){
+        
+        enmArray ~= [ship];
+
+        int bulletDel = max(10, FUNC_LERP_LINEAR(20, 10, rank/350));
+        int bulletDense = min(36, FUNC_LERP_LINEAR(32, 48, rank/400));
+        float bulletSpeed = 4 * (1.001 ^ rank);
+
+        while(ObjEnemy_GetInfo(ship, INFO_LIFE) > 0){
+            float offset = rand(-180, 180);
+            ascent(i in 0..bulletDense){
+                CreateShotA1(XMove(ship), YMove(ship), bulletSpeed, GetAngleToPlayer(ship) + i * 360/bulletDense + offset, SHOT_BULLET_DAQUA, 15);
+            }
+            Shoot1;
+            wait(bulletDel);
+            yield;
+        }
+
+        return;
+    }
+
+    return ship;
+
+}
+
+function <int> MediumEnemyB(enmX, enmY, targetX, targetY, leaveX, leaveY, frameMove, spinDir, rank){
+
+    int ship = _MediumShip(
+        42, frameMove,
+        enmX, enmY, medshipRectA
+    );
+
+    async{
+        ObjEnemy_SetAutoDelete(ship, false);
+        ObjRender_SetAngleZ(ship, 180);
+        ObjMove_SetDestAtFrame(ship, targetX, targetY, frameMove, LERP_DECELERATE);
+        wait(frameMove);
+        ObjEnemy_SetAutoDelete(ship, true);
+        SpawnSpiral(
+            ship,
+            [1, 2, 3][min(2, floor(rank/80))], min(10, FUNC_LERP_SMOOTH(4, 10, rank/400)),
+            max(6.5, FUNC_LERP_SMOOTH(9.0, 6.5, rank/350)), 
+            6 * (1.002 ^ rank), 6 * (1.002 ^ rank) * 0.95, max(5, FUNC_LERP_SMOOTH(10, 5, rank/350)),
+            SHOT_BULLET_DAQUA, 1,
+            GetAngleToPlayer(ship), spinDir
+        );
+        wait(frameMove * 2);
+        ObjMove_SetDestAtFrame(ship, leaveX, leaveY, frameMove * 4, LERP_ACCELERATE);
+    }
+
+    return ship;
+
+}
+
+function <int> Popcorn(enmX, enmY, rank){
+
+    int ship = _SmallShip(
+        42, 3,
+        enmX, enmY, smallshipRectA
+    );
+
+    async{
+        ObjMove_SetAngle(ship, GetAngleToPlayer(ship));
+        ObjRender_SetAngleZ(ship, GetAngleToPlayer(ship) + 90);
+        ObjMove_SetSpeed(ship, 12);
+        wait(5);
+        FireTask();
+    }
+
+    task FireTask(){
+
+        int bulletDel = max(15, FUNC_LERP_LINEAR(40, 15, rank/400));
+        int bulletDense = [1, 3, 5][min(2, floor(rank/80))];
+        float bulletAng = [0, 1.5, 1.0, 1.5][min(3, floor(rank/80))];
+        float bulletSpeed = 10 * (1.0001 ^ rank);
+
+        while(!Obj_IsDeleted(ship)){
+            CreateFan (ship, bulletDense, SHOT_BULLET_DMAGENTA, 1, 
+            0, bulletAng, bulletSpeed, 1, 1,
+            PATTERN_FAN_AIMED, false);
+            Shoot1;
+            wait(bulletDel);
+            yield;
+        }
+
+        return;
+
+    }
+
+    return ship;
+
+}
+
+function Wave1A1(){
+    
+    bool end = false;
+
+    async{
+        ascent(i in 0..(48*3+30)){
+            if(GetPlayerState() == STATE_DOWN){
+                SetCommonData("Deaths", GetCommonData("Deaths", 0)+1);
+            }
+            yield;
+        }
+    }
+
+    ascent(i in 0..8){
+        int enm = AimedEnemy(STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8 - 64, -48, STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8, STG_HEIGHT/7, 15, GetCommonDataPtr(POINTER_RANK, 1));
+        ObjRender_SetAngleZ(enm, 180);
+        wait(6);
+    }
+
+    wait(15);
+
+    ascent(i in 0..8){
+        int enm = AimedEnemy(STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8 + 128, -48, STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8, STG_HEIGHT/7 + STG_HEIGHT/5, 15, GetCommonDataPtr(POINTER_RANK, 1));
+        ObjRender_SetAngleZ(enm, 180);
+        wait(6);
+    }
+
+    wait(15);
+
+    ascent(i in 0..8){
+        int enm = AimedEnemy(STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8 - 64, -48, STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8, STG_HEIGHT/7, 15, GetCommonDataPtr(POINTER_RANK, 1));
+        ObjRender_SetAngleZ(enm, 180);
+        wait(6);
+    }
+
+    end = true;
+
+}
+
+function Wave1A2(){
+    int enm = MediumEnemyA(STG_WIDTH/2, -64, STG_WIDTH/2, STG_HEIGHT/3, STG_WIDTH/2, STG_HEIGHT + 256, 50, curRank);
+    ObjEnemy_SetLife(enm, 3250);
+
+    while(ObjEnemy_GetInfo(enm, INFO_LIFE) > 0){
+        if(GetPlayerState() == STATE_DOWN){
+            SetCommonData("Deaths", GetCommonData("Deaths", 0)+1);
+        }
+        yield;
+    }
+
+}
+
+function Wave1A3(){
+
+    SetCommonData("Bursts", 0);
+
+    bool end = false;
+
+    int enm1 = MediumEnemyB(STG_WIDTH/4, -64, STG_WIDTH/4, STG_HEIGHT/3, STG_WIDTH/4, STG_HEIGHT + 256, 30, 1, curRank);
+    int enm2 = MediumEnemyB(3*STG_WIDTH/4, -64, 3*STG_WIDTH/4, STG_HEIGHT/3, 3*STG_WIDTH/4, STG_HEIGHT + 256, 30, -1, curRank);
+
+    ascent(i in 0..8){
+        int enm = AimedEnemy(STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8 - 64, -48, STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8, STG_HEIGHT/7, 15, GetCommonDataPtr(POINTER_RANK, 1));
+        ObjRender_SetAngleZ(enm, 180);
+        wait(6);
+    }
+
+    wait(15);
+
+    ascent(i in 0..8){
+        int enm = AimedEnemy(STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8 + 128, -48, STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8, STG_HEIGHT/7 + STG_HEIGHT/5, 15, GetCommonDataPtr(POINTER_RANK, 1));
+        ObjRender_SetAngleZ(enm, 180);
+        wait(6);
+    }
+
+    wait(15);
+
+    ascent(i in 0..8){
+        int enm = AimedEnemy(STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8 - 64, -48, STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8, STG_HEIGHT/7, 15, GetCommonDataPtr(POINTER_RANK, 1));
+        ObjRender_SetAngleZ(enm, 180);
+        wait(6);
+    }
+
+    end = true;
+
+}
+
+function Wave1A4(){
+    while(GetScore() <= 500000000){
+
+        ascent(i in 0..8){
+            int enm = AimedEnemy(STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8 - 64, -48, STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8, STG_HEIGHT/7, 15, GetCommonDataPtr(POINTER_RANK, 1));
+            ObjRender_SetAngleZ(enm, 180);
+            wait(6);
+        }
+
+        wait(15);
+
+        MediumEnemyB(3*STG_WIDTH/4, -64, 3*STG_WIDTH/4, STG_HEIGHT/3, 3*STG_WIDTH/4, STG_HEIGHT + 256, 30, -1, curRank);
+
+        ascent(i in 0..8){
+            int enm = AimedEnemy(STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8 + 128, -48, STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8, STG_HEIGHT/7 + STG_HEIGHT/5, 15, GetCommonDataPtr(POINTER_RANK, 1));
+            ObjRender_SetAngleZ(enm, 180);
+            wait(6);
+        }
+
+        wait(15);
+
+        MediumEnemyB(STG_WIDTH/4, -64, STG_WIDTH/4, STG_HEIGHT/3, STG_WIDTH/4, STG_HEIGHT + 256, 30, 1, curRank);
+
+        yield;
+    }
+}
+
+task Wave1A4B(){
+    while(!isRankDemonstrationEnd){
+
+        ascent(i in 0..8){
+            int enm = AimedEnemy(STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8 - 64, -48, STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8, STG_HEIGHT/7, 15, GetCommonDataPtr(POINTER_RANK, 1));
+            ObjRender_SetAngleZ(enm, 180);
+            wait(7);
+        }
+
+        wait(15);
+
+        MediumEnemyB(3*STG_WIDTH/4, -64, 3*STG_WIDTH/4, STG_HEIGHT/3, 3*STG_WIDTH/4, STG_HEIGHT + 256, 30, -1, curRank);
+
+        ascent(i in 0..8){
+            int enm = AimedEnemy(STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8 + 128, -48, STG_WIDTH/7 + i * (5*STG_WIDTH/6)/8, STG_HEIGHT/7 + STG_HEIGHT/5, 15, GetCommonDataPtr(POINTER_RANK, 1));
+            ObjRender_SetAngleZ(enm, 180);
+            wait(7);
+        }
+
+        wait(15);
+
+        MediumEnemyB(STG_WIDTH/4, -64, STG_WIDTH/4, STG_HEIGHT/3, STG_WIDTH/4, STG_HEIGHT + 256, 30, 1, curRank);
+
+        SetCommonDataPtr(POINTER_TRUERANK, clamp(GetCommonDataPtr(POINTER_TRUERANK, 1.0)+50, RankLimits[4][1], RankLimits[4][2]));
+
+        yield;
+    }
+}
+
+function Tutorial1A(){
+
+    SetCommonData("Bursts", 0);
+
+    async{
+        while(true){
+			if(
+				GetCommonDataPtr(POINTER_BURSTGAUGE, 0) >= 100 &&
+				GetVirtualKeyState(VK_SPELL) == KEY_PUSH &&
+				GetCommonDataPtr(POINTER_BURSTMODE, false) == false
+				)
+            {
+                SetCommonData("Bursts", GetCommonData("Bursts", 0)+1);
+            }
+            yield;
+        }
+    }
+
+    TutorialText1A();
+    SetCommonData("Deaths", 0);
+
+    wait(30);
+
+    // wave 1
+
+    Wave1A1();
+    wait(30);
+
+    TutorialText1B();
+    SetCommonData("Deaths", 0);
+
+    Wave1A2();
+    wait(45);
+    
+    DeleteShotAll(TYPE_ALL, TYPE_FADE);
+
+    TutorialText1C();
+    SetCommonData("Deaths", 0);
+
+    SetAreaCommonData("Ingame", "BurstGauge", GetAreaCommonData("Ingame", "BurstGauge", 0)+100);
+    Wave1A3();
+    wait(45);
+
+    TutorialText1D();
+
+    SetCommonData("Bursts", 0);
+    SetCommonData("Deaths", 0);
+    Wave1A4();
+    wait(45);
+
+    TutorialText1E();
+    wait(45);
+
+}
+
+function TutorialText1A(){
+
+    string text1 = "Welcome to Starlit Reverie![r]This tutorial will teach you everything you need[r]to succeed in your heroic adventure.";
+
+    string text2 = "First, let's focus on the basic controls.";
+
+    string text3 = "Use the ARROW KEYS to move.[r]Hold the Z key to shoot your bullets.";
+
+    string text4 = "Let's give it a go.[r]Destroy the enemies while dodging their bullets!";
+
+    CreateTutorialText(
+        text1,
+        45,
+        180, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text2,
+        45,
+        120, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text3,
+        45,
+        200, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text4,
+        45,
+        180, 30, 
+        false
+    );
+
+}
+
+function TutorialText1B(){
+
+    string text1 = 
+    
+    GetCommonData("Deaths", 0) > 0 ?
+    "Be careful![r]Try and dodge the bullets, alright?" 
+    :
+    "Great work![r]You're doing stellar, rookie!"; 
+
+    string text2 = "Sometimes, bullet patterns can be very dense.[r]In those cases, you need to slow down and focus.";
+
+    string text3 = "While moving, hold SHIFT to slow your movement,[r]focus your attacks on one spot,[r]and see your hitbox clearly!";
+
+    string text4 = "Let's try and destroy this enemy[r]with a dense bullet pattern.";
+
+    CreateTutorialText(
+        text1,
+        30,
+        150, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text2,
+        30,
+        180, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text3,
+        30,
+        240, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text4,
+        45,
+        150, 45, 
+        false
+    );
+
+}
+
+function TutorialText1C(){
+
+    string text1 = 
+    
+    GetCommonData("Deaths", 0) > 0 ?
+    "Don't worry.[r]You'll learn the ropes soon enough." 
+    :
+    "Fantastic! You'll be shooting[r]and dodging like a pro[r]in no time."; 
+
+    string text2 = "Next, let's talk about your SPECIAL ATTACK![r]See the BURST GAUGE to your right?";
+
+    string text3 = "When it's at 100%, you can press X to[r]activate a Burst, which is very powerful,[r] has unique effects, and even gives you[r]some invincibility!";
+
+    string text4 = "";
+
+    alternative(GetAreaCommonData("Ingame", "PlayerNum"))
+    case(0){
+        text4 = "For example, Penmaster's Burst greatly[r]powers up his shot![r]Turn off those limiters and go hyper-mode!";
+    }
+    case(1){
+        text4 = "For example, Lavender's Burst releases a[r]barrage of destructive lasers that[r]wipe the battlefield!";     
+    }
+    case(2){
+        text4 = "For example, Kobiko's Burst throws out an explosive cube that mines Gold Crystals from[r]enemies and bullets in its radius!";
+    }
+    case(3){
+        
+    }
+    others{
+
+    }
+
+    string text5 = 
+    GetCommonData("Bursts", 0) > 0 ?
+    "...Well, you've used it already, so[r]you know how it works.[r][r]...Give it another go, still?"
+    :
+    "Let's give it a try! Destroy these enemies[r]with powerful Bursts!";
+
+    CreateTutorialText(
+        text1,
+        30,
+        120, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text2,
+        30,
+        240, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text3,
+        30,
+        300, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text4,
+        30,
+        240, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text5,
+        30,
+        150, 30, 
+        false
+    );
+
+}
+
+function TutorialText1D(){
+
+    string text1 = 
+    
+    GetCommonData("Bursts", 0) > 0 ?
+    "Nice work![r]Using your Bursts with confidence[r]is key to victory!" 
+    :
+    "Being a cheapskate, aren't you?[r]Well, don't say I didn't tell you..."; 
+
+    string text2 = "The journey is long and difficult,[r]and extra lives are hard to come by.";
+
+    string text3 = "To get extra lives, you need to rack up[r]those high scores. See the \"EXTEND\" requirement[r]below your life counter?";
+
+    string text4 = "Enemies drop Blue Crystals which increase your[r]score, your score multiplier (RATE),[r]and even your BURST gauge...";
+    string text5 = "...And if you destroy them with a Burst,[r]they drop Gold Crystals which[r]have DOUBLE the score value!";
+    string text6 = "The closer you are to the enemy when[r]shooting them down, the more items you get.";
+
+    string text7 = "Get 500 million points for your first extend![r]Don't forget to use your bursts!";
+
+    CreateTutorialText(
+        text1,
+        30,
+        150, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text2,
+        30,
+        180, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text3,
+        30,
+        240, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text4,
+        30,
+        240, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text5,
+        30,
+        180, 30, 
+        true
+    );
+
+
+    CreateTutorialText(
+        text6,
+        30,
+        180, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text7,
+        45,
+        150, 30, 
+        false
+    );
+
+}
+
+function TutorialText1E(){
+
+    string text1 = 
+    
+    GetCommonData("Bursts", 0) > 0 ?
+    "Good job! Look at all those crystals,[r]bling bling!" 
+    :
+    "Good job! But don't forget[r]to use your Bursts, okay?"; 
+
+    string text2 = "Finally, let's talk about Rank.[r]Take a look at the bottom-right corner.";
+
+    string text3 = "As you fight your way through the game,[r]Rank will change depending on your performance.";
+
+    string text4 = "The higher the Rank gets,[r]the harder the game becomes.[r][r]More dangerous patterns, faster bullets...[r]You know the drill.";
+    string text5 = "As you perform well, use Bursts regularly,[r]not die and so on,[r]Rank will start to go higher and higher...";
+    string text6 = "And if you make a mistake, your Rank[r]will fall by a bit.";
+
+    string text7 = "The dynamic difficulty changes with you,[r]challenging or easing up on you on the fly![r][r]The game also has multiple difficulties, which[r]adjust the rank range and speed.";
+
+    string text8 = "It can be an intense journey,[r]but I believe in you!";
+    
+    string text8A = "Remember, you can always access this tutorial[r]in the Main Menu whenever you need.";
+
+    string text9 = "Now get out there and game on![r]Good luck!";
+
+    CreateTutorialText(
+        text1,
+        30,
+        180, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text2,
+        30,
+        240, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text3,
+        30,
+        180, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text4,
+        30,
+        240, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text5,
+        30,
+        180, 30, 
+        false
+    );
+
+    Wave1A4B();
+    wait(600);
+    isRankDemonstrationEnd = true;
+    wait(60);
+
+    CreateTutorialText(
+        text6,
+        30,
+        180, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text7,
+        30,
+        300, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text8,
+        30,
+        180, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text8A,
+        30,
+        180, 30, 
+        true
+    );
+
+    CreateTutorialText(
+        text9,
+        30,
+        180, 30, 
+        true
+    );
+
+    SetAreaCommonData("SaveData", "isTutorial", true);
+    SaveCommonDataAreaA2("SaveData", "script/SaveData/savefile.dat");
+
+}
+
+
+function CreateTutorialText(
+        string text,
+        int timeAppear,
+        int timeStay, int timeDisappear, 
+        bool stopActionDuringText
+    ){
+
+    int objText = CreateTextObject(
+        STG_WIDTH/2, STG_HEIGHT/2, 24,
+        text, "Cartesian",
+        0xFFFFFF, 0xFFFFFF,
+        0x000000, 3,
+        60
+    );
+
+    ObjText_SetHorizontalAlignment(objText, ALIGNMENT_CENTER);
+
+    if(stopActionDuringText){
+
+        ascent(i in 0..timeAppear){
+            ObjRender_SetY(objText, FUNC_LERP_DECEL(STG_HEIGHT/2, STG_HEIGHT/4, i/timeAppear));
+            ObjRender_SetAlpha(objText, FUNC_LERP_DECEL(0, 255, i/timeAppear));
+            yield;
+        }
+        
+        wait(timeStay);
+
+        ascent(i in 0..timeDisappear){
+            ObjRender_SetY(objText, FUNC_LERP_DECEL(STG_HEIGHT/4, 0, i/timeDisappear));
+            ObjRender_SetAlpha(objText, FUNC_LERP_DECEL(255, 0, i/timeDisappear));
+            yield;
+        }
+
+        Obj_Delete(objText);
+
+    }
+
+    else{
+
+        ascent(i in 0..timeAppear){
+            ObjRender_SetY(objText, FUNC_LERP_DECEL(STG_HEIGHT/2, STG_HEIGHT/4, i/timeAppear));
+            ObjRender_SetAlpha(objText, FUNC_LERP_DECEL(0, 255, i/timeAppear));
+            yield;
+        }
+
+        async{
+
+            wait(timeStay);
+
+            ascent(i in 0..timeDisappear){
+                ObjRender_SetY(objText, FUNC_LERP_DECEL(STG_HEIGHT/4, 0, i/timeDisappear));
+                ObjRender_SetAlpha(objText, FUNC_LERP_DECEL(255, 0, i/timeDisappear));
+                yield;
+            }
+
+            Obj_Delete(objText);
+
+        }
+
+    }
+
+}

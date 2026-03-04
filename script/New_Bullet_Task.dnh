@@ -1,0 +1,389 @@
+function <int> NewCreateFan (
+    int parent, int way, int graphic, int colour, int stack, 
+	float ang, float angspace, float spd1, float spd2, float scaleBullet,
+	int type, bool reflect){
+
+	int objPattern = ObjPatternShot_Create();
+	
+	ObjPatternShot_SetParentObject(objPattern, parent);
+	
+	//if(ObjEnemyBossScene_GetInfo(GetEnemyBossSceneObjectID(), INFO_CURRENT_LIFE) == 0){Obj_Delete(objPattern); return;}
+	
+	ObjPatternShot_SetPatternType(objPattern, type); // PATTERN_FAN or PATTERN_FAN_AIMED
+	ObjPatternShot_SetShotType(objPattern, OBJ_SHOT);
+	ObjPatternShot_SetInitialBlendMode(objPattern, BLEND_ALPHA);
+	
+	ObjPatternShot_SetShotCount(objPattern, way, stack);
+	ObjPatternShot_SetSpeed(objPattern, spd1, spd2);
+	ObjPatternShot_SetAngle(objPattern, ang, angspace);
+	
+	ObjPatternShot_SetBasePointOffset(objPattern, 0, 0);
+	//ObjPatternShot_SetDelay(objPattern, 15);
+	ObjPatternShot_SetGraphic(objPattern, graphic);
+	
+	//Shoot2;
+	let arrayPattern = ObjPatternShot_FireReturn(objPattern);
+	
+	ascent(i in -1..length(arrayPattern)-1){
+        ObjShot_SetGraphic(arrayPattern[i], graphic);
+        ObjShader_SetShaderO(arrayPattern[i], GetCommonDataPtr(POINTER_SHOTSHADER, 0));
+        SetHue(arrayPattern[i], colour);
+		_BulletRescale(arrayPattern[i], scaleBullet, true, 1);
+		_Delay(arrayPattern[i], 5);
+		//Obj_SetRenderPriorityI(arrayPattern[i], 51);
+	}
+
+	for each (int bullet in ref arrayPattern){
+		if (reflect) {_ReflectToPlayer(bullet);}
+	}
+	
+	async{
+		wait(300);
+		Obj_Delete(objPattern);
+		return;
+	}
+	
+	return objPattern;
+	
+}
+
+function <int> NewCreateLine(
+	int parent, int way, int stack, 
+	float ang, float angspace, 
+	float spd1, float spd2, float scaleBullet,
+	int graphic
+	){
+
+	int objPattern = ObjPatternShot_Create();
+	
+	ObjPatternShot_SetParentObject(objPattern, parent);
+	
+	//if(ObjEnemyBossScene_GetInfo(GetEnemyBossSceneObjectID(), INFO_CURRENT_LIFE) == 0){Obj_Delete(objPattern); return;}
+	
+	ObjPatternShot_SetPatternType(objPattern, PATTERN_LINE);
+	ObjPatternShot_SetShotType(objPattern, OBJ_SHOT);
+	ObjPatternShot_SetInitialBlendMode(objPattern, BLEND_ALPHA);
+	
+	ObjPatternShot_SetShotCount(objPattern, way, stack);
+	ObjPatternShot_SetSpeed(objPattern, spd1, spd2);
+	ObjPatternShot_SetAngle(objPattern, ang, angspace);
+	
+	ObjPatternShot_SetBasePointOffset(objPattern, 0, 0);
+	ObjPatternShot_SetGraphic(objPattern, graphic);
+	
+	return objPattern;
+	
+}
+
+function <int[]> NewCreateFan_ReturnArray(int parent, int way, int graphic, int colour, int stack, 
+	float ang, float angspace, float spd1, float spd2, float scaleBullet,
+	float xOffset, float yOffset,
+	int type, bool reflect){
+
+	int objPattern = ObjPatternShot_Create();
+	
+	ObjPatternShot_SetParentObject(objPattern, parent);
+	
+	//if(ObjEnemyBossScene_GetInfo(GetEnemyBossSceneObjectID(), INFO_CURRENT_LIFE) == 0){Obj_Delete(objPattern); return;}
+	
+	ObjPatternShot_SetPatternType(objPattern, type); // PATTERN_FAN or PATTERN_FAN_AIMED
+	ObjPatternShot_SetShotType(objPattern, OBJ_SHOT);
+	ObjPatternShot_SetInitialBlendMode(objPattern, BLEND_ALPHA);
+	
+	ObjPatternShot_SetShotCount(objPattern, way, stack);
+	ObjPatternShot_SetSpeed(objPattern, spd1, spd2);
+	ObjPatternShot_SetAngle(objPattern, ang, angspace);
+	
+	ObjPatternShot_SetBasePointOffset(objPattern, xOffset, yOffset);
+	//ObjPatternShot_SetDelay(objPattern, 15);
+	ObjPatternShot_SetGraphic(objPattern, graphic);
+	
+	//Shoot2;
+	let arrayPattern = ObjPatternShot_FireReturn(objPattern);
+	
+	ascent(i in -1..length(arrayPattern)-1){
+        ObjShot_SetGraphic(arrayPattern[i], graphic);
+        ObjShader_SetShaderO(arrayPattern[i], GetCommonDataPtr(POINTER_SHOTSHADER, 0));
+        SetHue(arrayPattern[i], colour);
+		_Delay(arrayPattern[i], 5);
+        _BulletRescale(arrayPattern[i], scaleBullet, true, 1);
+		//Obj_SetRenderPriorityI(arrayPattern[i], 51);
+	}
+
+	for each (int bullet in ref arrayPattern){
+		if (reflect) {_ReflectToPlayer(bullet);}
+	}
+	
+	async{
+		wait(300);
+		Obj_Delete(objPattern);
+		return;
+	}
+	
+	return arrayPattern;
+	
+}
+
+// Overload
+
+function <int> NewCreateFan (
+    int parent, int way, int graphic, int colour, int stack, 
+	float ang, float angspace, float spd1, float spd2, float scaleBullet,
+	float xOffset, float yOffset,
+	int type, bool reflect
+    ){
+
+	int objPattern = ObjPatternShot_Create();
+	
+	ObjPatternShot_SetParentObject(objPattern, parent);
+	
+	//if(ObjEnemyBossScene_GetInfo(GetEnemyBossSceneObjectID(), INFO_CURRENT_LIFE) == 0){Obj_Delete(objPattern); return;}
+	
+	ObjPatternShot_SetPatternType(objPattern, type); // PATTERN_FAN or PATTERN_FAN_AIMED
+	ObjPatternShot_SetShotType(objPattern, OBJ_SHOT);
+	ObjPatternShot_SetInitialBlendMode(objPattern, BLEND_ALPHA);
+	
+	ObjPatternShot_SetShotCount(objPattern, way, stack);
+	ObjPatternShot_SetSpeed(objPattern, spd1, spd2);
+	ObjPatternShot_SetAngle(objPattern, ang, angspace);
+	
+	ObjPatternShot_SetBasePointOffset(objPattern, xOffset, yOffset);
+	//ObjPatternShot_SetDelay(objPattern, 15);
+	ObjPatternShot_SetGraphic(objPattern, graphic);
+	
+	//Shoot2;
+	let arrayPattern = ObjPatternShot_FireReturn(objPattern);
+	
+	ascent(i in -1..length(arrayPattern)-1){
+        ObjShot_SetGraphic(arrayPattern[i], graphic);
+        ObjShader_SetShaderO(arrayPattern[i], GetCommonDataPtr(POINTER_SHOTSHADER, 0));
+        SetHue(arrayPattern[i], colour);
+		_Delay(arrayPattern[i], 5);
+        _BulletRescale(arrayPattern[i], scaleBullet, true, 1);
+		//Obj_SetRenderPriorityI(arrayPattern[i], 51);
+	}
+
+	for each (int bullet in ref arrayPattern){
+		if (reflect) {_ReflectToPlayer(bullet);}
+	}
+	
+	async{
+		wait(300);
+		Obj_Delete(objPattern);
+		return;
+	}
+	
+	return objPattern;
+	
+}
+
+task NewSpawnSpiral(
+	int target,
+	int spiralStack, int spiralDense,
+	float angOffset, 
+	float spiralSpd1, spiralSpd2, int spiralDelay,
+	int bulletGraphic, int bulletHue, float bulletScale,
+	float angStart, int spinDir
+	){
+
+	int curAngle = 0;
+	int shotNum = 0;
+
+	async{
+
+		int deleted = false;
+
+		while(ObjEnemy_GetInfo(target, INFO_LIFE) > 0){
+			
+			ascent(i in 0..spiralDense){
+
+				if(ObjEnemy_GetInfo(target, INFO_LIFE) <= 0){break;}
+				
+				int shot = NewCreateFan
+                    (
+                    target, 1, bulletGraphic, bulletHue, spiralStack, 
+					angStart + i * 360/spiralDense + curAngle, 0, spiralSpd1, spiralSpd2, bulletScale,
+					0, 0,
+					PATTERN_FAN, false
+				    );
+
+				if(ObjEnemy_GetInfo(target, INFO_LIFE) <= 0){Obj_Delete(shot); break;}
+				
+				else if(shotNum > 16){return;}
+				
+				else{Shoot1;}
+
+			}
+
+			shotNum++;
+			curAngle += spinDir * angOffset;
+			wait(spiralDelay);
+			
+		}
+	}
+
+}
+
+task NewSpawnSpiralWithOffset(
+	int target, float xOffset, float yOffset,
+	int spiralStack, int spiralDense,
+	float angOffset, 
+	float spiralSpd1, spiralSpd2, int spiralDelay,
+	int bulletGraphic, int bulletColour, float bulletScale,
+	float angStart, int spinDir
+	){
+
+	int curAngle = 0;
+	int shotNum = 0;
+
+	async{
+		while(ObjEnemy_GetInfo(target, INFO_LIFE) > 0){
+			
+			ascent(i in 0..spiralDense){
+
+				if(ObjEnemy_GetInfo(target, INFO_LIFE) <= 0){break;}
+				
+				int shot = NewCreateFan(
+                    target, 1, bulletGraphic, bulletColour, spiralStack, 
+					angStart + i * 360/spiralDense + curAngle, 0, spiralSpd1, spiralSpd2, 
+					bulletScale,
+					xOffset, yOffset,
+					PATTERN_FAN, false
+				);
+
+				if(ObjEnemy_GetInfo(target, INFO_LIFE) <= 0){Obj_Delete(shot); break;}
+				
+				else if(shotNum > 48){}
+
+				else{Shoot1;}
+
+			}
+
+			shotNum++;
+			curAngle += spinDir * angOffset;
+			wait(spiralDelay);
+			
+		}
+	}
+
+}
+
+function <int> CreateHueShotA1(xcoord, ycoord, speed, angle, graphic, hue, scale, delay){
+
+    int bullet = CreateShotA1(xcoord, ycoord, speed, angle, graphic, delay);
+
+    ObjShader_SetShaderO(bullet, GetCommonDataPtr(POINTER_SHOTSHADER, 0));
+    SetHue(bullet, hue);
+    _BulletRescale(bullet, scale, true, 1);
+
+    return bullet;
+    
+}
+
+function <int> CreateHueShotA2(xcoord, ycoord, speed, angle, accel, maxspeed, wvel, graphic, hue, scale, delay){
+
+    int bullet = CreateShotA2(xcoord, ycoord, speed, angle, accel, maxspeed, wvel, graphic, delay);
+
+    ObjShader_SetShaderO(bullet, GetCommonDataPtr(POINTER_SHOTSHADER, 0));
+    SetHue(bullet, hue);
+    _BulletRescale(bullet, scale, true, 1);
+
+    return bullet;
+    
+}
+
+function <int> CreateHueShotA1B(xcoord, ycoord, speed, angle, graphic, delay, hue, scale){
+
+    int bullet = CreateShotA1(xcoord, ycoord, speed, angle, graphic, delay);
+
+    ObjShader_SetShaderO(bullet, GetCommonDataPtr(POINTER_SHOTSHADER, 0));
+    SetHue(bullet, hue);
+    _BulletRescale(bullet, scale, true, 1);
+
+    return bullet;
+    
+}
+
+function LaserWarnStage(x, y, ang, len, wid, del, img, delay){
+	let warnbeam = CreateStraightLaserA1(x, y, ang, len, wid, del, img, delay);
+	//if(ObjEnemy_GetInfo(bossObj, INFO_LIFE) <= 0){Obj_Delete(warnbeam); return;}
+	ObjStLaser_SetSource(warnbeam, false);
+	ObjStLaser_SetPermitExpand(warnbeam, false);
+	return warnbeam; // Important 
+}
+
+function <int> CreateHueStraightLaserA1(xcoord, ycoord, angle, len, width, deletetime, graphic, hue, scale, delay){
+
+    int laser = CreateStraightLaserA1(xcoord, ycoord, angle, len, width, deletetime, graphic, delay);
+
+    ObjShader_SetShaderO(laser, GetCommonDataPtr(POINTER_SHOTSHADER, 0));
+	ObjLaser_SetIntersectionWidth(laser, width/3);
+    SetHue(laser, hue);
+    _BulletRescale(laser, scale, true, 1);
+
+    return laser;
+
+}
+
+function <int> CreateHueLooseLaserA1(xcoord, ycoord, angle, len, width, speed, graphic, hue, scale, delay){
+
+    int laser = CreateLooseLaserA1(xcoord, ycoord, speed, angle, len, width, graphic, delay);
+
+    ObjShader_SetShaderO(laser, GetCommonDataPtr(POINTER_SHOTSHADER, 0));
+	ObjLaser_SetIntersectionWidth(laser, width/3);
+	ObjLaser_SetInvalidLength(laser, 0.2, 0.2);
+    SetHue(laser, hue);
+    _BulletRescale(laser, scale, true, 1);
+
+    return laser;
+
+}
+
+task _TrapLaserCreateSimpleStage(x, y, ang, delay, delTime, len, width, graphic, hue){
+
+	//while(ObjEnemy_GetInfo(bossObj, INFO_LIFE) <= 0){yield;}
+	let thunder = LaserWarnStage(x, y, ang, 999, 80, delay, 25, 0);
+	Lit2;
+	wait(delay);
+	LaserBSFX;
+	// Use loose lasers for long shots
+	int shot = CreateHueStraightLaserA1(x, y, ang, len, width, delTime, graphic, hue, 1.0, 0);
+	ObjRender_SetBlendType(shot, BLEND_ALPHA);
+	ObjLaser_SetItemDistance(shot, 150);
+	//DisperseShot(shot);
+	
+}
+
+task _LaserStormCreateSimpleStage(x, y, ang, delay, laserNum, laserLength, laserWidth, stormWidth, graphic, hue, scale){
+
+	ascent(i in 0..8){
+		
+		let thunder = LaserWarnStage(x, y, ang - stormWidth * 4 + stormWidth * i, 999, 96, delay, 25, 0);
+		wait(2);
+	}
+
+	Lit2;
+	wait(delay);
+	// Use loose lasers for long shots
+	ascent(i in 0..laserNum){
+
+		int shot = CreateLooseLaserA1(x, y, 36, rand(ang - (stormWidth/1.2) * 4, ang + (stormWidth/1.2) * 4), laserLength, laserWidth, graphic, 0);
+
+		ObjShader_SetShaderO(shot, GetCommonDataPtr(POINTER_SHOTSHADER, 0));
+		SetHue(shot, hue);
+
+		ObjLaser_SetIntersectionWidth(shot, laserWidth/5);
+		ObjLaser_SetInvalidLength(shot, 0.25, 0.25);
+		ObjRender_SetBlendType(shot, BLEND_ALPHA);
+		ObjLaser_SetItemDistance(shot, 150);
+		ObjShot_SetSpellResist(shot, true);
+
+		if(i % 2 == 0){LaserBSFX;}
+
+		wait(2);
+
+	}
+	//DisperseShot(shot);
+	
+}
+

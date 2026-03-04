@@ -1,0 +1,7 @@
+
+const POINT_ITEM = 1;
+const GOLD_POINT = 2;
+const LIFE_UP = 3;
+
+const BLUE_FLAKE = 4;
+const GOLD_FLAKE = 5;

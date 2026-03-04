@@ -1,0 +1,728 @@
+#include "script/Bullet_Task.dnh"
+#include "script/New_Bullet_Task.dnh"
+#include "script/KevinSystem/SystemScripts/Lib_Const.dnh"
+
+SetEnemyAutoDeleteClip(96, 96, 96, 96);
+float[] deadZoneArray = [-64, -64, STG_WIDTH + 64, STG_HEIGHT + 64];
+
+// Code by Kevinmonitor with some assistance.
+
+/*
+
+///////////// ENEMY SPAWNING DURING STAGES /////////////
+
+*/
+
+// This is for the frame expansion
+
+task _UpdateDeadzoneArray(){
+	deadZoneArray = [-64, -64, STG_WIDTH + 64, STG_HEIGHT + 64];
+}
+
+function <int> _InitDifficulty(){
+
+	int difficulty = 0;
+	string difficultyName = GetAreaCommonData("Ingame", "Difficulty", "Rainstorm");
+
+	alternative(difficultyName)
+
+	case("Drizzle"){
+		difficulty = 0;
+		SetCommonDataPtr(POINTER_DIFFICULTYNUM, 0);
+	}
+
+	case("Rainstorm"){
+		difficulty = 1;
+		SetCommonDataPtr(POINTER_DIFFICULTYNUM, 1);
+	}
+
+	case("Monsoon"){
+		difficulty = 2;
+		SetCommonDataPtr(POINTER_DIFFICULTYNUM, 2);
+	}
+
+	case("Overload"){
+		difficulty = 3;
+		SetCommonDataPtr(POINTER_DIFFICULTYNUM, 3);
+	}
+	
+	return difficulty;
+}
+
+task ManageRankLimits(int diffInt, bool StartGame){
+
+	if(StartGame){
+		SetCommonDataPtr(POINTER_RANK, RankLimits[diffInt][0]);
+		SetCommonDataPtr(POINTER_TRUERANK, RankLimits[diffInt][0]);
+	}
+
+	async{
+		while(true){
+			SetCommonDataPtr(POINTER_TRUERANK, clamp(GetCommonDataPtr(POINTER_TRUERANK, 1.0), RankLimits[diffInt][1], RankLimits[diffInt][2]));
+			SetCommonDataPtr(POINTER_RANK, truncate(GetCommonDataPtr(POINTER_TRUERANK, 1.0)));
+			yield;
+		}
+	}
+
+}
+
+task _FadeInSpawn(
+	int enemyID,
+	float spawnX, float spawnY,
+	float destX, float destY,
+	float spawnScale, float destScale,
+	int time){
+	
+	ObjMove_SetPosition(enemyID, spawnX, spawnY);
+	ObjRender_SetAlpha(enemyID, 0);
+	
+	ObjMove_SetDestAtFrame(enemyID, destX, destY, time, LERP_DECELERATE);
+	
+	ascent(i in 0..time){
+		ObjRender_SetAlpha(enemyID, Interpolate_Decelerate(0, 255, i/time));
+		ObjRender_SetScaleXYZ(enemyID, Interpolate_Decelerate(spawnScale, destScale, i/time));
+		yield;
+	}
+	
+	}
+	
+// Creates an enemy and spawns them using _FadeInSpawn. Shooting and movement tasks not covered.
+// Task also handles deleting the enemy after their life reaches 0.
+
+function <int> _CreateEnemy(
+	float spawnX, float spawnY, float destX, float destY, int spawntime,
+	float spawnScale, float destScale,
+	float health, float sizeHitbox, float sizeHurtbox,
+	texture,
+	int rectLeft, int rectTop, int rectRight, int rectBottom){
+	
+	// Essentials
+	int enemyID = ObjEnemy_Create(OBJ_ENEMY);
+	ObjEnemy_Regist(enemyID);
+	ObjEnemy_SetLife(enemyID, health);
+	ObjEnemy_SetAutoDelete(enemyID, true);
+		
+	// TBA: Handle animations
+	ObjPrim_SetTexture(enemyID, texture);
+	ObjSprite2D_SetSourceRect(enemyID, rectLeft, rectTop, rectRight, rectBottom);
+	ObjSprite2D_SetDestCenter(enemyID);
+	Obj_SetValue(enemyID, "RECT", [rectLeft, rectTop, rectRight, rectBottom]);
+	
+	// Spawning
+	_FadeInSpawn(enemyID, spawnX, spawnY, destX, destY, spawnScale, destScale, spawntime);
+	_HandleEnemyWellbeing(enemyID, sizeHitbox, sizeHurtbox);
+	
+	SetCommonDataPtr(POINTER_ENEMYCOUNT, GetCommonDataPtr(POINTER_ENEMYCOUNT, 0)+1);
+	return enemyID;
+	
+	}
+	
+// Special overload for creating hitbox/hurtboxless enemies.
+
+function <int> _CreateEnemy(
+	float spawnX, float spawnY,
+	float destX, float destY, 
+	int spawntime, float spawnScale, float destScale,
+	float health, float sizeHitbox, float sizeHurtbox,
+	texture,
+	int[] rect){
+	
+	// Essentials
+	int enemyID = ObjEnemy_Create(OBJ_ENEMY);
+	ObjEnemy_Regist(enemyID);
+	ObjEnemy_SetLife(enemyID, health);
+	ObjEnemy_SetAutoDelete(enemyID, true);
+		
+	// TBA: Handle animations
+	ObjPrim_SetTexture(enemyID, texture);
+	ObjSprite2D_SetSourceRect(enemyID, rect[0], rect[1], rect[2], rect[3]);
+	ObjSprite2D_SetDestCenter(enemyID);
+	
+	// Spawning
+	
+	_FadeInSpawn(enemyID, spawnX, spawnY, destX, destY, spawnScale, destScale, spawntime);
+	_HandleEnemyWellbeing(enemyID, sizeHitbox, sizeHurtbox);
+	
+	SetCommonDataPtr(POINTER_ENEMYCOUNT, GetCommonDataPtr(POINTER_ENEMYCOUNT, 0)+1);
+	return enemyID;
+	
+	}
+
+// unique overload with lifetime
+
+function <int> _CreateEnemy(
+	float spawnX, float spawnY,
+	float destX, float destY, 
+	int spawntime, float spawnScale, float destScale,
+	float health, float sizeHitbox, float sizeHurtbox,
+	int lifeTime,
+	texture,
+	int[] rect){
+	
+	// Essentials
+	int enemyID = ObjEnemy_Create(OBJ_ENEMY);
+	ObjEnemy_Regist(enemyID);
+	ObjEnemy_SetLife(enemyID, health);
+	ObjEnemy_SetAutoDelete(enemyID, true);
+		
+	// TBA: Handle animations
+	ObjPrim_SetTexture(enemyID, texture);
+	ObjSprite2D_SetSourceRect(enemyID, rect[0], rect[1], rect[2], rect[3]);
+	ObjSprite2D_SetDestCenter(enemyID);
+	
+	// Spawning
+	_FadeInSpawn(enemyID, spawnX, spawnY, destX, destY, spawnScale, destScale, spawntime);
+	_HandleEnemyWellbeing(enemyID, sizeHitbox, sizeHurtbox, lifeTime);
+	
+	SetCommonDataPtr(POINTER_ENEMYCOUNT, GetCommonDataPtr(POINTER_ENEMYCOUNT, 0)+1);
+	return enemyID;
+	
+	}
+
+// Hitbox and deletion
+
+task _HandleEnemyWellbeing(int enemyID, float sizeHitbox, float sizeHurtbox){
+	
+	//float enmX = 0, enmY = 0;
+	int i = 0;
+
+	while(ObjEnemy_GetInfo(enemyID, INFO_LIFE) > 0 && i < 2400){
+
+		if(
+			XMove(enemyID) < deadZoneArray[0] ||
+			XMove(enemyID) > deadZoneArray[2] ||
+			YMove(enemyID) < deadZoneArray[1] ||
+			YMove(enemyID) > deadZoneArray[3]
+ 		)
+		{
+			if(i > 300){break;}
+			ObjEnemy_SetDamageRate(enemyID, 0, 0);
+		}
+
+		else{ObjEnemy_SetDamageRate(enemyID, 1, 1);}
+
+		ObjEnemy_SetIntersectionCircleToShot(enemyID, ObjMove_GetX(enemyID), ObjMove_GetY(enemyID), sizeHitbox); 
+		
+		if (sizeHurtbox > 1){
+			ObjEnemy_SetIntersectionCircleToPlayer(enemyID, ObjMove_GetX(enemyID), ObjMove_GetY(enemyID), sizeHurtbox);
+		}
+
+		i++;
+		yield;
+		
+	}
+	
+	Obj_Delete(enemyID);
+	
+}
+
+// new overload.
+
+task _HandleEnemyWellbeing(int enemyID, float sizeHitbox, float sizeHurtbox, int lifeTime){
+	
+	//float enmX = 0, enmY = 0;
+	int i = 0;
+
+	while(ObjEnemy_GetInfo(enemyID, INFO_LIFE) > 0 && i < lifeTime){
+
+		if(
+			XMove(enemyID) < deadZoneArray[0] ||
+			XMove(enemyID) > deadZoneArray[2] ||
+			YMove(enemyID) < deadZoneArray[1] ||
+			YMove(enemyID) > deadZoneArray[3]
+ 		)
+		{
+			//if(i > 300){break;}
+			ObjEnemy_SetDamageRate(enemyID, 0, 0);
+		}
+
+		else{ObjEnemy_SetDamageRate(enemyID, 1, 1);}
+
+		ObjEnemy_SetIntersectionCircleToShot(enemyID, ObjMove_GetX(enemyID), ObjMove_GetY(enemyID), sizeHitbox); 
+		
+		if (sizeHurtbox > 1){
+			ObjEnemy_SetIntersectionCircleToPlayer(enemyID, ObjMove_GetX(enemyID), ObjMove_GetY(enemyID), sizeHurtbox);
+		}
+
+		i++;
+		yield;
+		
+	}
+	
+	Obj_Delete(enemyID);
+	
+}
+// Fading invincibility for bosses/enemies (with parameters for wait times and fade times, and a separate multiplier for bomb damage rate (final spells))
+
+task _FadeInvincibility(int target, int waittime, int fadetime, float bombmultiplier){
+
+	float x = 0;
+	ObjEnemy_SetDamageRate(target, 0, 0);
+	wait(waittime);
+	ascent(i in 0..fadetime){
+		x = Interpolate_Accelerate(0, 1, i/fadetime);
+		ObjEnemy_SetDamageRate(target, x, x*bombmultiplier);
+		yield;
+	}
+	
+}
+
+/*
+
+//////////////// GRAPHICAL/VISUAL-RELATED TASKS AND FUNCTIONS ////////////////
+
+*/
+
+// Handles boss markers during boss fights.
+
+task _BossMarker(int targetenemy, markertex, int left, int top, int right, int bottom, float scale, float heightoffset){
+
+	int marker = ObjPrim_Create(OBJ_SPRITE_2D);
+	ObjPrim_SetTexture(marker, markertex);
+	ObjSprite2D_SetSourceRect(marker, left, top, right, bottom);
+	ObjSprite2D_SetDestCenter(marker);
+	ObjRender_SetScaleXYZ(marker, scale);
+	Obj_SetRenderPriorityI(marker, 19);
+	ObjRender_SetAlpha(marker, 255);
+	//ObjRender_SetY(marker, GetStgFrameHeight()+heightoffset);
+	
+	while(!Obj_IsDeleted(targetenemy)){
+		ObjRender_SetPosition(marker, ObjRender_GetX(targetenemy)+(GetScreenWidth()-GetStgFrameWidth())/2, GetStgFrameHeight()+heightoffset+(GetScreenHeight()-GetStgFrameHeight())/2, 1);
+		yield;
+	}
+	
+	Obj_Delete(marker);
+}
+
+// Tasks that handle calling a spellcard. No spell card history.
+
+task _DuoCutin(
+	image1, image2, 
+	int rectleft, int recttop, int rectright, int rectbottom,
+	int spellID, string spellname, 
+	float textsize, float bordersize, int bordercolor, int bonusbordercolor,
+	float textstartx, float textendx, int render1, int render2
+	){
+
+	// Handle the appearance and disappearances of the images
+	
+	// 0 = upwards, 1 = downwards || 0 = left, 1 = right
+	
+	// Handle the spell text
+	
+	int spelltext = ObjText_Create();
+	ObjText_SetText(spelltext, spellname);
+	ObjText_SetFontType(spelltext, "Connecting Chain Handserif");
+	
+	ObjText_SetFontSize(spelltext, textsize);
+	ObjText_SetFontColorTop(spelltext, 255, 255, 255);
+	ObjText_SetFontColorBottom(spelltext, 255, 255, 255);
+	ObjText_SetFontBorderType(spelltext, BORDER_FULL);
+	ObjText_SetFontBorderColor(spelltext, bordercolor);
+	ObjText_SetFontBorderWidth(spelltext, bordersize);
+	
+	ObjText_SetHorizontalAlignment(spelltext, ALIGNMENT_RIGHT);
+	ObjText_SetMaxWidth(spelltext, GetStgFrameWidth);
+	Obj_SetRenderPriorityI(spelltext, 79);
+	ObjRender_SetPosition(spelltext, textstartx, GetStgFrameHeight/8-10, 0); // WIP
+	ObjRender_SetAlpha(spelltext, 255);
+	
+	// Handle the spell bonus
+	
+	let objBonus = ObjText_Create();
+	ObjText_SetFontSize(objBonus, 38);
+	ObjText_SetFontBold(objBonus, true);
+	ObjText_SetFontType(objBonus, "Anke Calligraph");
+	ObjText_SetFontColorTop(objBonus, 255, 255, 255);
+	ObjText_SetFontColorBottom(objBonus, 255, 255, 255);
+	ObjText_SetFontBorderType(objBonus, BORDER_FULL);
+	ObjText_SetFontBorderColor(objBonus, bonusbordercolor);
+	ObjText_SetFontBorderWidth(objBonus, 2);
+	
+	ObjText_SetHorizontalAlignment(objBonus, ALIGNMENT_RIGHT);
+	ObjText_SetMaxWidth(objBonus, GetStgFrameWidth-24);
+	Obj_SetRenderPriorityI(objBonus, 79);
+	ObjRender_SetPosition(objBonus, textendx, GetStgFrameHeight/8+12, 0); // WIP
+	ObjRender_SetAlpha(objBonus, 255);
+
+	async{
+		while(ObjEnemyBossScene_GetInfo(spellID, INFO_PLAYER_SHOOTDOWN_COUNT) == 0 && ObjEnemyBossScene_GetInfo(spellID, INFO_PLAYER_SPELL_COUNT) == 0)
+		{
+			int score = trunc(ObjEnemyBossScene_GetInfo(spellID, INFO_SPELL_SCORE)/10) * 10;
+			score = min(score, 9999999990);
+			let yass = DigitToCommaArray(score);
+			ObjText_SetText(objBonus, yass);
+			yield;
+		}
+		ObjText_SetText(objBonus, ":(");
+	}
+	
+	// Actually call the tasks and functions here 
+	
+	// Mm
+	
+	int objCutin1 = _Create2DImage(image1, rectleft, recttop, rectright, rectbottom);
+	int objCutin2 = _Create2DImage(image2, rectleft, recttop, rectright, rectbottom);
+	
+	Obj_SetRenderPriorityI(objCutin1, render1);
+	Obj_SetRenderPriorityI(objCutin2, render2);
+	
+	_MoveVertical(objCutin1, 0, 0);
+	_MoveVertical(objCutin2, 1, 1);
+	
+	//WriteLog(ObjRender_GetY(objCutin1));
+	
+	//_MoveIntoPlace(spelltext, textstartx, textendx);
+	_FadeAtPlayer(spelltext);
+	_FadeAtPlayer(objBonus);
+	
+	while(ObjEnemyBossScene_GetInfo(spellID, INFO_CURRENT_LIFE) > 0){yield;}
+	
+	Obj_Delete(spelltext);
+	Obj_Delete(objBonus);
+	
+	//return;
+
+}
+
+task _SoloCutin(
+	image,
+	int rectleft, int recttop, int rectright, int rectbottom,
+	int bossID, int spellID, string spellname, 
+	float textsize, float bordersize, int bordercolor, int bonusbordercolor,
+	float textstartx, float texty, int render
+	){
+	
+	// Handle the spell text
+	
+	int spelltext = ObjText_Create();
+	ObjText_SetText(spelltext, spellname);
+	ObjText_SetFontType(spelltext, "Connecting Chain Handserif");
+	
+	ObjText_SetFontSize(spelltext, textsize);
+	ObjText_SetFontColorTop(spelltext, 255, 255, 255);
+	ObjText_SetFontColorBottom(spelltext, 255, 255, 255);
+	ObjText_SetFontBorderType(spelltext, BORDER_FULL);
+	ObjText_SetFontBorderColor(spelltext, bordercolor);
+	ObjText_SetFontBorderWidth(spelltext, bordersize);
+	
+	ObjText_SetHorizontalAlignment(spelltext, ALIGNMENT_LEFT);
+	//ObjText_SetMaxWidth(spelltext, GetStgFrameWidth);
+	Obj_SetRenderPriorityI(spelltext, 79);
+	ObjRender_SetPosition(spelltext, textstartx, texty, 0); // WIP
+	ObjRender_SetAlpha(spelltext, 255);
+	
+	// Handle the spell bonus
+	
+	let objBonus = ObjText_Create();
+	ObjText_SetFontSize(objBonus, textsize*1.25);
+	ObjText_SetFontBold(objBonus, true);
+	ObjText_SetFontType(objBonus, "Anke Calligraph");
+	ObjText_SetFontColorTop(objBonus, 255, 255, 255);
+	ObjText_SetFontColorBottom(objBonus, 255, 255, 255);
+	ObjText_SetFontBorderType(objBonus, BORDER_FULL);
+	ObjText_SetFontBorderColor(objBonus, bonusbordercolor);
+	ObjText_SetFontBorderWidth(objBonus, 2);
+	
+	ObjText_SetHorizontalAlignment(objBonus, ALIGNMENT_LEFT);
+	//ObjText_SetMaxWidth(objBonus, GetStgFrameWidth-24);
+	Obj_SetRenderPriorityI(objBonus, 79);
+	ObjRender_SetPosition(objBonus, textstartx, texty+textsize-5, 0); // WIP
+	ObjRender_SetAlpha(objBonus, 255);
+
+	async{
+		while(ObjEnemyBossScene_GetInfo(spellID, INFO_PLAYER_SHOOTDOWN_COUNT) == 0 && ObjEnemyBossScene_GetInfo(spellID, INFO_PLAYER_SPELL_COUNT) == 0)
+		{
+			int score = trunc(ObjEnemyBossScene_GetInfo(spellID, INFO_SPELL_SCORE)/10) * 10;
+			score = min(score, 9999999990);
+			let yass = DigitToCommaArray(score);
+			ObjText_SetText(objBonus, "Bonus: " ~ yass);
+			yield;
+		}
+		ObjText_SetText(objBonus, "Bonus Failed...");
+	}
+	
+	// Actually call the tasks and functions here 
+	
+	// Mm
+	
+	int objCutin = _Create2DImage(image, rectleft, recttop, rectright, rectbottom);
+	
+	Obj_SetRenderPriorityI(objCutin, render);
+	
+	_MoveDiagonal(objCutin, GetStgFrameWidth()*1.25, -120, GetStgFrameWidth()/2, GetStgFrameHeight()/2, -120, GetStgFrameHeight()*1.25);
+	//WriteLog(Obj_IsVisible(spelltext));
+	
+	//_MoveIntoPlace(spelltext, textstartx, textendx);
+	_FadeAtPlayer(spelltext);
+	_FadeAtPlayer(objBonus);
+	
+	while(ObjEnemyBossScene_GetInfo(spellID, INFO_CURRENT_LIFE) > 0){yield;}
+	
+	Obj_Delete(spelltext);
+	Obj_Delete(objBonus);
+	
+	//return;
+
+}
+
+// Tasks meant to be used with cutin tasks.
+
+task _MoveVertical(int target, int move, int widthposition){
+	
+	float positionstart = [GetStgFrameHeight()*1.5, -GetStgFrameHeight()][move];
+	float positionmid = GetStgFrameHeight()/2;
+	float positionend = [-GetStgFrameHeight()*1.5, GetStgFrameHeight()*1.5][move];
+	
+	float positionhort = [3*GetStgFrameWidth/8, 6*GetStgFrameWidth/8][widthposition]; 
+	
+	ObjRender_SetPosition(target, positionhort, positionstart, 0);
+	
+	ascent(i in 0..30){
+		ObjRender_SetY(target, Interpolate_Decelerate(positionstart, positionmid, i/30));
+		yield;
+	}
+	
+	wait(30);
+	
+	ascent(i in 0..30){
+		ObjRender_SetY(target, Interpolate_Accelerate(positionmid, positionend, i/30));
+		yield;
+	}
+	
+	Obj_Delete(target);
+	
+	return;
+
+}
+
+task _MoveDiagonal(int target, int startx, int starty, int midx, int midy, int endx, int endy){
+
+	//"
+	
+	ObjRender_SetPosition(target, startx, endx, 1);
+	
+	ascent(i in 0..30){
+		ObjRender_SetPosition(target, Interpolate_Decelerate(startx, midx, i/30), Interpolate_Decelerate(starty, midy, i/30), 1);
+		ObjRender_SetAlpha(target, Interpolate_Decelerate(0, 255, i/30));
+		yield;
+	}
+	
+	wait(30);
+	
+	ascent(i in 0..30){
+		ObjRender_SetPosition(target, Interpolate_Decelerate(midx, endx, i/30), Interpolate_Decelerate(midy, endy, i/30), 1);
+		ObjRender_SetAlpha(target, Interpolate_Decelerate(255, 0, i/30));
+		yield;
+	}
+	
+	return;
+
+}
+
+task _MoveIntoPlace(int target, int startx, int endx){
+	ascent(i in 0..30){
+		ObjRender_SetX(target, Interpolate_Decelerate(startx, endx, i/30));
+		ObjRender_SetAlpha(target, Interpolate_Decelerate(0, 255, i/30));
+		yield;
+	}
+	return;
+}
+
+task _FadeAtPlayer(int target){
+	wait(30);
+	while(!Obj_IsDeleted(target)){
+		int player = GetPlayerObjectID();
+		if(ObjRender_GetY(player) <= GetStgFrameHeight()/3.5){ObjRender_SetAlpha(target, 60);}
+		else{ObjRender_SetAlpha(target, 255);}
+		yield;
+	}	
+	return;
+}
+
+// Enemy render tasks
+
+/*
+These render tasks assume the order of the spritesheet goes like this:
+
+Idle Idle2 Idle3 ...
+Left Left2 Left3 ...
+Right
+
+*/
+
+task _RenderEnemyMovement(int obj, int frame, int offsetleft, int offsettop, int width, int height, int frameno, int speed){
+
+	ObjSprite2D_SetSourceRect(obj, offsetleft+width*floor(frame/speed), offsettop, width+width*floor(frame/speed), offsettop+height);
+	
+}
+
+task _EnemyRenderIdle(int enemyobj, int frames, int offsetleft, int offsettop, int width, int height, int speed){
+	
+	int frame = 0;
+	while(!Obj_IsDeleted(enemyobj)){
+		_RenderEnemyMovement(enemyobj, frame, offsetleft, offsettop, width, height, frames, speed);
+		frame++;
+		if (frame > frames*speed){frame = 0;}
+		yield;
+	}
+
+}
+
+task _EnemyRenderFull(int enemyobj, string texture, int offsetleft, int offsettop, int width, int height, int framenoidle, int framenomovement, int speed){
+	
+	int aniidle = 0;
+	int animove = 0;
+	
+	while(!Obj_IsDeleted(enemyobj)){
+	
+		float dir = ObjMove_GetAngle(enemyobj);
+		float speed = ObjMove_GetSpeed(enemyobj);
+		
+		// Idle
+		if (speed == 0){
+			_RenderEnemyMovement(enemyobj, aniidle, offsetleft, offsettop, width, height, framenoidle, speed);
+			aniidle++;
+			if(aniidle >= speed*framenoidle){aniidle = 0;}
+		}
+		// Left
+		else if (cos(dir) < 0){
+			_RenderEnemyMovement(enemyobj, aniidle, offsetleft, offsettop+height, width, height*2, framenomovement, speed);
+			animove++;
+			if(animove >= speed*framenomovement){animove = 0;}
+		}
+		// Right
+		else if (cos(dir) > 0){
+			_RenderEnemyMovement(enemyobj, aniidle, offsetleft, offsettop+height*2, width, height*3, framenomovement, speed);
+			animove++;
+			if(animove >= speed*framenomovement){animove = 0;}
+		}
+		yield;
+	}
+}
+
+// State machine
+
+// Drop a number of point items and petals depending on how fast you kill the enemy and how close you are to them.
+
+task _EnemyItemDrop(
+	int ID, bool isFlying,
+	int minPoint, int minPIV,
+	int maxPoint, int maxPIV, 
+	int maxTimer, int maxDist
+	){
+	
+	//wait(spawnTime+5);
+	float enmX = ObjMove_GetX(ID), enmY = ObjMove_GetY(ID);
+	int Bitch = ID;
+	float timer = 1;
+	float dmgCheck = 0;
+	
+	//ObjEnemy_SetDamageRate(Bitch, 100, 100);
+	
+	while(ObjEnemy_GetInfo(Bitch, INFO_LIFE) > 0){
+	
+		enmX = ObjMove_GetX(Bitch);
+		enmY = ObjMove_GetY(Bitch);
+		timer++;
+		yield;
+		
+	}
+	
+	if(
+		(-128 < enmX && enmX < STG_WIDTH+128)
+		&&
+		(-128 < enmY && enmY < STG_HEIGHT+128)
+	)
+	
+	{
+	
+		if (isFlying) {SetCommonDataPtr(FLYINGENM_PTR, GetCommonDataPtr(FLYINGENM_PTR, 0)+1);}
+		else {SetCommonDataPtr(GROUNDENM_PTR, GetCommonDataPtr(GROUNDENM_PTR, 0)+1);}
+		
+		//_ExplosionEffect(enmX, enmY, PetalEffect);
+		//_ScorePopup(float enmX, float enmY, int pointNum, int pivNum);
+		
+		// NotifyEvent is faster than NotifyEventAll, considering how the item event will be called many times.
+		
+		NotifyEvent(GetCommonDataPtr(ITEMID_PTR, 0), EV_DROP_POINT_ENEMY, [enmX, enmY], timer, maxTimer, minPoint, maxPoint);
+		//NotifyEvent(GetCommonDataPtr(ITEMID_PTR, 0), EV_DROP_PIV_ENEMY, GetPlayerObjectID(), [enmX, enmY], minPIV, maxPIV, maxDist);
+		NotifyEvent(GetCommonDataPtr(SYSTEMID_PTR, 0), EV_EXPLODE, [enmX, enmY]);
+		
+	}
+	
+	else{}
+	
+}
+
+// Alternative overload 
+
+task _EnemyItemDrop(
+	int ID, 
+	float minPoint, float maxPoint,
+	float enemyHitbox
+	){
+	
+	//wait(spawnTime+5);
+	float enmX = ObjMove_GetX(ID), enmY = ObjMove_GetY(ID);
+	int Bitch = ID;
+	float timer = 1;
+	float dmgCheck = 0;
+	
+	//ObjEnemy_SetDamageRate(Bitch, 100, 100);
+	
+	while(ObjEnemy_GetInfo(Bitch, INFO_LIFE) > 0){
+	
+		enmX = ObjMove_GetX(Bitch);
+		enmY = ObjMove_GetY(Bitch);
+		timer++;
+		yield;
+		
+	}
+	
+	if(
+		(-32 < enmX && enmX < STG_WIDTH + 32)
+		&&
+		(-32 < enmY && enmY < STG_HEIGHT + 32)
+	)
+	
+	{
+	
+		// Enemy position
+		// Is in Burst Mode
+
+		SetCommonDataPtr(POINTER_ENEMYKILLED, GetCommonDataPtr(POINTER_ENEMYKILLED, 0)+1);
+
+		NotifyEvent(GetCommonDataPtr(ITEMID_PTR, 0), EV_DROP_POINT_ENEMY, 
+					[enmX, enmY], [GetPlayerX(), GetPlayerY()], enemyHitbox,
+					GetCommonDataPtr(LoadAreaCommonDataValuePointer("Ingame", "IsChaining", false), false), 
+					minPoint, maxPoint);
+					
+		NotifyEvent(GetCommonDataPtr(SYSTEMID_PTR, 0), EV_EXPLODE, [enmX, enmY]);
+	
+	}
+	
+	else{}
+	
+}
+
+task _ObjShake(objID, shaketime, intensity){
+
+	float baseX = ObjMove_GetX(objID);
+	float baseY = ObjMove_GetY(objID);
+	float baseintensity = intensity;
+	float shakeno = shaketime;
+	
+	ascent(i in 0..shakeno){
+		ObjMove_SetPosition(objID, baseX + rand(-intensity, intensity), baseY + rand(-intensity, intensity)/2);
+		intensity = Interpolate_Decelerate(0, baseintensity, 1-i/shakeno);
+		shaketime--;
+		yield;
+	}
+	
+	while(shaketime > 0){yield;}
+	
+	ObjMove_SetPosition(objID, baseX, baseY);
+	
+	yield;
+}

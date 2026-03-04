@@ -1,0 +1,13 @@
+#UserShotData
+
+shot_image = "./Kevin_Phase2Shot.png"
+
+ShotData { id = 2200 rect = (0,0,205,512) collision = 0 delay_color = (255,255,255) } // WINDOW_01
+ShotData { id = 2201 rect = (205,0,410,512) collision = 0 delay_color = (255,255,255) } // WINDOW_02
+ShotData { id = 2202 rect = (410,0,615,512) collision = 0 delay_color = (255,255,255) } // WINDOW_03
+ShotData { id = 2203 rect = (615,0,820,512) collision = 0 delay_color = (255,255,255) } // WINDOW_04
+
+ShotData { id = 2204 rect = (0,512,205,1024) collision = 0 delay_color = (255,255,255) } // WINDOW_GOLD_01
+ShotData { id = 2205 rect = (205,512,410,1024) collision = 0 delay_color = (255,255,255) } // WINDOW_GOLD_02
+ShotData { id = 2206 rect = (410,512,615,1024) collision = 0 delay_color = (255,255,255) } // WINDOW_GOLD_03
+ShotData { id = 2207 rect = (615,512,820,1024) collision = 0 delay_color = (255,255,255) } // WINDOW_GOLD_04

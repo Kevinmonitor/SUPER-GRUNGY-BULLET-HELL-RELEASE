@@ -1,0 +1,875 @@
+//------------------------------------------
+
+// BACKGROUND FILES
+
+//------------------------------------------
+
+let baseBG = "script/StageData/StageLib/BG_Placeholder.png"; // Main BG
+let baseBG2 = "script/StageData/StageLib/bossArenaBGs/evil_background.png"; // Main BG
+let baseBGWhite = "script/StageData/StageLib/bossArenaBGs/good_background.png"; // Main BG
+let bossBG = "script/StageData/StageLib/bossArenaBGs/Boss_BG.png"; // Main BG
+let overlayBG = "script/Gunner/resourceLib/BHA7_CloudBG.png"; // Clouds
+let tutorialBG = "script/StageData/StageLib/bossArenaBGs/tutorialBG.png";
+
+let caveBG = "script/StageData/StageLib/BG_Mines_Part_2.png";
+
+int[] bossArenaTextures = 
+[
+	_Create2DImage("script/StageData/StageLib/bossArenaBGs/bossArenaSpace.png", [0, 0, 1024, 1024]),
+	_Create2DImage("script/StageData/StageLib/bossArenaBGs/bossArenaStars.png", [0, 0, 1024, 1024]),
+	_Create2DImage("script/StageData/StageLib/bossArenaBGs/bossArenaGround.png", [0, 1, 1024, 1023])
+];
+
+int motherfuckingTerrenus = _Create2DImage("script/StageData/StageLib/bossArenaBGs/fuckedupEarth.png", [0, 0, 256, 256]);
+
+string[] bossRoomTextures = 
+[
+	"script/StageData/StageLib/bossArenaBGs/bossRoomBGFull.png",
+	"script/StageData/StageLib/bossArenaBGs/bossRoomBGFull_Frame1.png",
+	"script/StageData/StageLib/bossArenaBGs/bossRoomBGFull_Frame2.png",
+	"script/StageData/StageLib/bossArenaBGs/bossRoomBGFull_Frame3.png",
+	"script/StageData/StageLib/bossArenaBGs/FUCK.png"
+];
+
+int texMidboss = _Create2DImage("script/BossData/Midboss/Midboss_Sheet.png", [0, 0, 244, 288]);
+int texBoss = _Create2DImage("script/BossData/Boss/thisBitch.png", [0, 0, 720, 540]);
+
+int stageImg = _Create2DImage(baseBG, [0, 0, 768, 1824]);
+int bossImg2 = _Create2DImage(bossBG, [0, 0, 1024, 1024]);
+
+int baseImg = _Create2DImage(baseBG2, [0, 0, 768, 1824]);
+int baseImgWhite = _Create2DImage(baseBGWhite, [0, 0, 768, 1824]);
+
+int postMidbossImg = _Create2DImage(caveBG, [0, 0, 768, 1920]);
+
+int bossRoomImg1 = _Create2DImage(bossRoomTextures[0], [0, 0, 620, 1653]);
+int bossRoomImg2 = _Create2DImage(bossRoomTextures[1], [0, 0, 620, 1653]);
+int bossRoomImg3 = _Create2DImage(bossRoomTextures[2], [0, 0, 620, 1653]);
+int bossRoomImg4 = _Create2DImage(bossRoomTextures[3], [0, 0, 620, 1653]);
+int bossRoomImg5 = _Create2DImage(bossRoomTextures[4], [0, 0, 620, 1653]);
+
+int stageImgTutorial = _Create2DImage(tutorialBG, [0, 0, 1493, 840]);
+int baseImgTutorial = _Create2DImage(baseBG2, [0, 0, 768, 1824]);
+
+int[] bossRoomImages = [bossRoomImg1, bossRoomImg2, bossRoomImg3, bossRoomImg4, bossRoomImg5];
+
+ascent(i in 0..5){
+	ObjRender_SetPosition(bossRoomImages[i], STG_WIDTH/2, STG_HEIGHT/2, 1);
+	//ObjRender_SetScaleXYZ(images[i], 0.68);
+	Obj_SetRenderPriorityI(bossRoomImages[i], 25-i);
+	ObjRender_SetAlpha(bossRoomImages[i], 0);
+}
+
+ascent(i in 0..3){
+	ObjRender_SetPosition(bossArenaTextures[i], STG_WIDTH/2, STG_HEIGHT/2, 1);
+	//ObjRender_SetScaleXYZ(images[i], 0.68);
+	Obj_SetRenderPriorityI(bossArenaTextures[i], 24+i);
+	ObjRender_SetAlpha(bossArenaTextures[i], 0);
+}
+
+Obj_SetRenderPriorityI(motherfuckingTerrenus, 25);
+ObjRender_SetPosition(motherfuckingTerrenus, -999, -999, 1);
+
+// Descent
+let alphaMax = 255*((GetAreaCommonData("Config", "BGOpacity", 100))/100);
+let exVol = GetAreaCommonData("Config", "SEVol", 100) * 0.01;
+
+LoadTextureEx(baseBG, true, true);
+
+bool isFighting = true;
+bool phase1Aend = false; // starcross
+bool phase1Bend = false; // dead star
+
+//------------------------------------------
+
+// PREPARATION
+
+//------------------------------------------
+
+ObjRender_SetPosition(stageImg, STG_WIDTH/2, STG_HEIGHT/2, 1);
+ObjRender_SetPosition(bossImg2, STG_WIDTH/2, STG_HEIGHT/2, 1);
+ObjRender_SetPosition(baseImg, STG_WIDTH/2, STG_HEIGHT/2, 1);
+ObjRender_SetPosition(postMidbossImg, STG_WIDTH/2, STG_HEIGHT/2, 1);
+
+ObjRender_SetPosition(stageImg, STG_WIDTH/2, STG_HEIGHT/2, 1);
+ObjRender_SetPosition(bossImg2, STG_WIDTH/2, STG_HEIGHT/2, 1);
+
+Obj_SetRenderPriorityI(stageImg, 23);
+Obj_SetRenderPriorityI(bossImg2, 24);
+Obj_SetRenderPriorityI(baseImg, 21);
+Obj_SetRenderPriorityI(postMidbossImg, 22);
+
+ObjRender_SetPosition(stageImgTutorial, STG_WIDTH/2, STG_HEIGHT/2, 1);
+ObjRender_SetPosition(baseImgTutorial, STG_WIDTH/2, STG_HEIGHT/2, 1);
+ObjSprite2D_SetDestCenter(stageImgTutorial);
+
+Obj_SetRenderPriorityI(stageImgTutorial, 23);
+Obj_SetRenderPriorityI(baseImgTutorial, 20);
+
+ObjRender_SetPosition(baseImgWhite, STG_WIDTH/2, STG_HEIGHT/2, 1);
+Obj_SetRenderPriorityI(baseImgWhite, 22);
+
+ObjRender_SetAlpha(baseImgWhite, 0);
+ObjRender_SetAlpha(bossImg2, 0);
+ObjRender_SetAlpha(stageImgTutorial, 0);
+ObjRender_SetAlpha(stageImg, 0);
+ObjRender_SetAlpha(postMidbossImg, 0);
+//ObjRender_SetAlpha(baseImgTutorial, 0);
+
+ObjRender_SetAlpha(texMidboss, 0);
+ObjRender_SetAlpha(texBoss, 0);
+
+let tex1 = "script/StageData/StageLib/bossArenaBGs/bgSP01.png";
+let tex2 = "script/StageData/StageLib/bossArenaBGs/bgSP02.png";
+let obj = ObjPrim_Create(OBJ_PRIMITIVE_3D);
+let obj2 = ObjPrim_Create(OBJ_PRIMITIVE_3D);
+float rate = 15;
+float ang = -15;
+
+// 
+
+task animateThatPlanet(){
+
+	int frameX = 256;
+	int frameY = 256;
+
+	ObjRender_SetScaleXYZ(motherfuckingTerrenus, 0.5);
+	// ObjRender_SetPosition(motherfuckingTerrenus, STG_WIDTH/2, STG_HEIGHT/2+128, 0);
+	ObjRender_SetTextureFilter(motherfuckingTerrenus, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+
+	while(true){
+
+		ascent(i in 1..16){
+			ascent(f in 1..17){
+				ObjSprite2D_SetSourceRect(motherfuckingTerrenus, frameX*(f-1)+1, frameY*(i-1)+1, frameX*f, frameY*i);
+				wait(6);
+				// WriteLog(f);
+				// WriteLog(i);
+			}
+		}
+		
+		//wait(2);
+
+	}
+
+}
+
+function <void> _MoonBaseBG(){
+
+	bool isTransitioning = true;
+
+	ObjRender_SetAlpha(baseImgWhite, 0);
+	ObjRender_SetAlpha(baseImg, 255);
+
+	//ObjRender_SetScaleXYZ(stageImg, 1);
+
+	float scrollSpeed = 0;
+	float maxscrollSpeed = -2.5;
+
+	float curScroll = 0;
+	float curScroll_Overlay = 0;
+
+	async{
+
+		while(isTransitioning){
+		
+			//ObjSprite2D_SetDestRect(stageImg, 0, 0, STG_WIDTH/2, STG_HEIGHT/2);
+			ObjSprite2D_SetSourceRect(stageImg, 0, curScroll, 768, curScroll+1824);
+			//ObjSprite2D_SetSourceRect(bossImg2, curScroll, 0, curScroll+1024, 1024);
+			ObjSprite2D_SetSourceRect(postMidbossImg, 0, curScroll-1920, 960, curScroll);
+
+			curScroll += scrollSpeed;
+
+			scrollSpeed = max(maxscrollSpeed, scrollSpeed-0.14);
+
+			yield;
+		
+		}
+		
+	}
+	
+	ObjRender_SetAlpha(bossImg2, 0);
+	ObjRender_SetAlpha(postMidbossImg, 0);
+
+	ascent(i in 0..35){
+		ObjRender_SetAlpha(stageImg, Interpolate_Decelerate(0, alphaMax, i/35));
+		yield;
+	}
+
+	async{
+		
+		while(!postMidbossBGStart){yield;}
+
+		ascent(i in 0..60){
+			ObjRender_SetAlpha(stageImg, Interpolate_Smooth(alphaMax, 0, i/60));
+			maxscrollSpeed = Interpolate_Smooth(-2.5, 9, i/60);
+			yield;
+		}
+
+		wait(30);
+
+		ascent(i in 0..90){
+			ObjRender_SetAlpha(postMidbossImg, Interpolate_Decelerate(0, alphaMax, i/90));
+			yield;
+		}
+
+		while(!bossRoomBGStart){yield;}
+
+		ascent(i in 0..3*60){
+			ObjRender_SetAlpha(postMidbossImg, Interpolate_Smooth(alphaMax, 0, i/(3*60)));
+			maxscrollSpeed = min(12.5, maxscrollSpeed + 0.08);
+			yield;
+		}
+
+		isTransitioning = false;
+		_BossRoom();
+		
+	}
+
+	//NotifyEventAll(EV_START_MUSIC, 0);
+	
+}
+
+// BG part 1: space
+// BG part 2: base
+// BG part 3: descent
+
+function <void> _TutorialBG(){
+
+	ObjRender_SetPosition(stageImgTutorial, STG_WIDTH/2, STG_HEIGHT/2, 1);
+	ObjRender_SetPosition(baseImgTutorial, STG_WIDTH/2, STG_HEIGHT/2, 1);
+	ObjSprite2D_SetDestCenter(stageImgTutorial);
+	//ObjRender_SetScaleXYZ(stageImgTutorial, 1);
+	
+	Obj_SetRenderPriorityI(stageImgTutorial, 23);
+	Obj_SetRenderPriorityI(baseImgTutorial, 20);
+
+	float scrollSpeed = 0;
+	float maxscrollSpeed = -4;
+
+	float curScroll = 0;
+	float curScroll_Overlay = 0;
+
+	async{
+
+		loop{
+		
+			//ObjSprite2D_SetDestRect(stageImgTutorial, [0, 0, STG_WIDTH/2, STG_HEIGHT/2]);
+			ObjSprite2D_SetSourceRect(stageImgTutorial, curScroll, 0, curScroll+1493, 840);
+
+			curScroll += scrollSpeed;
+
+			scrollSpeed = max(maxscrollSpeed, scrollSpeed-0.04);
+
+			yield;
+		
+		}
+		
+	}
+
+	ascent(i in 0..60){
+		ObjRender_SetAlpha(stageImgTutorial, Interpolate_Decelerate(0, alphaMax, i/60));
+		yield;
+	}
+
+	wait(30);
+
+}
+
+function <void> Dialogue(){
+
+	//ObjSound_Play(soundWarn);
+
+	wait(30);
+	
+	int objText3 = CreateTextObject(
+	
+	STG_WIDTH/2, STG_HEIGHT/3-60, 80,
+	" ", "Origami Mommy",
+	0x72CBFF, 0x72CBFF,
+	0x08007C, 10,
+	71
+	
+	);
+	
+	int objText = CreateTextObject(
+	
+	STG_WIDTH/2, STG_HEIGHT/2-60, 36,
+	" ", "Origami Mommy",
+	0x72CBFF, 0x72CBFF,
+	0x08007C, 6,
+	71
+	
+	);
+	
+	int objText2 = CreateTextObject(
+	
+	STG_WIDTH/2, STG_HEIGHT/2, 36,
+	" ", "Origami Mommy",
+	0x72CBFF, 0x72CBFF,
+	0x08007C, 6,
+	71
+	
+	);
+	
+	ObjText_SetHorizontalAlignment(objText, ALIGNMENT_CENTER);
+	ObjText_SetHorizontalAlignment(objText2, ALIGNMENT_CENTER);
+	ObjText_SetHorizontalAlignment(objText3, ALIGNMENT_CENTER);
+	
+	TTextScroll(objText3, "GET READY!");
+	TTextScroll(objText, "IN 99 SECONDS");
+	//wait(60);
+	TTextScroll(objText2, "BECOME THE STRONGEST!");
+	
+	wait(60);
+	
+	Obj_Delete(objText);
+	Obj_Delete(objText2);
+	Obj_Delete(objText3);
+	
+}
+
+// 620 x 720 is playfield size?
+
+// 0.68x?
+
+function <void> _BossRoom(){
+
+	wait(80);
+
+	ascent(i in 0..140){
+		ascent(f in 0..5){
+			ObjRender_SetPosition(bossRoomImages[f], STG_WIDTH/2, STG_HEIGHT/2 - FUNC_LERP_SMOOTH(0, 450, i/140), 1);
+		}
+		ObjRender_SetAlpha(bossRoomImages[0], min(alphaMax, FUNC_LERP_SMOOTH(0, alphaMax, i/140)));
+		yield;
+	}
+
+	wait(75);
+
+	_bossRoomIntro();
+
+}
+
+function <void> _bossRoomIntro(){
+
+	// 64 lasers
+
+	// placeholder pattern.
+
+	async{
+		wait(60);
+		_Screenshake(70, 15);
+	}
+
+	async{
+		ascent(i in 0..32){
+
+			_TrapLaserCreateSimpleStage(
+				i % 2 == 0 ? -32 : STG_WIDTH + 32, STG_WIDTH/2 - 16 * i, 
+				[0 + rand(-3, 3), 180 + rand(-3, 3)][i % 2 == 0 ? 0 : 1], 60, 
+				90, 
+				999, 24, 
+				KEV_LASER_INV, HUE_VIOLET
+			);
+
+			wait(2);
+
+		}
+	}
+
+	async{
+		ascent(i in 0..28){
+
+			_TrapLaserCreateSimpleStage(
+				i % 2 == 0 ? -32 : STG_WIDTH + 32, STG_WIDTH/2 + 21 * i, 
+				[0 + rand(-3, 3), 180 + rand(-3, 3)][i % 2 == 0 ? 0 : 1], 60, 
+				90, 
+				999, 24, 
+				KEV_LASER_INV, HUE_VIOLET
+			);
+
+			wait(2);
+
+		}
+	}
+
+	wait(180);
+
+	//cracks
+
+	ascent(i in 0..3){
+
+		_Screenshake(50, 30);
+		ObjRender_SetAlpha(bossRoomImages[i], 0);
+		ObjRender_SetAlpha(bossRoomImages[i+1], alphaMax);
+	
+		ObjSound_Play([bossGlassBreak, bossGlassBreakB, bossGlassBreakB][i]);
+
+		ascent(f in 0..16){
+
+			_LaserStormCreateSimpleStage([STG_WIDTH/2 + 72, STG_WIDTH/2 - 84, STG_WIDTH/2][i], [STG_HEIGHT/2 + 128, STG_HEIGHT/2 - 180, STG_HEIGHT/2 + 32][i], f * 360/16, 75 * 3 + 38 - 75 * i, 60, 400, 45, 1.25, KEV_ROUND_STAR_INV, HUE_VIOLET, 1.0);
+
+		}
+
+		wait(75);
+
+	}
+
+	wait(40);
+
+	ObjRender_SetAlpha(baseImgWhite, 255);
+	_Screenshake(120, 60);
+	ObjSound_Play(bossGlassDestroy);
+
+	ObjRender_SetAlpha(bossRoomImages[3], 0);
+	ObjRender_SetAlpha(bossRoomImages[4], alphaMax);
+	ObjRender_SetColor(bossRoomImages[4], 0xFB4C3D);
+
+	wait(140);
+
+	ascent(i in 0..30){
+		ObjRender_SetAlpha(baseImgWhite, FUNC_LERP_SMOOTH(255, 0, i/30));
+		yield;
+	}
+
+	wait(15);
+
+	CreateBossObject();
+
+	ascent(i in 0..30){
+		
+		ObjRender_SetPosition(texBoss, STG_WIDTH/2, STG_HEIGHT/2 - FUNC_LERP_SMOOTH(0, 60, i/30), 1);
+		ObjRender_SetAlpha(texBoss, FUNC_LERP_SMOOTH(0, 255, i/30));
+		yield;
+
+	}
+
+	ascent(i in 0..45){
+		ObjRender_SetPosition(texBoss, STG_WIDTH/2, STG_HEIGHT/2 - 60 - FUNC_LERP_SMOOTH(0, 35, i/45), 1);
+		yield;
+	}
+
+	float objY = ObjRender_GetY(texBoss);
+
+	ascent(i in 0..30){
+
+		ObjRender_SetPosition(texBoss, STG_WIDTH/2, objY - FUNC_LERP_SMOOTH(0, 500, i/30), 1);
+		yield;
+
+	}
+
+	wait(45);
+
+	bossRoomTransitionBGStart = true;
+
+}
+
+task CreateBossObject(){
+
+	ObjRender_SetScaleXYZ(texBoss, 0.375);
+	ObjRender_SetTextureFilterMin(texBoss, FILTER_LINEAR);
+	Obj_SetRenderPriorityI(texBoss, 41);
+
+	_EnemyRenderIdle(texBoss, 5, 0, 540, 720, 540, 6);
+
+}
+
+task _bossRoomTransition(){
+
+	float scrollSpeed = 0;
+	float maxscrollSpeed = 18;
+
+	float curScroll = 0;
+	float curScroll_Overlay = 0;
+
+	ObjRender_SetAlpha(postMidbossImg, 0);	
+
+	// background moves up slowly
+	
+	bool isTransitioning = true;
+
+	async{
+
+		while(isTransitioning){
+		
+			//ObjSprite2D_SetDestRect(stageImg, 0, 0, STG_WIDTH/2, STG_HEIGHT/2);
+			ObjSprite2D_SetSourceRect(postMidbossImg, 0, curScroll-1920, 960, curScroll);
+
+			curScroll -= scrollSpeed; // reverse
+
+			scrollSpeed = min(maxscrollSpeed, scrollSpeed+0.5);
+
+			yield;
+		
+		}
+
+		return;
+		
+	}
+
+	async{
+
+		wait(60*15+30);
+
+		ascent(i in 0..210){
+			ObjRender_SetAlpha(postMidbossImg, Interpolate_Decelerate(alphaMax, 0, i/210));
+			yield;
+		}
+
+		wait(3);
+
+		isTransitioning = false;
+
+		wait(60);
+
+		bossRoomTransitionBGMiddle = true;
+
+	}
+
+	ascent(i in 0..180){
+
+		ObjRender_SetAlpha(bossRoomImages[4], FUNC_LERP_ACCEL(alphaMax, 0, min(1, i/120)));
+		ObjRender_SetPosition(bossRoomImages[4], STG_WIDTH/2, STG_HEIGHT/2 - 450 + FUNC_LERP_ACCEL(0, 820, i/180), 1);
+
+		yield;
+
+	}
+
+	wait(60);
+
+	ObjRender_SetColor(postMidbossImg, 0xFB4C3D);
+
+	// then, transition back to the cave descent background (except going up)
+
+	scrollSpeed = 18;
+
+	ascent(i in 0..90){
+		ObjRender_SetAlpha(postMidbossImg, Interpolate_Decelerate(0, alphaMax, i/90));
+		maxscrollSpeed = Interpolate_Smooth(18, 21, i/90);
+		yield;
+	}
+
+}
+
+task _bossArenaPreparation(){
+
+	float scrollSpeed = 0;
+	float maxscrollSpeed = 18;
+
+	float curScroll = 0;
+	float curScroll_Overlay = 0;
+
+	ObjRender_SetAlpha(postMidbossImg, 0);	
+
+	// background moves up slowly
+	
+	bool isTransitioning = true;
+
+	async{
+
+		while(isTransitioning){
+		
+			ObjSprite2D_SetSourceRect(stageImg, 0, curScroll, 768, curScroll+1824);
+
+			curScroll += scrollSpeed; // reverse
+
+			scrollSpeed = min(maxscrollSpeed, scrollSpeed+0.5);
+
+			yield;
+		
+		}
+
+		return;
+		
+	}
+
+	async{
+
+		wait(60*11+30);
+
+		ascent(i in 0..180){
+			ObjRender_SetAlpha(stageImg, Interpolate_Decelerate(alphaMax, 0, i/180));
+			yield;
+		}
+
+		wait(3);
+
+		isTransitioning = false;
+
+	}
+
+	ObjRender_SetColor(stageImg, 0xFF7366);
+
+	scrollSpeed = 18;
+
+	ascent(i in 0..90){
+		ObjRender_SetAlpha(stageImg, Interpolate_Decelerate(0, alphaMax, i/90));
+		maxscrollSpeed = Interpolate_Smooth(18, 21, i/90);
+		yield;
+	}
+
+}
+
+task endPhase1A(){phase1Aend = true;}
+task endPhase1B(){phase1Bend = true;}
+
+task _bossArena(){
+
+	animateThatPlanet();
+
+	ObjRender_SetAlpha(bossArenaTextures[0], 255);
+	ObjRender_SetAlpha(bossArenaTextures[1], 255);
+	ObjRender_SetAlpha(bossArenaTextures[2], 255);
+
+	ObjRender_SetBlendType(bossArenaTextures[1], BLEND_ADD_ARGB);
+	
+	float scrollSpeed = 11;
+	float maxscrollSpeed = 18;
+
+	float curScroll = 0;
+	float curScrollA = 0;
+	float curScrollB = 0;
+
+	float[] groundFinalPosition = [0, 0];
+	float[] phase1AEndScroll = [0, 0];
+
+	ObjRender_SetPosition(motherfuckingTerrenus, STG_WIDTH/2, STG_HEIGHT/2-480, 0);
+
+	// scrolling
+
+	async{
+
+		while(isFighting && !phase1Aend){
+		
+			//ObjSprite2D_SetDestRect(stageImg, 0, 0, STG_WIDTH/2, STG_HEIGHT/2);
+			ObjSprite2D_SetSourceRect(bossArenaTextures[0], curScroll, 0, curScroll+1024, 1024); // space
+			ObjSprite2D_SetSourceRect(bossArenaTextures[1], curScrollA, 0, curScrollA+1024, 1024); // stars
+			ObjSprite2D_SetSourceRect(bossArenaTextures[2], curScrollB, 1, curScrollB+1024, 1023); // ground
+
+			curScroll += scrollSpeed * 0.1;
+			curScrollA += scrollSpeed * 0.3;
+			curScrollB += scrollSpeed * 0.75;
+
+			scrollSpeed = min(maxscrollSpeed, scrollSpeed+0.2);
+			phase1AEndScroll = [curScroll, curScrollA];
+
+			yield;
+		
+		}
+
+		ascent(i in 0..60){
+
+			ObjSprite2D_SetSourceRect(bossArenaTextures[0], curScroll, 0, curScroll+1024, 1024); // space
+			ObjSprite2D_SetSourceRect(bossArenaTextures[1], curScrollA, 0, curScrollA+1024, 1024); // stars
+			ObjSprite2D_SetSourceRect(bossArenaTextures[2], curScrollB, 1, curScrollB+1024, 1023); // ground
+
+			curScroll += scrollSpeed * 0.1;
+			curScrollA += scrollSpeed * 0.3;
+			curScrollB += scrollSpeed * 0.75;
+
+			scrollSpeed -= scrollSpeed/60;
+			phase1AEndScroll = [curScroll, curScrollA];
+
+			yield;
+
+		}
+
+		scrollSpeed = 0;
+		curScroll = 0;
+		curScrollA = 0;
+
+		// WriteLog([curScroll, 0, curScroll+1024, 1024]);
+		// WriteLog([0+phase1AEndScroll[0], curScroll, 1024+phase1AEndScroll[0], curScroll+1024]);
+
+		while(phase1Aend && !phase1Bend){
+		
+			ObjSprite2D_SetSourceRect(bossArenaTextures[0], 0+phase1AEndScroll[0], curScroll, 1024+phase1AEndScroll[0], curScroll+1024); // space
+			ObjSprite2D_SetSourceRect(bossArenaTextures[1], 0+phase1AEndScroll[1], curScrollA, 1024+phase1AEndScroll[1], curScrollA+1024); // stars
+
+			curScroll -= scrollSpeed * 0.4;
+			curScrollA -= scrollSpeed * 0.5;
+
+			scrollSpeed = min(maxscrollSpeed, scrollSpeed+0.2);
+
+			yield;
+		
+		}
+
+		ascent(i in 0..120){
+			
+			ObjSprite2D_SetSourceRect(bossArenaTextures[0], 0+phase1AEndScroll[0], curScroll, 1024+phase1AEndScroll[0], curScroll+1024); // space
+			ObjSprite2D_SetSourceRect(bossArenaTextures[1], 0+phase1AEndScroll[1], curScrollA, 1024+phase1AEndScroll[1], curScrollA+1024); // stars
+
+			curScroll -= scrollSpeed * 0.1;
+			curScrollA -= scrollSpeed * 0.3;
+
+			scrollSpeed -= scrollSpeed/120;
+
+			yield;
+
+		}
+
+
+	}
+
+	// parallax
+
+	async{
+
+		while(isFighting && !phase1Aend){
+
+			ObjRender_SetPosition(bossArenaTextures[2], STG_WIDTH/2, FUNC_LERP_SMOOTH(4 * STG_HEIGHT/5, STG_HEIGHT/2, GetPlayerY()/STG_HEIGHT), 1);
+			groundFinalPosition = [STG_WIDTH/2, FUNC_LERP_SMOOTH(4 * STG_HEIGHT/5, STG_HEIGHT/2, GetPlayerY()/STG_HEIGHT)];
+
+			yield;
+
+		}
+
+		ascent(i in 0..120){
+			ObjRender_SetPosition(bossArenaTextures[2], groundFinalPosition[0], groundFinalPosition[1]+FUNC_LERP_ACCEL(0, 800, i/120), 1);
+			yield;
+		}
+
+		while(phase1Aend && !phase1Bend){yield;}
+
+		ascent(i in 0..120){
+			ObjRender_SetPosition(motherfuckingTerrenus, STG_WIDTH/2, FUNC_LERP_DECEL(STG_HEIGHT/2, STG_HEIGHT/2, i/120), 0);
+			yield;
+		}
+
+	}
+
+}
+
+task _bossArenaPhase2(){
+
+	// UNLOAD PREVIOUS TEXTURES
+
+	// BOSS ROOM
+	for each (string tex in bossRoomTextures){
+		RemoveTexture(tex);
+	}
+
+	RemoveTexture(baseBG);
+	RemoveTexture(caveBG);
+
+	function DarkOverlay(){
+		let obj = ObjPrim_Create(OBJ_SPRITE_2D);
+		Obj_SetRenderPriorityI(obj, 26);
+		ObjSprite2D_SetSourceRect(obj, 0, 0, 1, 1);
+		ObjSprite2D_SetDestRect(obj, 0, 0, 1280, 720);
+		ObjRender_SetAlpha(obj, 0);
+		ObjRender_SetColor(obj, 0, 0, 0);
+		return obj;
+	}
+
+	ascent(i in 0..120){
+		for each (int image in bossArenaTextures){
+			ObjRender_SetAlpha(image, FUNC_LERP_SMOOTH(255, 0, i/120));
+		}
+		ObjRender_SetAlpha(motherfuckingTerrenus, FUNC_LERP_SMOOTH(255, 0, i/120));
+		yield;
+	}
+
+	NotifyEventAll(EV_EXPAND_FRAME, 0);
+
+	SetCameraFocusXYZ(0, 0, 0);
+	SetCameraElevationAngle(0);
+	SetCameraAzimuthAngle(270);
+	SetCameraRadius(5);
+
+	SetCameraYaw(25);
+
+	async{
+		int bg = DarkOverlay();
+		ascent(i in 0..180){
+			ObjRender_SetAlpha(bg, FUNC_LERP_SMOOTH(255, 0, i/180));
+			//WriteLog(ObjRender_GetAlpha(bg));
+			yield;
+		}
+	}
+
+	async{
+		loop(100){
+			rate -= 0.1;
+			yield;
+		}
+	}
+
+	async{
+		while(true){
+			SetCameraYaw(FUNC_LERP_SMOOTH(2, 7, (GetPlayerX()+336)/STG_WIDTH));
+			SetCameraElevationAngle(FUNC_LERP_SMOOTH(-6, 9, GetPlayerY()/STG_HEIGHT));
+			yield;
+		}
+	}
+
+	makeTube(obj, 1, 0.4, 255, 500, tex1);
+	makeTube(obj2, 2.2, 0.4, 100, 300, tex2);
+	
+}
+
+task makeTube(obj, parallax, rot, alpha, radius, tex){
+
+	ObjPrim_SetPrimitiveType(obj, PRIMITIVE_TRIANGLESTRIP);
+	ObjPrim_SetTexture(obj, tex);
+	Obj_SetRenderPriorityI(obj, 21);
+	ObjPrim_SetVertexCount(obj, 50);
+	
+	async{
+		ascent(i in 1..721){
+			ObjRender_SetAngleX(obj, sin(i/4)*-15);
+			yield;
+		}
+	}
+
+	// ascent(i in 0..120){
+	// 	ObjRender_SetAlpha(obj, FUNC_LERP_SMOOTH(0, alpha, i/120));
+	// 	yield;
+	// }
+	
+	ObjRender_SetAlpha(obj, alpha);
+
+	ascent(i in 0..90){
+		ObjPrim_SetVertexPosition(obj, i*2, cos(i*15)*radius, sin(i*15)*radius, -100);
+		ObjPrim_SetVertexPosition(obj, i*2+1, cos(i*15)*radius*0.4, sin(i*15)*radius*0.4, 2000);
+		ObjPrim_SetVertexAlpha(obj, i*2+1, 0);
+	}
+	
+	async{
+		let mod = 0;
+		let ang = 0;
+		loop{
+			ascent(i in 0..25){
+				ObjPrim_SetVertexUVT(obj, i*2, i*128, mod);
+				ObjPrim_SetVertexUVT(obj, i*2+1, i*128, mod+1024);
+			}
+			ang -= rot;
+			ObjRender_SetAngleZ(obj, ang);
+			mod = (mod+(parallax*rate)) % 1024;
+			yield;
+		}
+	}
+
+}
+
+task _Screenshake(shaketime, intensity){
+
+	float baseintensity = intensity;
+	float shakeno = shaketime;
+	
+	ascent(i in 0..shakeno){
+		Set2DCameraFocusX(GetStgFrameWidth/2 + prand(-intensity, intensity));
+		Set2DCameraFocusY(GetStgFrameHeight/2 + prand(-intensity, intensity));
+		intensity = Interpolate_Decelerate(0, baseintensity, 1-i/shakeno);
+		shaketime--;
+		yield;
+	}
+	
+	while(shaketime > 0){yield;}
+	
+	Set2DCameraFocusX(GetStgFrameWidth/2);
+	Set2DCameraFocusY(GetStgFrameHeight/2);
+	yield;
+}

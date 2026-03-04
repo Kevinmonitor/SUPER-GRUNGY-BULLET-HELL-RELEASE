@@ -1,0 +1,34 @@
+// Sound effects for items go here. 
+
+let itemlib = GetModuleDirectory() ~ "./script/KevinSystem/RyannSFX/ItemSFX/";
+let SFXVol = GetAreaCommonData("Config", "SEVol", 100) * 0.01;
+
+// Sound objects declarations
+
+let SpellSFX = ObjSound_Create();
+let LifeSFX = ObjSound_Create();
+let CancelSFX = ObjSound_Create();
+let RegularItemSFX = ObjSound_Create();
+let SpecialItemSFX = ObjSound_Create();
+
+// Merge function that loads sounds and significantly decreases volume
+// so the ears do not die from SFX overload. 
+
+function LoadEx(targetobj, targetpath, targetvol){
+
+	ObjSound_Load(targetobj, targetpath);
+	ObjSound_SetVolumeRate(targetobj, targetvol * SFXVol);
+	ObjSound_SetSoundDivision(targetobj, SOUND_SE);
+	
+}
+
+task _ItemSoundTask{
+
+	LoadEx(SpellSFX, itemlib ~ "bfxr_SpellExtend.wav", 100);
+	LoadEx(LifeSFX, itemlib ~ "bfxr_LifeExtend.wav", 100);
+	LoadEx(CancelSFX, itemlib ~ "bfxr_GetItemCancel.wav", 20);
+	LoadEx(RegularItemSFX, itemlib ~ "bfxr_GetItem1.wav", 50);
+	LoadEx(SpecialItemSFX, itemlib ~ "bfxr_GetItemSpecial.wav", 150);
+}
+
+// Functions to load sounds in scripts

@@ -1,0 +1,376 @@
+#TouhouDanmakufu[Single]
+#ScriptVersion[3]
+#Title["DPS Test"]
+#Text["thank you Daniel WishMakers"]
+#System["script/KevinSystem/Kevin_System.dnh"]
+
+//let shotSheet = GetCurrentScriptDirectory() ~ "./../shot/shot.txt";
+
+int bossObj; // This is enemy 1
+
+int enm2, enm3; // This is enemy 2 and 3
+
+let timer = 0;
+let timer2 = 0;
+let timer3 = 0;
+let timer4 = 0;
+
+//let phase = 0;
+let angle = 0;
+let angle2 = 0;
+let angle3 = 0;
+let angle4 = 0;
+
+let x = 0;
+let y = 0;
+
+let image_angle = 0;
+let HP = 10000000; //- (100 * difficulty);
+
+// This is for the damage showing
+let gl_curDPS = 0;
+let gl_curDPS2 = 0;
+let gl_curDPS3 = 0;
+
+let gl_TimeSpent = 0;
+let gl_TutorialStr = "";
+const let STR_START = "Release SHOT before testing DPS.";
+const let STR_GO = "Press and hold SHOT to start testing DPS.";
+const let STR_FINISH = "Release SHOT when you are finished testing DPS.";
+
+string name = "a";
+int score = 0;
+
+int[] scoreObjects = [];
+string[] names = ["kevin", "kevin1", "kevin2", "kevin3"];
+
+let objTextCockAndBalls;
+let objDisplay;
+
+//#include "script/BHA5/script/Lib/BHA5_Lib.dnh"
+
+#include "script/KevinSystem/Universal_Lib.dnh" // The library to include all libraries :sans: :nail_care:
+
+@Event{
+	alternative(GetEventType())
+    case(EV_REQUEST_LIFE){
+        SetScriptResult(HP);
+    }
+    case(EV_REQUEST_TIMER){
+        SetScriptResult(9999);
+    }
+    case(EV_REQUEST_SPELL_SCORE){
+        SetScriptResult(1000000);
+    }
+}
+
+@Initialize{
+	//Shot sheet
+	//LoadTexture(shotSheet);
+    //LoadEnemyShotData(shotSheet);
+	
+	// int[] textObjects = [
+        
+	// 	CreateTextObject(GetStgFrameWidth()/5+120, GetStgFrameHeight()2 - 240, 32, "fuck")
+
+	// ];
+
+	SetPlayerLife(20);
+	
+    objDisplay = CreateTextObject(60, 520, 16, "nothing to display");
+
+	//Boss registration
+	bossObj = ObjEnemy_Create(OBJ_ENEMY_BOSS);
+    ObjEnemy_Regist(bossObj);
+	//SetIntersectionVisualization(true);
+	
+	let imgExRumia = GetModuleDirectory() ~ "script/ExRumia/ExRumia.png";
+    ObjPrim_SetTexture(bossObj, imgExRumia);
+    ObjSprite2D_SetSourceRect(bossObj, 64, 1, 127, 64);
+    ObjSprite2D_SetDestCenter(bossObj);
+	ObjRender_SetScaleXYZ(bossObj, 1, 1, 1);
+	ObjRender_SetColor(bossObj, 0xB93C3C);
+	ObjMove_SetDestAtFrame(bossObj, STG_WIDTH/2, STG_HEIGHT/2, 1);
+	
+    objTextCockAndBalls = CreateTextObject(100, 120, 24, "ready to submit!");
+
+	enm2 = ObjEnemy_Create(OBJ_ENEMY);
+	ObjEnemy_Regist(enm2);
+	//SetIntersectionVisualization(true);
+	
+	//let imgExRumia = GetModuleDirectory() ~ "script/ExRumia/ExRumia.png";
+	ObjPrim_SetTexture(enm2, imgExRumia);
+	ObjSprite2D_SetSourceRect(enm2, 64, 1, 127, 64);
+	ObjSprite2D_SetDestCenter(enm2);
+	ObjRender_SetScaleXYZ(enm2, 1);
+	ObjRender_SetColor(enm2, 0xDC5959);
+	ObjMove_SetDestAtFrame(enm2, STG_WIDTH/2, STG_HEIGHT/2 - 179, 1);
+	
+	ObjEnemy_SetMaximumDamage(enm2, 2000);
+
+	enm3 = ObjEnemy_Create(OBJ_ENEMY);
+	ObjEnemy_Regist(enm3);
+	//SetIntersectionVisualization(true);
+	
+	//let imgExRumia = GetModuleDirectory() ~ "script/ExRumia/ExRumia.png";
+	ObjPrim_SetTexture(enm3, imgExRumia);
+	ObjSprite2D_SetSourceRect(enm3, 64, 1, 127, 64);
+	ObjSprite2D_SetDestCenter(enm3);
+	ObjRender_SetScaleXYZ(enm3, 1);
+	ObjRender_SetColor(enm3, 0xFF8383);
+	ObjMove_SetDestAtFrame(enm3, STG_WIDTH/2, STG_HEIGHT/2 - 340, 1);
+	
+	ObjEnemy_SetMaximumDamage(enm3, 2000);
+	
+	ObjEnemy_SetMaximumDamage(bossObj, 2000);
+	
+    SetCommonDataPtr(POINTER_BURSTGAUGE, 200);
+    // CreateScoreObjects();
+    // RandomiseName();
+    //DisplayScore();
+    main;
+    display;
+	TFinalize;
+}
+
+@MainLoop{
+
+    //etScore(score);
+
+	ObjEnemy_SetIntersectionCircleToShot(bossObj,ObjMove_GetX(bossObj),ObjMove_GetY(bossObj),96);
+	ObjEnemy_SetIntersectionCircleToShot(enm2,ObjMove_GetX(enm2),ObjMove_GetY(enm2),96);
+	ObjEnemy_SetIntersectionCircleToShot(enm3,ObjMove_GetX(enm3),ObjMove_GetY(enm3),96);
+
+	//ObjEnemy_SetIntersectionCircleToPlayer(bossObj,ObjMove_GetX(bossObj),ObjMove_GetY(bossObj),32);
+	
+	timer++;
+	timer2++;
+	x = ObjMove_GetX(bossObj);
+	y = ObjMove_GetY(bossObj);
+	ObjRender_SetAngleZ(bossObj,image_angle);
+	
+	//main;
+	yield;
+}
+
+task CreateScoreObjects(){
+
+    ascent(i in 0..20){
+        int text = CreateTextObject(40, 530 + i * 10, 14, "");
+        scoreObjects = concatenate(scoreObjects, [text]);
+    }
+
+}
+
+task DisplayScore(){
+
+    WriteLog(length(scoreObjects));
+
+    ObjText_SetText(objDisplay, "scoreboard displaying:");
+    wait(5);
+
+    string[] playerList = GetLeaderboardData("675fddd78f40bb11e00ff258", LEADERBOARD_NAME);
+    //string[] scoreList = GetLeaderboardData("675fddd78f40bb11e00ff258", LEADERBOARD_SCORE);
+
+    int i = 0;
+
+    for each (string name in playerList){
+        ObjText_SetText(
+            scoreObjects[i],
+            "rank " ~ IntToString(i+1) ~ "     " ~ playerList[i]
+        );
+        i++;
+    }  
+
+}
+
+task RandomiseName(){
+
+	loop {
+		//Reinitialize
+
+		if(GetKeyState(KEY_R) != KEY_FREE){name = names[rand_int(0, 3)];}
+
+		if(GetKeyState(KEY_S) != KEY_FREE){score = rand(100, 10000000);}
+
+		if(GetKeyState(KEY_U) != KEY_FREE){SubmitScore();}
+
+		if(GetKeyState(KEY_D) != KEY_FREE){DisplayScore();}
+
+        if(GetKeyState(KEY_K) != KEY_FREE){KillPlayer();}
+
+		wait(5);
+
+	}
+
+}
+
+task SubmitScore(){
+
+	ObjText_SetText(objTextCockAndBalls, "submitting.");
+	WriteLog("submitting");
+	
+	wait(5);
+
+	bool success = HTTPGetRequest(
+		"http://dreamlo.com/", 
+		"/lb/3YBWtvVYPkaXY12_COtMaQORpzfYY5e0yHRGgzQXakNg/add/" ~ name ~ "/" ~ IntToString(score),
+		5.0
+		);
+	
+	async{
+
+		if (success){
+			ObjText_SetText(objTextCockAndBalls, "submitted successfully.");
+		}
+
+		else{
+			ObjText_SetText(objTextCockAndBalls, "failed to connect.");
+		}
+
+		wait(120);
+
+		ObjText_SetText(objTextCockAndBalls, "ready to submit.");
+
+	}
+
+	WriteLog("status: " ~ ToString(success));
+
+}
+
+task TFinalize {
+	while(ObjEnemy_GetInfo(bossObj, INFO_LIFE) > 0){yield;}
+	Obj_Delete(bossObj);
+    DeleteShotAll(TYPE_ALL, TYPE_IMMEDIATE);
+    SetAutoDeleteObject(true);
+    CloseScript(GetOwnScriptID());
+    return;
+}
+
+task display {
+
+    int img = _Create2DImage("script/KevinSystem/img/Default_Background_IceMountain.bmp", [0, 0, 256, 256]);
+    ObjRender_SetPosition(img, 320, 240, 1);
+    ObjRender_SetAlpha(img, 30);
+    ObjRender_SetScaleY(img, 2);
+    Obj_SetRenderPriorityI(img, 20);
+
+	let objScore1 = CreateTextObject(60, 400, 16, "" ~ name ~ "");
+
+    let objText = CreateTextObject(STG_WIDTH/12, STG_HEIGHT/4, 12, "Release SHOT to start testing DPS.");
+    let objMain = CreateTextObject(STG_WIDTH/12, STG_HEIGHT/4 + 32, 12, "Avg DPS (Front): [r]Frames: ");
+    let objMain2 = CreateTextObject(STG_WIDTH/12, STG_HEIGHT/4 + 64, 12, "Avg DPS (Middle): ");
+    let objMain3 = CreateTextObject(STG_WIDTH/12, STG_HEIGHT/4 + 96, 12, "Avg DPS (Back): ");
+
+    loop {
+        ObjText_SetText(objText, gl_TutorialStr);
+		//ObjText_SetText(objScore1, "current leaderboard name: " ~ name ~ "[r][r]press R to randomise name[r]press S to randomise score[r]press U to upload score[r]press D to display scores");
+
+        ObjText_SetText(objMain, StringFormat("Avg DPS (Front): %f[r]Frames: %d", "fd", gl_curDPS, gl_TimeSpent));
+		ObjText_SetText(objMain2, StringFormat("Avg DPS (Middle): %f", "f", gl_curDPS2));
+		ObjText_SetText(objMain3, StringFormat("Avg DPS (Back): %f", "f", gl_curDPS3));
+        yield;
+    }
+
+}
+
+task bullet {
+    wait(15);
+    loop{
+        int shot = CreateShotA1(ObjMove_GetX(bossObj), ObjMove_GetY(bossObj), 4, 0, KEV_BULLET, 1);
+        _BulletRescale(shot, 2, true, 1);
+        wait(60);
+    }
+}
+// thanks wish
+
+task main {
+    bullet;
+    let count = 0;
+    let damage = 0;
+    let damage2 = 0;
+    let damage3 = 0;
+
+    loop {
+        //Reinitialize
+        count = 0;
+        damage = 0;
+        damage2 = 0;
+        damage3 = 0;
+        ObjEnemy_SetLife(bossObj, HP);
+        ObjEnemy_SetLife(enm2, HP);
+        ObjEnemy_SetLife(enm3, HP);
+        gl_TutorialStr = STR_START;
+
+        //Wait for shot to not be held.
+        while(count < 60) {
+            if (CheckShotRelease) {
+                count++;
+            }
+            else {
+                count = 0;
+            }
+            yield;
+        }
+
+        //Wait until player starts pressing SHOT.
+        count = 0;
+        gl_TutorialStr = STR_GO;
+        
+        while(!CheckShotHeld) {
+            yield;
+        }
+
+        while(CheckShotHeld) {
+            count++;
+            damage += (HP - ObjEnemy_GetInfo(bossObj, INFO_LIFE));
+            damage2 += (HP - ObjEnemy_GetInfo(enm2, INFO_LIFE));
+            damage3 += (HP - ObjEnemy_GetInfo(enm3, INFO_LIFE));
+            ObjEnemy_SetLife(bossObj, HP);
+			ObjEnemy_SetLife(enm2, HP);
+			ObjEnemy_SetLife(enm3, HP);
+            gl_TimeSpent = count;
+            if (count % 15 == 0) {
+                gl_curDPS = damage*4;
+                gl_curDPS2 = damage2*4;
+                gl_curDPS3 = damage3*4;
+                gl_TutorialStr = STR_FINISH;
+				damage = 0;
+				damage2 = 0;
+				damage3 = 0;
+            }
+            yield;
+        }
+
+    }
+}
+
+function CheckShotRelease {
+    return ((GetVirtualKeyState(VK_SHOT) == KEY_PULL) || (GetVirtualKeyState(VK_SHOT) == KEY_FREE));
+}
+
+function CheckShotHeld {
+    return ((GetVirtualKeyState(VK_SHOT) == KEY_PUSH) || (GetVirtualKeyState(VK_SHOT) == KEY_HOLD));
+}
+
+//mkm fxn
+function CreateTextObject(let mx, let my, let size, let text)
+{
+	let obj = ObjText_Create();
+	ObjText_SetText(obj, text);
+	ObjText_SetFontSize(obj, size);
+	ObjText_SetFontBold(obj, true);
+	ObjText_SetFontColorTop(obj, 128, 128, 255);
+	ObjText_SetFontColorBottom(obj, 64, 64, 255);
+	ObjText_SetFontBorderType(obj, BORDER_FULL);
+	ObjText_SetFontBorderColor(obj,255, 255, 255);
+	ObjText_SetFontBorderWidth(obj, size/8);
+	Obj_SetRenderPriorityI(obj, 79);
+	ObjRender_SetX(obj, mx);
+	ObjRender_SetY(obj, my);
+	return obj;
+}
+
+
+
+

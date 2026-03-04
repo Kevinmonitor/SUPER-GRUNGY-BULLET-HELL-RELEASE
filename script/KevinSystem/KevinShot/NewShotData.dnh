@@ -1,0 +1,37 @@
+#UserShotData
+
+shot_image = "./Kevin_NewShot.png"
+
+ShotData { id = 2000 rect = (0,0,24,36) collision = 4 delay_color = (255,255,255) } // BULLET
+ShotData { id = 2001 rect = (24,0,48,36) collision = 4 delay_color = (255,255,255) } // BULLET_INV
+
+ShotData { id = 2002 rect = (0,36,36,72) collision = 4 angular_velocity = 4 delay_color = (255,255,255) } // STAR
+ShotData { id = 2003 rect = (36,36,72,72) collision = 4 angular_velocity = 4 delay_color = (255,255,255) } // STAR_INV
+
+ShotData { id = 2004 rect = (0,72,36,108) collision = 4 delay_color = (255,255,255) } // KNIFE
+ShotData { id = 2005 rect = (36,72,72,108) collision = 4 delay_color = (255,255,255) } // KNIFE_INV
+
+ShotData { id = 2006 rect = (0,108,36,144) collision = 4 delay_color = (255,255,255) } // LASER
+ShotData { id = 2007 rect = (36,108,72,144) collision = 4 delay_color = (255,255,255) } // LASER_INV
+
+ShotData { id = 2008 rect = (0,144,36,180) collision = 4 angular_velocity = 4 delay_color = (255,255,255) } // BULLET_ALT
+ShotData { id = 2009 rect = (36,144,72,180) collision = 4 angular_velocity = 4 delay_color = (255,255,255) } // BULLET_ALT_INV
+
+ShotData { id = 2010 rect = (0,180,36,216) collision = 4 angular_velocity = 4 delay_color = (255,255,255) } // ROUND_STAR
+ShotData { id = 2011 rect = (36,180,72,216) collision = 4 angular_velocity = 4 delay_color = (255,255,255) } // ROUND_STAR_INV
+
+ShotData { id = 2012 rect = (48,0,72,36) collision = 4 delay_color = (255,255,255) } // BULLET_DARK
+ShotData { id = 2013 rect = (72,36,108,72) collision = 4 angular_velocity = 4 delay_color = (255,255,255) } // STAR_DARK
+ShotData { id = 2014 rect = (72,72,108,108) collision = 4 delay_color = (255,255,255) } // KNIFE_DARK
+ShotData { id = 2015 rect = (72,108,108,144) collision = 4 delay_color = (255,255,255) } // LASER_DARK
+ShotData { id = 2016 rect = (72,144,108,180) collision = 4 angular_velocity = 4 delay_color = (255,255,255) } // BULLET_ALT_DARK
+ShotData { id = 2017 rect = (72,180,108,216) collision = 4 angular_velocity = 4 delay_color = (255,255,255) } // ROUND_STAR_DARK
+
+// the cat is fuckin dead
+
+ShotData { id = 2018 rect = (128,0,256,128) collision = 12 angular_velocity = 5 delay_color = (255,255,255) } // KEV_CAT_RIP
+
+ShotData { id = 2019 rect = (128,128,256,256) collision = 12 angular_velocity = 5 delay_color = (255,255,255) } // KEV_CAT
+ShotData { id = 2020 rect = (256,128,384,256) collision = 12 angular_velocity = 5 delay_color = (255,255,255) } // LAV_CAT
+ShotData { id = 2021 rect = (384,128,512,256) collision = 12 angular_velocity = 5 delay_color = (255,255,255) } // COOL_CAT
+

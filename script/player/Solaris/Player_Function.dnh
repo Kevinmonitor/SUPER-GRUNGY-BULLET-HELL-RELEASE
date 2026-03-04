@@ -1,0 +1,390 @@
+//#include "./Player_Function_Laser.dnh"
+//#include "./Player_Hyper_Function.dnh"
+
+// POINTER_CHAINGAUGE, POINTER_CHAINCHECK
+
+//let POINTER_MULTIPLIER = LoadAreaCommonDataValuePointer("Ingame", "Multiplier", 1.0);
+//let POINTER_DRILLLEVEL = LoadAreaCommonDataValuePointer("Ingame", "DrillLv", 1);
+
+// Shot Type
+
+float angSpace = 2.5;
+
+float[] angStartArr = [];
+
+// Left, right, far left, far right
+
+float[] angStartUF = [230, 270, 270, 310];
+float[] angStartUFAlt2 = [230-90, 230-120, 310+90, 310+120];
+float[] angStartUFAlt = [230, 275, 265, 310, 240, 300];
+float[] angStartF = [250, 280, 260, 290];
+
+float offsetX = 125;
+float offsetY = 75;
+
+float[] posXUnfocus = [-100, -60, -20, 20, 60, 100];
+float[] posYUnfocus = [60, 30, 0, 0, 30, 60];
+
+float[] angF = [276, 273, 270, 270, 267, 264];
+
+int[] bulletNum = [4, 3, 3, 4];
+
+task CreateOptions(){
+
+	float[][] offsets = [[-72, -32, -96, 32], [72, -32, 96, 32], [-148, 32, -54, 72], [148, 32, 54, 72]];
+	float[][] angs = [[260, 285], [285, 255], [240, 270], [300, 270]];
+
+	ascent(i in 0..4){
+		int opt = PlayerOption_LinearMove(
+			offsets[i][0],
+			offsets[i][1],
+			offsets[i][2],
+			offsets[i][3],
+			true, 
+			angs[i][0], 
+			angs[i][1], 
+			plimg, 
+			OPTION, 0.75, 40,
+			64, 1, 1, false, 
+			false, 0,
+			true, true
+		);
+		optionArr = insert(optionArr, i, opt);
+	}
+}
+
+task ShotAutoDeleteSetter(int shot){
+	ObjShot_SetAutoDelete(shot, false);
+	while(ObjMove_GetY(shot) > STG_HEIGHT){yield;}
+	ObjShot_SetAutoDelete(shot, true);
+	return;
+}
+
+// Normal shot
+task BaseShot(){
+
+	// 4 way shot 
+	float dist = 12;
+
+    while(true){
+
+        if(GetVirtualKeyState(VK_SHOT) != KEY_FREE && 
+			IsPermitPlayerShot && 
+			!ripplayer){
+
+			// Z/Z+C for normal shot
+
+			if(GetVirtualKeyState(VK_SLOWMOVE) == KEY_FREE){
+
+				if(shotspeed % 5 == 0){        
+							
+					ObjSound_Play(Base3);
+
+					ascent(b in 0..6){
+
+						let shotC = CreatePlayerShotA1(playerX + posXUnfocus[b], playerY + posYUnfocus[b], 42, 270, shotDamageOption, 1.1, BULLET); 
+						ObjRender_SetAlpha(shotC, shotAlpha);
+						//ObjShot_SetAngleRounding(shotC, 30);
+						Obj_SetRenderPriorityI(shotC, 41);
+
+					}
+						
+				}
+
+				if(shotspeed % 12 == 0){
+
+					let shotA = CreatePlayerShotA1(playerX, playerY, 25, 45 + rand(-8, 8), shotDamageOption/3, 9999, HOMING); 
+					let shotB = CreatePlayerShotA1(playerX, playerY, 25, 135 + rand(-8, 8), shotDamageOption/3, 9999, HOMING); 
+
+					_HomeShot(shotA);
+					_HomeShot(shotB);
+
+				}
+
+			}
+
+			else{
+
+				if(shotspeed % 5 == 0){        
+							
+					ObjSound_Play(Base3);
+
+					ascent(b in 0..6){
+
+						let shotC = CreatePlayerShotA1(playerX + posXUnfocus[b], playerY + posYUnfocus[b], 42, angF[b], shotDamageOption, 1.1, BULLET); 
+						ObjRender_SetAlpha(shotC, shotAlpha);
+						//ObjShot_SetAngleRounding(shotC, 30);
+						Obj_SetRenderPriorityI(shotC, 41);
+
+					}
+
+				}
+
+				if(shotspeed % 12 == 0){
+
+					let shotA = CreatePlayerShotA1(playerX, playerY, 25, 45 + rand(-8, 8), shotDamageOption/3, 9999, HOMING); 
+					let shotB = CreatePlayerShotA1(playerX, playerY, 25, 135 + rand(-8, 8), shotDamageOption/3, 9999, HOMING); 
+
+					_HomeShot(shotA);
+					_HomeShot(shotB);
+
+				}
+
+			}
+
+		}
+
+		else{}
+
+        yield;
+
+    }
+
+}
+
+// A bomb in disguise
+task BurstAttack(){
+
+	// Preparation
+	SetForbidPlayerSpell(true);
+	SetPlayerInvincibilityFrame(60);
+	ObjSound_Play(Misc3); 
+
+	// Spell barrierBulletect
+	let manageObj = GetSpellManageObject(); // SPELL BEGINS
+	ObjSpell_Regist(manageObj);
+
+	// Spell
+	SummonBarrier();
+
+	// Burst Mode
+
+	SetAreaCommonData("Ingame", "IsBurst", true);
+
+	wait(120);
+
+	SetAreaCommonData("Ingame", "IsBurst", false);
+	//ObjSound_Play(Misc3);
+	SetForbidPlayerSpell(false);
+	Obj_Delete(manageObj); // !!! IMPORTANT !!!
+
+}
+
+// credit: Kobito
+
+function<int> findNextTarget(barrierBullet){
+	if(!enemyListUpdated){
+		_enemyArray = GetAllEnemyID();
+		enemyListUpdated = true;
+	}
+	
+	int targetID = -1;
+	float minDist = 9999;
+	for each(int i in _enemyArray){
+		float dist = GetObjectDistance(barrierBullet, i);
+		if(dist < minDist){
+			minDist = dist;
+			targetID = i;
+		}
+	}
+	return targetID;
+}
+
+task SummonBarrier(){
+
+	int barrierBullet = ObjShot_Create(OBJ_SHOT);
+
+	ObjShot_SetOwnerType(barrierBullet, OWNER_PLAYER);
+	
+	ObjMove_SetPosition(barrierBullet, GetPlayerX(), GetPlayerY());
+	ObjMove_SetSpeed(barrierBullet, 6);
+	ObjMove_SetAngle(barrierBullet, 270);
+	ObjRender_SetAlpha(barrierBullet, 0);
+
+	ObjShot_SetPenetration(barrierBullet, 9999);
+
+	ObjShot_SetGraphic(barrierBullet, 0);
+	ObjShot_SetDamage(barrierBullet, 1.8);
+	ObjShot_SetAutoDelete(barrierBullet, false);
+
+	ObjShot_Regist(barrierBullet);
+	ObjShot_SetEraseShot(barrierBullet, true);
+	ObjShot_SetSpellFactor(barrierBullet, true);
+
+	function <int> CreateBullet(angle){
+
+		int bullet = CreatePlayerShotA1(ObjMove_GetX(barrierBullet), ObjMove_GetY(barrierBullet), 24, angle, shotDamageOption/5, 999, MAGIC);
+		ObjRender_SetAlpha(bullet, 180);
+		ObjRender_SetBlendType(bullet, BLEND_ADD_ARGB);
+		Obj_SetRenderPriorityI(bullet, plRender-1);
+
+		ObjShot_SetEraseShot(bullet, true);
+		ObjShot_SetSpellFactor(bullet, true);
+		ObjShot_SetAutoDelete(bullet, false);
+
+		ObjMove_AddPatternA2(bullet, 0, 24, angle, -24/15, 2, 0);
+		ObjShot_SetDeleteFrame(bullet, 30);
+
+		_BulletRescalePlayer(bullet, 0.8, true, 1);
+
+		async{
+			wait(15);
+			ascent(i in 0..15){
+				ObjRender_SetAlpha(bullet, Interpolate_Linear(180, 0, i/15));
+				yield;
+			}
+		}
+
+	}
+
+	float startAng = rand(0, 360);
+	float startAng2 = startAng;
+
+	ascent(i in 0..40){
+		ascent(f in 0..6){
+			CreateBullet(startAng + f * 360/6);
+			CreateBullet(startAng2 + f * 360/6);
+		}
+		startAng += 8;
+		startAng2 -= 8;
+		wait(4);
+	}
+
+	Obj_Delete(barrierBullet);
+
+}
+
+task HPManagement(){
+
+	let liferemain;
+	let lifecounter = ObjPrim_Create(OBJ_SPRITE_LIST_2D);
+	let lifeshow = plimg;
+
+	int lifeimg = _Create2DImage(plimg, [176, 0, 208, 32]);
+	ObjRender_SetPosition(lifeimg, 24-6, STG_HEIGHT-13, 0);
+	ObjRender_SetTextureFilter(lifeimg, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+
+	Obj_SetRenderPriorityI(lifecounter, 79);
+	ObjPrim_SetTexture(lifecounter, lifeshow);
+	//ObjSpriteList2D_SetSourceRect(lifecounter, 256, 0, 384, 128);
+	//ObjRender_SetScaleXYZ(lifecounter, 0.5, 0.5, 1);
+	//ObjSpriteList2D_SetDestCenter(lifecounter);
+	
+	loop{
+		SetPlayerLife(min(GetCommonData("Life Limit", 99999), GetPlayerLife()));
+		
+		if(GetPlayerY() > GetStgFrameHeight() * 6/8 && GetPlayerX() < GetStgFrameWidth() * 1/4){
+			ObjRender_SetAlpha(lifecounter, 125);
+			ObjRender_SetAlpha(lifeimg, 125);
+		}
+		else{ObjRender_SetAlpha(lifecounter, 255); ObjRender_SetAlpha(lifeimg, 255);}
+		
+		if(GetPlayerLife() < 0){ObjSprite2D_SetSourceRect(lifeimg, [240, 0, 272, 32]);}
+		else{ObjSprite2D_SetSourceRect(lifeimg, [176, 0, 208, 32]);}
+
+		ObjSpriteList2D_ClearVertexCount(lifecounter);
+		ObjSpriteList2D_SetSourceRect(lifecounter, 160, 16, 176, 32);
+		ObjRender_SetTextureFilter(lifecounter, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+		ObjSpriteList2D_SetDestCenter(lifecounter);
+		ObjRender_SetScaleXYZ(lifecounter, 1, 1, 1);
+		liferemain = GetPlayerLife();
+		ascent(i in 0..liferemain){
+			ObjRender_SetPosition(lifecounter, 30+i*6, STG_HEIGHT - 12, 0);
+			ObjSpriteList2D_AddVertex(lifecounter);		
+		}
+		yield;
+	}
+
+}
+
+// homing
+
+// Selects an enemy to home on. Kouda's homing birds only home on one enemy at a time (since he's the focused shot)
+
+task _HomeShot(int shot_) {
+
+	float duration = 55;
+	bool homingBool = false;
+	float basepenetrate = ObjShot_GetPenetration(shot_);
+	float basedmg = ObjShot_GetDamage(shot_);
+	
+	_BulletRescalePlayer(shot_, 1.4, true, 1);
+	ObjRender_SetAlpha(shot_, 160);
+	ObjRender_SetBlendType(shot_, BLEND_ADD_ARGB);
+
+	// Original code
+	
+	// async{
+	// 	ascent(i in 0..15){
+	// 		_BulletRescalePlayer(shot_, Interpolate_Smoother(0.8, 1.3, i/15), true, 1);
+	// 		yield;
+	// 	}
+	// }
+	
+	async{
+
+		//ObjShot_SetSpinAngularVelocity(shot_, 1.5);
+
+		while(!Obj_IsDeleted(shot_)){
+			float currentpenetrate = ObjShot_GetPenetration(shot_);
+			float difference = basepenetrate - currentpenetrate;
+			//ObjShot_SetDamage(shot_, max(0.5, basedmg - 0.24 * (basepenetrate - currentpenetrate)));
+			yield;
+		}
+	}
+	
+	//
+	
+	for (int t = 0i; t < duration && !Obj_IsDeleted(shot_); t++) {
+	
+		// Checks if enemies are on screen. If enemies are visible, enable homing for the shots.
+		// _enemyArray is an array containing all enemy IDs, and is constantly updated in @MainLoop.
+		
+		if (0 < length(_enemyArray)) {
+			float targetDist = 2000; // Arbitrary number (???)
+			int targetID = 0;
+			
+			// Checks distance of every enemy on screen. 
+			
+			for each (int enemy in ref _enemyArray) {
+				float enemyX = ObjMove_GetX(enemy);
+				float enemyY = ObjMove_GetY(enemy);
+				if (0 < enemyX && enemyX < maxX && 0 < enemyY && enemyY < maxY) {
+				
+					// Returns the hypotenuse of the triangle formed by the x & y distances between the shot and the enemy.
+					
+					float shotDist = hypot(enemyX - ObjMove_GetX(objPlayer), enemyY - ObjMove_GetY(objPlayer));
+					
+					// Locks the shot onto the enemy.
+					
+					if (shotDist < targetDist) {
+						targetDist = shotDist;
+						targetID = enemy;
+						homingBool = true;
+					}
+				}
+			}
+	
+			// Code to handle the actual homing.
+			
+			if (homingBool) {
+				for (int f = 0; t < duration && !Obj_IsDeleted(shot_) && !Obj_IsDeleted(targetID) && ObjEnemy_GetInfo(targetID, INFO_LIFE) != 0 && !ObjCol_IsIntersected(shot_); t++) {
+					ObjShot_SetAutoDelete(shot_, false);
+					float shotAngle = NormalizeAngle(ObjMove_GetAngle(shot_)); // Angle of the player shot
+					float targetAngle = NormalizeAngle(atan2(ObjMove_GetY(targetID) - ObjMove_GetY(shot_), ObjMove_GetX(targetID) - ObjMove_GetX(shot_))); // Returns angle from the shot to the enemy.
+					float angleDistance = AngularDistance(shotAngle, targetAngle); // Angular distance between enemy and player shot
+					float homeRate = Interpolate_Decelerate(0, 0.75, min(60, f) / 60);
+					// Homing speed?
+					ObjMove_SetAngle(shot_, Interpolate_Accelerate(shotAngle, shotAngle + angleDistance, homeRate)); // Interpolate_Necko 
+					f++;				
+					yield;
+				}
+				ObjShot_SetAutoDelete(shot_, true);
+				ObjMove_SetAngularVelocity(shot_, 0);
+				homingBool = false;
+			}
+		}
+		
+		yield;
+	}
+}

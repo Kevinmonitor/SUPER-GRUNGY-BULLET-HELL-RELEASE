@@ -1,0 +1,206 @@
+//一時停止中スクリプト
+
+#include "script/KevinSystem/GeneralSoundLib.dnh"
+
+int STGWIDTH = GetStgFrameWidth();
+int STGHEIGHT = GetStgFrameHeight();
+
+@Initialize
+{
+	_SoundTask();
+	//ExtendSFX;
+	SetAutoDeleteObject(true);
+	// TBackgroundNew(0, 0);
+	// TMenu();
+	TEnd();
+}
+
+@MainLoop
+{
+	yield;
+}
+
+@Finalize
+{
+}
+
+task TEnd(){
+
+	SetScriptResult(RESULT_END);
+	CloseScript(GetOwnScriptID());
+
+}
+
+task TBackgroundNew(renderX, renderY){
+	
+	let objText = ObjText_Create();
+	ObjText_SetText(objText, ["Thank you for participating.[r]Your strength is highly, highly, appreciated...", "このゲームを遊ぶをありがとうございました！"][GetCommonData("Language", 0)]);
+	ObjText_SetFontSize(objText, [38, 45][GetCommonData("Language", 0)]);
+	ObjText_SetFontType(objText, "Cartesian");
+	
+	//ObjText_SetMaxWidth(objText, GetScreenWidth/2);
+	ObjText_SetHorizontalAlignment(objText, ALIGNMENT_CENTER);
+	
+	ObjText_SetFontBold(objText, true);
+	ObjText_SetFontColorTop(objText, 255, 255, 255);
+	ObjText_SetFontColorBottom(objText, 255, 255, 255);
+	ObjText_SetFontBorderType(objText, BORDER_FULL);
+	ObjText_SetFontBorderColor(objText, 0x7D39D9);
+	ObjText_SetFontBorderWidth(objText, 2);
+	Obj_SetRenderPriorityI(objText, 10);
+	ObjRender_SetX(objText, GetScreenWidth/2);
+	ObjRender_SetY(objText, 5*STGHEIGHT/8);
+
+	let obj = ObjPrim_Create(OBJ_SPRITE_2D);
+	Obj_SetRenderPriorityI(obj, 1);
+	
+	let currentFrameTexture = GetTransitionRenderTargetName();
+	
+	ObjPrim_SetTexture(obj, currentFrameTexture);
+	ObjSprite2D_SetSourceRect(obj, 0, 0, GetScreenWidth(), GetScreenHeight());
+	ObjSprite2D_SetDestRect(obj, 0, 0, GetScreenWidth(), GetScreenHeight());
+	
+	ObjRender_SetColor(obj, 0x593DA3);
+	
+}
+
+task TMenu
+{
+	let selectIndex = 0;//選択位置
+	function TMenuItem(let index, let mx, let my, let text)
+	{
+		function CreateTextObject(let mx, let my, let text)
+		{
+			let obj = ObjText_Create();
+			ObjText_SetText(obj, text);
+			ObjText_SetFontSize(obj, 32);
+			ObjText_SetFontType(obj, "Aquire");
+			ObjText_SetFontBold(obj, true);
+			ObjText_SetHorizontalAlignment(obj, ALIGNMENT_CENTER);
+			//ObjText_SetMaxWidth(obj, STGWIDTH);
+			ObjText_SetFontColorTop(obj, 155, 45, 175);
+			ObjText_SetFontColorBottom(obj, 200, 80, 255);
+			ObjText_SetFontBorderType(obj, BORDER_FULL);
+			ObjText_SetFontBorderColor(obj, 255, 255, 255);
+			ObjText_SetFontBorderWidth(obj, 3.5);
+			Obj_SetRenderPriorityI(obj, 10);
+			ObjRender_SetX(obj, mx);
+			ObjRender_SetY(obj, my);
+			return obj;
+		}
+
+		let objText = CreateTextObject(mx, my, text);
+		let objSelect = CreateTextObject(mx, my, text);
+		ObjRender_SetBlendType(objSelect, BLEND_ADD_RGB);
+		
+		async{
+			loop
+			{
+				Obj_SetVisible(objSelect, index == selectIndex);
+				yield;
+			}
+		}
+		
+		return objText;
+	}
+
+	//メニュー配置
+
+	let textchoices = [""];
+	int x = prand_int(0, length(textchoices)-1);
+	let objText = ObjText_Create();
+	ObjText_SetText(objText, textchoices[x]);
+	ObjText_SetFontSize(objText, 32);
+	ObjText_SetFontType(objText, "Formal_Future_More_Letter_Gap");
+	
+	//ObjText_SetMaxWidth(objText, STGWIDTH);
+	ObjText_SetHorizontalAlignment(objText, ALIGNMENT_CENTER);
+	
+	ObjText_SetFontBold(objText, true);
+	ObjText_SetFontColorTop(objText, 75, 255, 255);
+	ObjText_SetFontColorBottom(objText, 180, 255, 255);
+	ObjText_SetFontBorderType(objText, BORDER_FULL);
+	ObjText_SetFontBorderColor(objText,0, 0, 0);
+	ObjText_SetFontBorderWidth(objText, 1);
+	Obj_SetRenderPriorityI(objText, 10);
+	ObjRender_SetX(objText, GetScreenWidth/2);
+	ObjRender_SetY(objText, 75);
+	
+	let mx = GetScreenWidth/2;
+	let my = GetScreenHeight/3;
+	let texts = ["RETURN TO TITLE", "RETRACE THIS JOURNEY"];
+	var countMenu = length(texts);
+	ascent(var iText in 0 .. countMenu)
+	{
+		int text = TMenuItem(iText, mx, my, texts[iText]);
+		my += 40;
+	}
+
+	//キー状態がリセットされるまで待機
+	while(GetVirtualKeyState(VK_PAUSE) != KEY_FREE){yield;}
+
+	//メニュー選択処理
+	let frameKeyHold = 0;//キー押しっぱなしフレーム数
+	//PauseGameSFX;
+	
+	function CheckShotRelease {
+		return (GetVirtualKeyState(VK_OK) == KEY_HOLD);
+	}
+	
+	int countA = 0;
+	
+	loop
+	{
+		//決定
+		if(CheckShotRelease){yield; continue;}
+		
+		if(GetVirtualKeyState(VK_OK) == KEY_PUSH)
+		{
+			let listResult = [RESULT_END, RESULT_RETRY];
+			SetScriptResult(listResult[selectIndex]);
+			CloseScript(GetOwnScriptID());
+			return;
+		}
+
+		//カーソル移動
+		if(GetVirtualKeyState(VK_UP) == KEY_PUSH)
+		{
+			selectIndex--;
+		}
+		else if(GetVirtualKeyState(VK_DOWN) == KEY_PUSH)
+		{
+			selectIndex++;
+		}
+		else if(GetVirtualKeyState(VK_UP) == KEY_HOLD)
+		{
+			frameKeyHold++;
+			if(frameKeyHold == 30 || (frameKeyHold > 30 && (frameKeyHold % 10 == 0)))
+			{
+				selectIndex--;
+			}
+		}
+		else if(GetVirtualKeyState(VK_DOWN) == KEY_HOLD)
+		{
+			frameKeyHold++;
+			if(frameKeyHold == 30 || (frameKeyHold > 30 && (frameKeyHold % 10 == 0)))
+			{
+				selectIndex++;
+			}
+		}
+		else
+		{
+			frameKeyHold = 0;
+		}
+
+		if(selectIndex < 0) 
+		{
+			selectIndex = countMenu - 1;
+		}
+		else
+		{
+			selectIndex %= countMenu;
+		}
+
+		yield;
+	}
+}

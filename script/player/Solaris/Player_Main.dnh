@@ -1,0 +1,354 @@
+#TouhouDanmakufu[Player]
+#ScriptVersion[3]
+#ID["PL_SOLARIS"]
+#Title["Solaris Lightblaze"]
+#Text["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+
+//#Image["./mariremi_lib/mariremi_illust.png"]
+
+#ReplayName["Solaris"]
+	
+#include "script/KevinSystem/SystemScripts/Lib_Const.dnh"
+
+#include "script/KevinSystem/Kevin_PlayerLib.dnh"
+#include "script/KevinSystem/PlayerSoundLib.dnh"
+
+#include "./Player_Function.dnh"
+#include "./Player_ShotConst.dnh" 
+
+#include "script/KevinSystem/SystemScripts/Kevin_ItemConst.dnh"
+#include "script/KevinSystem/SystemScripts/Kevin_ItemLib.dnh"
+
+let csd = GetCurrentScriptDirectory();
+
+// Global Variables
+
+float maxX = GetStgFrameWidth();
+float maxY = GetStgFrameHeight();
+
+bool isUsingSword = false;
+
+// Images & Sound
+
+let plimg = GetCurrentScriptDirectory() ~ "./playerlib/reimu.png";
+LoadTextureEx(plimg, true, true);
+ObjRender_SetTextureFilter(plimg, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+
+let plsplash = GetCurrentScriptDirectory() ~ "./playerlib/lav_splash.png";
+LoadTextureEx(plsplash, true, true);
+//ObjRender_SetTextureFilter(plsplash, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+
+int[] _enemyArray = [];
+bool enemyListUpdated = false;
+
+int[] _existArray = []; 
+int[] _shotArray = []; 
+
+int[] optionArr = [1, 1, 1, 1];
+
+// Other stuff
+
+float playerX = 0;
+float playerY = 0;
+
+let objPlayer = GetPlayerObjectID();
+int plRender = 45;
+
+bool ripplayer = false;
+float shotspeed = 0;
+float bombrand = 0;
+
+int shotAlpha = (GetAreaCommonData("Config", "PlayerShotOpacity", 255)*0.01)*255;
+
+float shotDamageOption = 10.5; //~595-1785DPS
+ 
+float[] PlayerSpd = PlayerSpeeds[1];
+
+const EV_PIV_100 = EV_USER + 100i; // Normal enemies and nons
+const EV_PIV_250 = EV_USER + 101i; // Spells
+const EV_PIV_500 = EV_USER + 102i; // Last Spells
+const EV_PIV_2000 = EV_USER + 103i; // What. 
+
+@Initialize{
+
+	// Pixel art
+	SetShotTextureFilter(FILTER_NONE, FILTER_NONE);
+
+	SetCommonDataPtr(POINTER_PLAYERNUM, 1); // PLAYER 1
+
+	if(!IsCommonDataAreaExists("Ingame")){
+		CreateCommonDataArea("Ingame");
+		SetAreaCommonData("Ingame", "currentvalue", 10000);
+		SetAreaCommonData("Ingame", "ChainAmount", 1);
+	}
+	else{}
+	
+	SetPlayerStateEndEnable(true);
+	
+	// Stuff
+	Parameter();
+	RenderPlayer();
+	BaseShot();
+	//CreateOptions();
+	//BurstAttack();
+	
+	//Obj_SetRenderPriorityI(objPlayer, 43);
+	plRender = Obj_GetRenderPriorityI(objPlayer);
+	_SoundTaskDebug();
+	
+	//SetIntersectionVisualization(true); // Debug
+	
+	_Mechanic(ripplayer, _enemyArray, _existArray, GetStgFrameWidth(), GetStgFrameHeight(), GetPlayerObjectID(), GetEnemyBossSceneObjectID(), 2, 1, 100);
+
+	//SetShotAutoDeleteClip(32, 32, 32, 32);
+
+	_Countdown();
+	BurstReady();
+	PassiveBurstGain();
+
+	// Shot data loading
+	LoadPlayerShotData(csd ~ "./Player_ShotData.dnh");
+}
+
+@MainLoop{
+
+	//
+	_enemyArray = GetIntersectionRegistedEnemyID;
+	shotspeed += 1; // Managing the shot rate
+	enemyListUpdated = false;
+
+	//_shotArray = GetAllShotID(TARGET_PLAYER);
+	//UniversalAlphaHandle(_shotArray);
+
+	plRender = Obj_GetRenderPriorityI(objPlayer);
+	playerX = ObjMove_GetX(objPlayer);
+	playerY = ObjMove_GetY(objPlayer);
+	
+	yield;
+}
+
+@Event{
+	alternative(GetEventType)
+	
+	// Delete effect
+	case(EV_DELETE_SHOT_PLAYER){
+	
+		if(GetCommonDataPtr(EFFECTCUT_PTR, 0) >= 3){}
+		
+		else{
+
+			let graphic = GetEventArgument(2);
+			float[] position = GetEventArgument(1);
+
+			let obj = CreatePlayerShotA1(position[0], position[1], 0, ObjMove_GetAngle(GetEventArgument(0))+prand(-2, 2), 0, 99999, graphic);
+
+			ObjShot_SetIntersectionEnable(obj, false); 
+			_DeleteEffect(obj, 1);
+
+		}
+		//if(graphic == ELECTRIC_FIRE_ALT) {_DeleteEffectAlt(obj);}
+		//else{_DeleteEffect(obj);}
+	}
+	
+	// Basic functionality events
+	case(EV_REQUEST_SPELL){
+		if(GetCommonDataPtr(POINTER_BURSTGAUGE, 0) >= 100){
+			BurstAttack();
+			SetCommonDataPtr(POINTER_BURSTGAUGE, clamp(GetCommonDataPtr(POINTER_BURSTGAUGE, 0)-100, 0, 300));
+			NotifyEventAll(EV_USER_BURST, 0);
+			SetScriptResult(true);
+		}
+		else{
+			SetScriptResult(false);
+		}
+	}
+
+	case(EV_HIT){
+		ObjSound_Play(PlayerHit);
+		_DeathbombWarning("script/player/common/playercommon.png", [384, 64, 512, 192], 10, 1.5);
+	}
+	
+	case(EV_PLAYER_SHOOTDOWN){
+
+		ObjSound_Play(Bomb2);
+		//SetPlayerSpell(999); 
+		ripplayer = true;
+		DeleteShotAll(TYPE_SHOT, TYPE_IMMEDIATE);
+
+		DeathTask();
+		_DeathMove();
+
+	}
+
+	case(EV_PLAYER_REBIRTH){
+		ripplayer = false;
+		SetPlayerInvincibilityFrame(90);
+		//_Countdown();
+		//_SigilCall(false, teamimg, 768+256, 512, 768+512, 768, objPlayer, 150);
+		
+	}
+
+	case(EV_GRAZE){
+
+		GrazeTask;
+
+	}
+} 
+
+@Finalize{
+
+}
+
+task PassiveBurstGain(){
+
+	let POINTER_ALLOW_BURST = LoadCommonDataValuePointer("BurstAllowed", true);
+
+	while(GetPlayerState() != STATE_END){
+		if(GetPlayerState() == STATE_NORMAL && GetCommonDataPtr(POINTER_ALLOW_BURST, true)){
+		}
+		yield;
+	}
+	
+}
+// Basic player parameters
+
+task Parameter(){
+
+	// im trying to not be collected by the player but their item scope is dummy thicc and im alerted by its cheek
+	SetPlayerItemScope(180);
+
+	SetPlayerLife(9); // Debug
+	//SetPlayerSpell(99999999999999999999999999999); 
+	SetPlayerSpeed(PlayerSpd[0], PlayerSpd[1]); // (original: 5.25/2.0)
+	SetPlayerRebirthFrame(10); // For "autobomb"
+	SetPlayerDownStateFrame(45);
+	SetPlayerAutoItemCollectLine(GetStgFrameHeight/3);
+	SetPlayerRebirthLossFrame(0);
+	ObjPlayer_AddIntersectionCircleA1(objPlayer, 0, 0, 1.0, 60);
+	
+}
+
+// Player render
+
+task RenderPlayer(){
+
+	// Why is this movement code so cursed jesus fucking christ
+
+	int splashtex = ObjPrim_Create(OBJ_SPRITE_2D);
+	ObjPrim_SetTexture(splashtex, plsplash);
+	ObjSprite2D_SetSourceRect(splashtex, 0, 0, 0, 0); // there's no splash, fuck you
+	//ObjSprite2D_SetDestRect(splashtex, -550, -768, 400, 768);
+	ObjSprite2D_SetDestCenter(splashtex);
+	Obj_SetVisible(splashtex, true);
+	ObjRender_SetScaleXYZ(splashtex, 0.8);
+	DisplayPlayerSplash(splashtex, [14, 630], 0);
+
+	_HitboxAuraRender();
+	
+	float scale = 1; // Scalies
+	int frame = 0;
+	int playerframe = 4;
+	int spd = 6;
+	int frame_hbox = 0;
+	
+	ObjPrim_SetTexture(objPlayer, plimg);
+	//ObjRender_SetTextureFilter(objPlayer, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	ObjSprite2D_SetSourceRect(objPlayer, 0, 0, 96, 144);
+	ObjSprite2D_SetDestCenter(objPlayer);
+	Obj_SetRenderPriorityI(objPlayer, plRender);
+
+	int hitbox = ObjPrim_Create(OBJ_SPRITE_2D);
+	
+	ObjPrim_SetTexture(hitbox, commonimg);
+	ObjSprite2D_SetSourceRect(hitbox, 448, 0, 480, 32);
+	ObjSprite2D_SetDestCenter(hitbox);
+	ObjRender_SetBlendType(hitbox, BLEND_ALPHA);
+	Obj_SetRenderPriorityI(hitbox, 79);
+	ObjRender_SetScaleXYZ(hitbox, 1.1);
+
+	Obj_SetVisible(hitbox, false);
+	ObjRender_SetScaleXYZ(objPlayer, 1.15);
+
+	// Lower "speed" parameter = FASTER SPEED
+	
+	// FOR WHEN ONLY IDLE SPRITES ARE DONE
+	
+	while(true){
+
+		ObjRender_SetPosition(hitbox, playerX, playerY, 1);
+
+		if(ripplayer){
+			ObjSprite2D_SetSourceRect(objPlayer, 384, 0, 480, 144);
+			Obj_SetVisible(objPlayer, false);
+			Obj_SetVisible(hitbox, false);
+		}
+
+		else{
+
+			_RenderPlayerMovement(objPlayer, frame, 0, 0, 96, 144, spd);
+
+			Obj_SetVisible(objPlayer, true);
+			//ObjSprite2D_SetSourceRect(objPlayer, 0, 0, 64, 64);
+
+			if(GetVirtualKeyState(VK_SLOWMOVE) != KEY_FREE){
+				
+				Obj_SetVisible(hitbox, true);
+
+			}
+
+			else{
+
+				Obj_SetVisible(hitbox, false);
+
+			}
+
+			// overrides:
+
+			// always display
+			if(GetCommonDataPtr(HITBOXDISPLAY_PTR, 0) == 1){
+				Obj_SetVisible(hitbox, true);
+			}
+			// never display
+			else if (GetCommonDataPtr(HITBOXDISPLAY_PTR, 0) == 2){
+				Obj_SetVisible(hitbox, false);
+			}
+
+		}
+
+		frame++;
+
+		if (frame >= (playerframe*spd-1)){frame = 0;}	
+
+		yield;
+
+	}
+	
+}
+
+task _DeathMove(){
+
+	int afterimage = ObjPrim_Create(OBJ_SPRITE_2D);
+	
+	ObjPrim_SetTexture(afterimage, plimg);
+	//ObjRender_SetTextureFilter(afterimage, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	ObjSprite2D_SetSourceRect(afterimage, 384, 0, 480, 144);
+	ObjSprite2D_SetDestCenter(afterimage);
+	ObjRender_SetBlendType(afterimage, BLEND_ALPHA);
+	Obj_SetRenderPriorityI(afterimage, plRender);
+	ObjRender_SetScaleXYZ(afterimage, 1.15);
+
+	float[] curdest = [playerX, playerY];
+	float[] dest = [playerX, clamp(playerY+50, 0, GetStgFrameHeight())];
+
+	SetPlayerRebirthPosition(dest[0], dest[1]);
+
+	ascent(i in 0..15){
+		ObjRender_SetPosition(afterimage, playerX, Interpolate_Decelerate(curdest[1], dest[1], i/15), 1);
+		yield;
+	}
+
+	wait(30);
+
+	Obj_Delete(afterimage);
+
+}

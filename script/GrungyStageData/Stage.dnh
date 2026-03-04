@@ -1,0 +1,951 @@
+#TouhouDanmakufu[Stage]
+#ScriptVersion[3]
+#Title["Grunge Stage"]
+#Text["dead"]
+#System["script/KevinSystem/Kevin_System.dnh"] 
+
+#include "script/KevinSystem/Universal_Lib.dnh"
+#include "script/KevinSystem/SystemScripts/Lib_Const.dnh"
+
+#include "./Grunge_Stage_Background.dnh"
+#include "./Stage_Enemies.dnh"
+// #include "./Stage_EnemyWaves.dnh"
+
+#include "./EnemyLib/EnemyWave_Ch1.dnh"
+#include "./EnemyLib/EnemyWave_Ch2.dnh"
+// #include "./EnemyLib/EnemyWave_Boss.dnh"
+// #include "./EnemyLib/EnemyWave_BossPhase2.dnh"
+
+#include "./Stage_Values.dnh"
+
+// int transition = _Create2DImage("script/JamTexture/Mystia_BossTransition.png", [0, 0, 320, 240]);
+// int transitionEnd = _Create2DImage("script/JamTexture/Mystia_BossTransitionEnd.png", [0, 0, 320, 240]);
+// int transitionEnd2 = _Create2DImage("script/JamTexture/Mystia_BossTransitionEnd.png", [0, 0, 320, 240]);
+// Obj_SetVisible(transition, false);
+// Obj_SetVisible(transitionEnd, false);
+// Obj_SetVisible(transitionEnd2, false);
+
+int stageTimer = 0;
+
+int LifeStart = GetCommonData("Starting Lives", 2);
+int curDiff = 1;
+int curRank = 0;
+float curRankSpeed = 1.0;
+
+bool stageStart = false;
+bool bossStart = false;
+
+float BGMRate = GetAreaCommonData("Config", "BGMVol", 100) * 0.01;
+
+//let obj = ObjEnemyBossScene_Create();
+int objBGM = ObjSound_Create();
+int objBGMCute = ObjSound_Create();
+int objBGMBoss = ObjSound_Create();
+int objBGMBossCute = ObjSound_Create();
+int objBGMBossPart1 = ObjSound_Create();
+int objBGMBossPart2 = ObjSound_Create();
+
+int objBGMBossPhase2Part1 = ObjSound_Create();
+int objBGMBossPhase2Part2 = ObjSound_Create();
+
+int currentlyPlayingBGM = ObjSound_Create();
+
+string DATA_PLAYER = "";
+string DATA_DIFFICULTY = "";
+
+bool bossRoomBGStart = false;
+bool bossRoomTransitionBGStart = false;
+bool bossRoomTransitionBGMiddle = false;
+bool bossBGStart = false;
+
+bool postMidbossBGStart = false;
+
+bool phase2BGStart = false;
+
+int hiScore = 0;
+
+int[] enmGround = [];
+int[] enmFly = [];
+int[] allEnm = [];
+
+int cuteBoss, cuterBoss;
+
+@Initialize
+{
+
+	SetCommonDataPtr(POINTER_ENEMYCOUNT, 1);
+	SetCommonDataPtr(POINTER_ENEMYKILLED, 1);
+	SetCommonDataPtr(POINTER_BURSTCOUNT, 0);
+	SetCommonDataPtr(POINTER_DEATHCOUNT, 0);
+
+	LoadTextureEx("script/BossData/Boss/bossSplash.png", false, true);
+	LoadTextureEx("script/BossData/Midboss/midbossSplash.png", false, true);
+	
+	SetCommonData("Player State", "GAMENORMAL");
+	SetCommonData("True Score", 0);
+	SetCommonData("BurstAllowed", true);
+	
+	SetAreaCommonData("ScriptID", "StageID", GetOwnScriptID());
+
+    SetPlayerLife(GetAreaCommonData("Config", "StartingLife", 2));
+	SetEnemyAutoDeleteClip(48, 48, 48, 48);
+
+	LoadTracks();
+
+	//SetAreaCommonData("Ingame", "Difficulty", "Original");
+	curDiff = _InitDifficulty();
+	ManageRankLimits(curDiff, true);
+	curRankSpeed = RankSpeed[curDiff];
+
+	SetAreaCommonData("Ingame", "DifficultyNo", curDiff);
+	
+	hiScore = GetAreaCommonData("Data_" ~ PlayerName[GetAreaCommonData("Ingame", "PlayerNum")], "HighScore_" ~ GameMode[GetAreaCommonData("Ingame", "GameMode")] ~ "_" ~ DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo")], 0);
+
+	//THiScore;
+	TDiffShow();
+	_CreateBulletColourShader();
+	
+	WriteLog(PlayerName[GetAreaCommonData("Ingame", "PlayerNum")]);
+	WriteLog(GameMode[GetAreaCommonData("Ingame", "GameMode")]);
+	WriteLog(DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo")]);
+
+	WriteLog(GetAreaCommonData("Ingame", "PlayerNum"));
+	WriteLog(GetAreaCommonData("Ingame", "DifficultyNo"));
+
+	RANK_MAX = RankLimits[curDiff][2];
+
+   	TStage();
+	curEnmManage();
+	//TTest();
+
+}
+
+@Event{
+
+	alternative (GetEventType())
+
+	// GRUNGE/CUTE
+
+	case(EV_TRANSFORM_TO_CUTE){
+		CityBackground02();
+	}
+
+
+	// MUSIC AND TRANSITION-RELATED EVENTS
+
+
+	case(EV_START_MUSIC){
+		stageStart = true;
+		ObjSound_Play(objBGM);
+		currentlyPlayingBGM = objBGM;
+	}
+
+    case(EV_FADE_STAGE_MUSIC){
+		if(GetEventArgument(0) == 0){
+			ObjSound_SetFade(objBGM, -50);
+		}
+		else if (GetEventArgument(0) == 1){
+			ObjSound_SetFade(objBGMCute, -50);
+		}
+		else{
+			ObjSound_SetFade(objBGM, -50);
+		}
+    }
+    
+    case(EV_FADE_BOSS_MUSIC){
+		ObjSound_SetFade(objBGMBossCute, -50);
+    }
+
+	case(EV_BOSS_MUSIC_START){
+
+		ObjSound_Play(objBGMBossPart1);
+		currentlyPlayingBGM = objBGMBossPart1;
+		//_bossRoomTransition();
+
+	}
+
+	case(EV_BOSS_MUSIC_MIDDLE){
+
+		ObjSound_Play(objBGMBossPart2);
+		currentlyPlayingBGM = objBGMBossPart2;
+		//_bossArenaPreparation();
+
+	}
+
+	case(EV_BOSS_CUTE_START){
+
+		//ObjSound_Seek(objBGMBoss, 35.127); // lets go!
+
+		ObjSound_Play(objBGMBossCute);
+		currentlyPlayingBGM = objBGMBossCute;
+
+		bossBGStart = true;
+
+	}
+
+	case(EV_PAUSE_ENTER){
+
+		ObjSound_Stop(currentlyPlayingBGM);
+		if (bossBGStart) ObjSound_Stop(objBGMBossCute);
+
+	}
+
+	case(EV_PAUSE_LEAVE){
+
+		ObjSound_Play(currentlyPlayingBGM);
+		if (bossBGStart) ObjSound_Play(objBGMBossCute);
+
+	}
+
+	case(EV_END_PHASE_1){
+		bossStart = false;
+		stageStart = false;
+		ObjSound_SetFade(objBGM, -50);
+		ObjSound_SetFade(objBGMBoss, -50);
+		// SetCommonData("True Score", trunc ( GetScore()/10 ) * 10 );
+		// SaveHiScore();
+	}
+
+	case(EV_START_PHASE_2){
+		
+		phase2BGStart = true;
+		
+		STG_WIDTH = GetStgFrameWidth();
+		STG_HEIGHT = GetStgFrameHeight();
+
+		ObjSound_Play(objBGMBossPhase2Part1);
+		// ObjSound_Seek(objBGMBoss, 35.127); // lets go!
+		
+		currentlyPlayingBGM = objBGMBossPhase2Part1;
+
+	}
+
+	case(EV_BOSS_PHASE_2_MUSIC_START){
+		
+		STG_WIDTH = GetStgFrameWidth();
+		STG_HEIGHT = GetStgFrameHeight();
+
+		ObjSound_Seek(objBGMBossPhase2Part2, 45.880); // lets go!
+		ObjSound_Play(objBGMBossPhase2Part2);
+		
+		currentlyPlayingBGM = objBGMBossPhase2Part2;
+
+	}
+
+	case(EV_END){
+		ObjSound_Stop(objBGMBossCute);
+		ObjSound_Stop(objBGMBoss);
+		ObjSound_Stop(currentlyPlayingBGM);
+		ObjSound_Stop(objBGM);
+		ObjSound_Stop(objBGMCute);
+	}
+
+	// THINGS WHICH ARE NOT MUSIC
+
+
+
+
+	// case(EV_BOSS_SUMMON_BACKUP){
+
+	// 	alternative(GetEventArgument(0))
+	// 	case(1){
+	// 		Backup1();
+	// 	}
+	// 	case(2){
+	// 		Backup2();
+	// 	}
+	// 	case(3){
+	// 		Backup3();
+	// 		NotifyEventOwn(EV_END_PHASE_1B, 0);
+	// 	}
+	// 	case(4){
+	// 		Backup4();
+	// 	}
+
+	// }
+
+	case(EV_FADE_NORMAL_BG){
+		bossRoomBGStart = true;
+	}
+
+	case(EV_BOSS_ATTACK_CLEAR)
+	{
+		
+		float[] pos = GetEventArgument(0);
+		
+		LargeExplosion_Cancel_Boss(pos, 180, 15);
+
+	}
+
+	case(EV_PLAYER_SHOOTDOWN){
+		SetCommonDataPtr(POINTER_DEATHCOUNT, GetCommonDataPtr(POINTER_DEATHCOUNT, 0)+1);
+	}
+
+	case(EV_USER_BURST){
+		SetCommonDataPtr(POINTER_BURSTCOUNT, GetCommonDataPtr(POINTER_BURSTCOUNT, 0)+1);
+	}
+
+	// case(EV_END_PHASE_1A){
+	// 	endPhase1A();
+	// }
+	
+	// case(EV_END_PHASE_1B){
+	// 	endPhase1B();
+	// }
+
+}
+
+@MainLoop
+{
+
+	curRank = GetCommonDataPtr(POINTER_RANK, 1);
+	SetCommonDataPtr(POINTER_TRUERANK, GetCommonDataPtr(POINTER_TRUERANK, 1)+0.006*curRankSpeed);
+    yield;
+
+}
+
+@Finalize
+{
+}
+
+function LoadTracks(){
+
+    ObjSound_Load(objBGM, "script/GrungyStageData/StageLib/stageMusic/grungeStageTheme.ogg");
+	ObjSound_SetSoundDivision(objBGM, SOUND_BGM);
+	ObjSound_SetVolumeRate(objBGM, 60*BGMRate);
+	ObjSound_SetResumeEnable(objBGM, true);
+	ObjSound_SetLoopEnable(objBGM, true);
+
+	ObjSound_Load(objBGMCute, "script/GrungyStageData/StageLib/stageMusic/cuteStageTheme.ogg");
+	ObjSound_SetSoundDivision(objBGMCute, SOUND_BGM);
+	ObjSound_SetResumeEnable(objBGMCute, true);
+	ObjSound_SetLoopEnable(objBGMCute, true);
+	ObjSound_SetVolumeRate(objBGMCute, 60*BGMRate);
+	//ObjSound_SetLoopTime(objBGM, 1.512, 141.670);
+	
+	ObjSound_Load(objBGMBoss, "script/StageData/StageLib/stageMusic/bossThemeFull.ogg");
+	ObjSound_SetSoundDivision(objBGMBoss, SOUND_BGM);
+	ObjSound_SetResumeEnable(objBGMBoss, true);
+	ObjSound_SetLoopEnable(objBGMBoss, true);
+	ObjSound_SetVolumeRate(objBGMBoss, 60*BGMRate);
+
+	ObjSound_Load(objBGMBossCute, "script/GrungyStageData/StageLib/stageMusic/cuteBossTheme.ogg");
+	ObjSound_SetSoundDivision(objBGMBossCute, SOUND_BGM);
+	ObjSound_SetVolumeRate(objBGMBossCute, 60);
+	ObjSound_SetResumeEnable(objBGMBossCute, true);
+	ObjSound_SetLoopEnable(objBGMBossCute, true);
+	ObjSound_SetVolumeRate(objBGMBossCute, 60*BGMRate);
+	
+}
+
+function TTest(){
+
+	//TStageSection();
+	// _bossArenaPhase2;
+
+	// async{
+	// 	wait(120);
+	// 	endPhase1A();
+	// 	wait(240);
+	// 	endPhase1B();
+	// }
+
+}
+
+task THiScore(){
+ 	// New score system using rtos
+
+ 	// For score with zeroes at the end: Truncate score/10, and then multiply it by 10
+
+	if(IsReplay() || LifeStart > 2){return;}
+
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 30);
+	ObjText_SetFontBold(objScoreNo, false);
+	ObjText_SetFontType(objScoreNo, "Bedstead");
+	ObjText_SetFontColorTop(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontColorBottom(objScoreNo, 0xFFFFFF);
+	Obj_SetRenderPriorityI(objScoreNo, 82);
+	ObjText_SetSidePitch(objScoreNo, 4);
+	ObjText_SetFixedWidth(objScoreNo, 16);
+	ObjRender_SetPosition(objScoreNo, 963, 329, 0);
+
+	while(true){
+
+		let score = trunc(hiScore/10) * 10;
+		score = min(score,999999999990);
+
+		if(hiScore < GetScore()){
+			hiScore = GetScore();
+		}
+
+		let yass = DigitToCommaArray(score);
+		ObjText_SetText(objScoreNo, yass);
+		
+		yield;
+
+	}
+
+}
+
+task TDiffShow(){
+ 	// New score system using rtos
+
+ 	// For score with zeroes at the end: Truncate score/10, and then multiply it by 10
+
+	int color = [0xD67600, 0x36DC00, 0x0071DB, 0xDB0070, 0xA800DB][GetAreaCommonData("Ingame", "DifficultyNo", 0)];
+
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 24);
+	ObjText_SetFontBold(objScoreNo, true);
+	ObjText_SetFontType(objScoreNo, "Bedstead");
+	ObjText_SetFontColorTop(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontColorBottom(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontBorderColor(objScoreNo, color);
+	ObjText_SetFontBorderWidth(objScoreNo, 2);
+	ObjText_SetFontBorderType(objScoreNo, BORDER_FULL);
+	Obj_SetRenderPriorityI(objScoreNo, 82);
+	//ObjText_SetSidePitch(objScoreNo, 2);
+	ObjRender_SetPosition(objScoreNo, 963, 672, 0);
+	ObjText_SetText(objScoreNo, DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo", 0)]);
+
+}
+
+task CheckPlayerDeath(){
+
+    while(GetPlayerState() != STATE_END){yield;}
+
+	if(GetPlayerState() == STATE_END){
+		NotifyEventAll(EV_END, true);
+		loop(120){yield;}
+		//ステージ終了
+		CloseStgScene();
+	}
+
+}
+
+function TOpener(){
+
+	async{
+
+		while(GetPlayerState() != STATE_END)
+		{
+			yield;
+		}
+
+		EndBonus();
+
+		NotifyEventAll(EV_END, true);
+		loop(120){yield;}
+		//ステージ終了
+		CloseStgScene();
+
+	}
+
+	Chapter1A();
+	Chapter1D();
+	wait(60);
+	
+	_CreateBulletColourShader();
+	//Chapter1Bonus(); // bonus enemies
+	
+}
+
+function BossWarning(){
+	
+	SetCommonData("BurstAllowed", false);
+
+	int dangerA = _Create2DImage("script/StageData/StageLib/DangerA.png", [0, 0, 1000, 600]);
+	int dangerB = _Create2DImage("script/StageData/StageLib/DangerB.png", [0, 0, 1000, 600]);
+
+	int sfxWarning = ObjSound_Create();
+	LoadEx(sfxWarning, "script/StageData/StageLib/stageMusic/bitch_warning.wav", 50);
+
+	ObjSound_Play(sfxWarning);
+
+	ObjRender_SetY(dangerA, STG_WIDTH/2 - 120);
+	ObjRender_SetY(dangerB, STG_WIDTH/2 - 45);
+
+	ObjRender_SetScaleXYZ(dangerA, 0.62);
+	ObjRender_SetScaleXYZ(dangerB, 0.62);
+
+	async{
+		ascent(i in 0..35){
+			ObjRender_SetX(dangerA, FUNC_LERP_DECEL(-64, STG_WIDTH/2, i/35));
+			ObjRender_SetAlpha(dangerA, FUNC_LERP_LINEAR(0, 255, i/35));
+			yield;
+		}
+	}
+
+	async{
+		ascent(i in 0..35){
+			ObjRender_SetX(dangerB, FUNC_LERP_DECEL(STG_WIDTH + 64, STG_WIDTH/2, i/35));
+			ObjRender_SetAlpha(dangerB, FUNC_LERP_LINEAR(0, 255, i/35));
+			yield;
+		}
+	}
+
+	wait(55);
+
+	// async{
+	// 	wait(55);
+	// 	NotifyEventAll(EV_FADE_NORMAL_BG, 1);
+	// }
+
+	BossDialogue();
+	
+	async{
+		ascent(i in 0..35){
+			ObjRender_SetX(dangerA, FUNC_LERP_DECEL(STG_WIDTH/2, -350, i/35));
+			ObjRender_SetAlpha(dangerA, FUNC_LERP_LINEAR(255, 0, i/35));
+			yield;
+		}
+	}
+
+	async{
+		ascent(i in 0..35){
+			ObjRender_SetX(dangerB, FUNC_LERP_DECEL(STG_WIDTH/2, STG_WIDTH + 350, i/35));
+			ObjRender_SetAlpha(dangerB, FUNC_LERP_LINEAR(255, 0, i/35));
+			yield;
+		}
+	}
+
+	ObjSound_SetFade(sfxWarning, -25);
+	wait(45);
+
+	Obj_Delete(dangerA);
+	Obj_Delete(dangerB);
+
+	SetCommonData("BurstAllowed", true);
+
+}
+
+function <void> BossDialogue(){
+
+	int objText = CreateTextObject(
+	
+		STG_WIDTH/15, STG_HEIGHT/2 - 24, 28,
+		" ", "YomiyasuSansSerif",
+		0xFFFFFF, 0xFFFFFF,
+		0xFF007F, 4,
+		71
+	
+	);
+	
+	ObjText_SetFontBold(objText, true);
+	ObjText_SetHorizontalAlignment(objText, ALIGNMENT_LEFT);
+
+	TTextScroll(objText, 
+			
+		"THE CUTEST HAUNTER/
+		OF THE SCARY SHMUP/
+		IS FAST APPROACHING/|
+		/
+		1. KAWAII SHOOTING ACTION/
+		2. THERE'S NOTHING SCARY/
+		3. RELAX/"
+
+	);
+
+	wait(110);
+
+	async{
+		ascent(i in 0..35){
+			ObjRender_SetY(objText, FUNC_LERP_DECEL(STG_HEIGHT/2, -96, i/35));
+			ObjRender_SetAlpha(objText, FUNC_LERP_LINEAR(255, 0, i/35));
+			yield;
+		}
+		Obj_Delete(objText);
+	}
+
+}
+
+
+
+//////
+
+
+task curEnmManage(){
+
+	SetCommonData("Flying Loops Cleared", 0);
+	SetCommonData("Ground Loops Cleared", 0);
+	
+	// RankManagement();
+	//SetIntersectionVisualization(true);
+	
+	while(true){
+		enmGround = [];
+		enmFly = [];
+		allEnm = GetIntersectionRegistedEnemyID();
+		for each (int enm in ref allEnm){
+			if(Obj_GetRenderPriorityI(enm) <= 37){enmGround ~= [enm];}
+			else if(Obj_GetRenderPriorityI(enm) >= 38 && Obj_GetRenderPriorityI(enm) < 41){enmFly ~= [enm];}
+			else{}
+		}
+		wait(3);
+	}
+	
+}
+
+task TStage
+{
+
+	async{
+
+		while(GetPlayerState() != STATE_END)
+		{
+			yield;
+		}
+
+		EndBonus();
+
+		NotifyEventAll(EV_END, true);
+		loop(120){yield;}
+		//ステージ終了
+		CloseStgScene();
+
+	}
+
+	let bossFalse = LoadScriptInThread("script/GrungyBossData/false_boss_plural.dnh");
+	let bossTrue = LoadScriptInThread("script/GrungyBossData/boss_plural.dnh");
+
+    let dir = GetCurrentScriptDirectory();
+	//SetIntersectionVisualization(true);
+    //ボス再生
+
+	CheckPlayerDeath();
+	CityBackground01();
+
+	wait(120);
+
+	NotifyEventAll(EV_START_MUSIC, true);
+
+	TOpener();
+	NotifyEventAll(EV_TRANSFORM_TO_CUTE, 0);
+	StartStageTimer();
+	
+	stage1Task();
+	stage2Task();
+	stage3Task();
+	stage4Task();
+
+	// boss time
+
+	wait(120);
+	while(stageTimer < 125 * 60){yield;}
+	while(length(allEnm) > 0){yield;}
+
+	//NotifyEventAll(EV_FADE_STAGE_MUSIC, 1);
+
+	BossWarning();
+
+	NotifyEventAll(EV_BOSS_CUTE_START, 0);
+	StartScript(bossFalse);
+
+    while(!IsCloseScript(bossFalse))
+    {
+        yield;
+    }
+
+	NotifyEventAll(EV_FADE_BOSS_MUSIC, 0);
+    loop(30){yield;}
+
+	CuteBossDialogue();
+
+	wait(120);
+
+	Obj_SetVisible(cuteBoss, false);
+	Obj_SetVisible(cuterBoss, false);
+	StartScript(bossTrue);
+
+    while(!IsCloseScript(bossTrue))
+    {
+        yield;
+    }
+
+	EndBonus();
+
+	NotifyEventAll(EV_END, true);
+	loop(120){yield;}
+	//ステージ終了
+	CloseStgScene();
+	
+}
+
+task StartStageTimer(){
+
+	//stageTimer = 220*60; //debug
+
+	while(true){
+
+		stageTimer++;
+		yield;
+
+	}
+
+}    
+
+function CuteBossDialogue(){
+
+	cuteBoss = 
+	_CreateEnemy(
+		STG_WIDTH/2, STG_HEIGHT/3.5,
+		STG_WIDTH/2, STG_HEIGHT/3.5,
+		5, 0.5, 0.5,
+		9999999999999999, 1, 0,
+		999999999,
+		texEnm2,
+		[0, 0, 512, 512]
+	);
+
+	cuterBoss = 
+	_CreateEnemy(
+		STG_WIDTH/2, STG_HEIGHT/3.5,
+		STG_WIDTH/2, STG_HEIGHT/3.5,
+		5, 0.5, 0.5,
+		9999999999999999, 1, 0,
+		999999999,
+		texEnm2,
+		[0, 1024, 512, 1536]
+	);
+
+	Obj_SetVisible(cuterBoss, false);
+
+	wait(60);
+
+	int objText = CreateTextObject(
+	
+		STG_WIDTH/15, STG_HEIGHT/2 - 24, 28,
+		" ", "YomiyasuSansSerif",
+		0xFFFFFF, 0xFFFFFF,
+		0xFF007F, 4,
+		71
+	
+	);
+	
+	ObjText_SetFontBold(objText, true);
+	ObjText_SetHorizontalAlignment(objText, ALIGNMENT_LEFT);
+
+	TTextScroll(objText, 
+			
+		"WOW!!!! YOU ARE SO POWERFUL OMG/|||
+		I MUST PREPARE MY TRUE FORM/|||
+		THERE WILL BE NO MORE CUTENESS/|||
+		NOW I AM SUPER POWER!!!
+		"
+
+	);
+
+	wait(90);
+
+	async{
+		ascent(i in 0..35){
+			ObjRender_SetY(objText, FUNC_LERP_DECEL(STG_HEIGHT/2, -96, i/35));
+			ObjRender_SetAlpha(objText, FUNC_LERP_LINEAR(255, 0, i/35));
+			yield;
+		}
+		Obj_Delete(objText);
+	}
+
+	wait(110);
+
+	async{
+		ascent(i in 0..120){
+			float[] pos = [ObjMove_GetX(cuteBoss) + rand(-96, 96), ObjMove_GetY(cuteBoss) + rand(-96, 96)];
+			int bullet = CreateHueShotA1(
+				ObjMove_GetX(cuteBoss), ObjMove_GetY(cuteBoss),
+				16, atan2(pos[1] - ObjMove_GetY(cuteBoss), pos[0] - ObjMove_GetX(cuteBoss)),
+				KEV_STAR, HUES[rand_int(0, 7)],
+				3.0, 0
+			);
+			ObjShot_SetIntersectionEnable(bullet, false);
+			ObjRender_SetBlendType(bullet, BLEND_ADD_ARGB);
+			ObjShot_SetDeleteFrame(bullet, 20);
+			Lit1;
+			wait(2);
+		}	
+	}
+	ascent(i in 0..120){
+		float[] pos = [ObjMove_GetX(cuteBoss) + rand(-96, 96), ObjMove_GetY(cuteBoss) + rand(-96, 96)];
+		int bullet = CreateHueShotA1(
+			ObjMove_GetX(cuteBoss), ObjMove_GetY(cuteBoss),
+			16, atan2(pos[1] - ObjMove_GetY(cuteBoss), pos[0] - ObjMove_GetX(cuteBoss)),
+			KEV_STAR, HUES[rand_int(0, 7)],
+			3.0, 0
+		);
+		ObjShot_SetIntersectionEnable(bullet, false);
+		ObjRender_SetBlendType(bullet, BLEND_ADD_ARGB);
+		ObjShot_SetDeleteFrame(bullet, 20);
+		Lit1;
+		wait(2);
+	}
+	
+	ascent(i in 0..32){
+		NotifyEventAll(EV_EXPLODE, [ObjMove_GetX(cuteBoss)+rand(-96, 96), ObjMove_GetY(cuteBoss)+rand(-96, 96)]);
+	}
+
+	ObjSound_Play(bossBoom);
+
+	Obj_SetVisible(cuteBoss, false);
+	Obj_SetVisible(cuterBoss, true);
+
+	wait(120);
+
+	int objText2 = CreateTextObject(
+	
+		STG_WIDTH/15, STG_HEIGHT/2 - 24, 28,
+		" ", "YomiyasuSansSerif",
+		0xFFFFFF, 0xFFFFFF,
+		0xFF007F, 4,
+		71
+	
+	);
+	
+	ObjText_SetFontBold(objText2, true);
+	ObjText_SetHorizontalAlignment(objText2, ALIGNMENT_LEFT);
+
+	TTextScroll(objText2, 
+			
+		"NOW I AM/|
+		SUPER POWERFUL PENMASTAH!!!!!!!11/|
+		BEHOLD MY POWER!!!!!111/|
+		"
+
+	);
+
+	wait(90);
+
+	async{
+		ascent(i in 0..35){
+			ObjRender_SetY(objText2, FUNC_LERP_DECEL(STG_HEIGHT/2, -96, i/35));
+			ObjRender_SetAlpha(objText2, FUNC_LERP_LINEAR(255, 0, i/35));
+			yield;
+		}
+		Obj_Delete(objText2);
+	}
+
+}
+
+
+//////
+
+function SaveHiScore(){
+
+	if(!IsReplay() & LifeStart <= 2){
+		
+		if(hiScore > GetAreaCommonData("Data_" ~ PlayerName[GetAreaCommonData("Ingame", "PlayerNum")], 
+			"HighScore_" ~ GameMode[GetAreaCommonData("Ingame", "GameMode")] ~ "_" ~ DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo")], 0))
+		{
+			SetAreaCommonData("Data_" ~ PlayerName[GetAreaCommonData("Ingame", "PlayerNum")], 
+			"HighScore_" ~ GameMode[GetAreaCommonData("Ingame", "GameMode")] ~ "_" ~ DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo")], 
+			hiScore);
+		}
+
+		else{
+
+		}
+	
+	}
+
+	SaveCommonDataAreaA2("Data_" ~ PlayerName[GetAreaCommonData("Ingame", "PlayerNum")], "script/SaveData/data_" ~ PlayerName[GetAreaCommonData("Ingame", "PlayerNum")] ~ ".dat");
+
+}
+
+function EndBonus(){
+
+
+	string[] summaryTexts = [
+
+		"CHARACTER: ",
+		"DIFFICULTY: ",
+		"HITS TAKEN: ",
+		"BURSTS USED: ",
+		"DESTRUCTION RATE: "
+
+	];
+
+	string[] dataTexts = [
+
+		PlayerName[GetAreaCommonData("Ingame", "PlayerNum")],
+		DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo")],
+		IntToString(GetAreaCommonData("Ingame", "Deaths", 0)),
+		IntToString(GetAreaCommonData("Ingame", "Bursts", 0)),
+		vtos("3.02f", GetAreaCommonData("Ingame", "TotalDefeat", 1)/GetAreaCommonData("Ingame", "TotalEnemies", 1)*100) ~ "%"
+
+	];
+
+	int[] textColours = [
+
+		0x700ADC,
+		0x1300DD,
+		0xFF3D3D,
+		0x22D99B,
+		0xFE7418
+
+	];
+
+	function <void> _CreateBonusText(float x, y, fontSize, int colorBorder, string text, bool isBold, const alignment){
+	
+		int objText = CreateTextObject(
+		
+		x, y, fontSize,
+		"", "Aquire",
+		0xFFFFFF, 0xFFFFFF,
+		colorBorder, fontSize/12,
+		71
+		
+		);
+		
+		ObjText_SetHorizontalAlignment(objText, alignment);
+		ObjText_SetFontBold(objText, isBold);
+		//ObjText_SetSidePitch(objText, 4);
+		
+		ObjText_SetText(objText, text);
+		TTextScroll(objText, text);
+		
+	}
+    
+    if(GetPlayerLife() < 0){
+		SetCommonData("Player State", "GAMEOVER");
+        _CreateBonusText(STG_WIDTH/2, STG_HEIGHT/2-96, 64, 0xDD2727, "GAME OVER", false, ALIGNMENT_CENTER);
+    }
+
+    else{
+
+		SetCommonData("Player State", "GAMECLEAR");
+
+		ascent(i in 0..length(summaryTexts)){
+
+			_CreateBonusText(STG_WIDTH/2 - 240, STG_HEIGHT/5 + 36*i, 26, textColours[i], summaryTexts[i], true, ALIGNMENT_LEFT);
+			wait(20);
+			_CreateBonusText(STG_WIDTH/2 + 240, STG_HEIGHT/5 + 36*i, 26, textColours[i], dataTexts[i], false, ALIGNMENT_RIGHT);
+			wait(20);
+
+		}
+
+		wait(60);
+
+		if(IsReplay()){
+			_CreateBonusText(STG_WIDTH/2, STG_HEIGHT/2, 32, 0xFFA300, "REPLAY COMPLETE", true, ALIGNMENT_CENTER);
+		}	
+		else{
+			_CreateBonusText(STG_WIDTH/2, STG_HEIGHT/2, 32, 0xFFA300, "THANK YOU FOR PLAYING!", true, ALIGNMENT_CENTER);
+		}
+
+    }
+
+	wait(60);
+
+	int fade = _Create2DImage("script/PackageContent/FadeToWhite.png", [0, 0, 1280, 720]);
+	ObjRender_SetPosition(fade, GetScreenWidth()/2, GetScreenHeight()/2, 1);
+	Obj_SetRenderPriorityI(fade, 100);
+	ObjRender_SetAlpha(fade, 0);
+
+	ascent(i in 0..150){
+		ObjRender_SetAlpha(fade, FUNC_LERP_DECEL(0, 255, i/150));
+		yield;
+	}
+
+    return;
+	
+}

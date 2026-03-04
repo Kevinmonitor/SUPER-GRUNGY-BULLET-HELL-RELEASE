@@ -1,0 +1,84 @@
+#UserShotData
+
+shot_image = "./Kevin_CrunchyShot.png"
+
+// BALL
+ShotData { id = 2000 rect = (0,0,32,32) collision = 4 delay_color = (255,255,255) } //RED					
+ShotData { id = 2001 rect = (32,0,64,32) collision = 4 delay_color = (255,255,255) } //ORANGE					
+ShotData { id = 2002 rect = (64,0,96,32) collision = 4 delay_color = (255,255,255) } //YELLOW					
+ShotData { id = 2003 rect = (96,0,128,32) collision = 4 delay_color = (255,255,255) } //GREEN					
+ShotData { id = 2004 rect = (128,0,160,32) collision = 4 delay_color = (255,255,255) } //AQUA					
+ShotData { id = 2005 rect = (160,0,192,32) collision = 4 delay_color = (255,255,255) } //LAVENDER					
+ShotData { id = 2006 rect = (192,0,224,32) collision = 4 delay_color = (255,255,255) } //PURPLE					
+ShotData { id = 2007 rect = (224,0,256,32) collision = 4 delay_color = (255,255,255) } //PINK					
+
+ShotData { id = 2044 rect = (0,128,32,160) collision = 4 delay_color = (255,255,255) } //RED_INV
+ShotData { id = 2045 rect = (32,128,64,160) collision = 4 delay_color = (255,255,255) } //ORANGE_INV
+ShotData { id = 2046 rect = (64,128,96,160) collision = 4 delay_color = (255,255,255) } //YELLOW_INV
+ShotData { id = 2047 rect = (96,128,128,160) collision = 4 delay_color = (255,255,255) } //GREEN_INV
+ShotData { id = 2048 rect = (128,128,160,160) collision = 4 delay_color = (255,255,255) } //AQUA_INV
+ShotData { id = 2049 rect = (160,128,192,160) collision = 4 delay_color = (255,255,255) } //LAVENDER_INV
+ShotData { id = 2050 rect = (192,128,224,160) collision = 4 delay_color = (255,255,255) } //PURPLE_INV
+ShotData { id = 2051 rect = (224,128,256,160) collision = 4 delay_color = (255,255,255) } //PINK_INV
+ShotData { id = 2052 rect = (256,128,288,160) collision = 4 delay_color = (255,255,255) } //WHITE_INV
+
+// JELLYBEAN
+ShotData { id = 2011 rect = (0,32,32,64) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //RED					
+ShotData { id = 2012 rect = (32,32,64,64) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //ORANGE					
+ShotData { id = 2013 rect = (64,32,96,64) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //YELLOW					
+ShotData { id = 2014 rect = (96,32,128,64) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //GREEN					
+ShotData { id = 2015 rect = (128,32,160,64) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //AQUA					
+ShotData { id = 2016 rect = (160,32,192,64) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //LAVENDER					
+ShotData { id = 2017 rect = (192,32,224,64) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //PURPLE					
+ShotData { id = 2018 rect = (224,32,256,64) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //PINK					
+
+ShotData { id = 2055 rect = (0,160,32,192) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //RED_INV
+ShotData { id = 2056 rect = (32,160,64,192) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //ORANGE_INV
+ShotData { id = 2057 rect = (64,160,96,192) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //YELLOW_INV
+ShotData { id = 2058 rect = (96,160,128,192) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //GREEN_INV
+ShotData { id = 2059 rect = (128,160,160,192) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //AQUA_INV
+ShotData { id = 2060 rect = (160,160,192,192) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //LAVENDER_INV
+ShotData { id = 2061 rect = (192,160,224,192) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //PURPLE_INV
+ShotData { id = 2062 rect = (224,160,256,192) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //PINK_INV
+ShotData { id = 2063 rect = (256,160,288,192) collision = (4,0,4) collision = (4,0,-4) delay_color = (255,255,255) } //WHITE_INV
+
+// STAR
+ShotData { id = 2022 rect = (0,64,32,96) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //RED					
+ShotData { id = 2023 rect = (32,64,64,96) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //ORANGE					
+ShotData { id = 2024 rect = (64,64,96,96) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //YELLOW					
+ShotData { id = 2025 rect = (96,64,128,96) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //GREEN					
+ShotData { id = 2026 rect = (128,64,160,96) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //AQUA					
+ShotData { id = 2027 rect = (160,64,192,96) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //LAVENDER					
+ShotData { id = 2028 rect = (192,64,224,96) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //PURPLE					
+ShotData { id = 2029 rect = (224,64,256,96) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //PINK	
+
+ShotData { id = 2066 rect = (0,192,32,224) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //RED_INV
+ShotData { id = 2067 rect = (32,192,64,224) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //ORANGE_INV
+ShotData { id = 2068 rect = (64,192,96,224) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //YELLOW_INV
+ShotData { id = 2069 rect = (96,192,128,224) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //GREEN_INV
+ShotData { id = 2070 rect = (128,192,160,224) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //AQUA_INV
+ShotData { id = 2071 rect = (160,192,192,224) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //LAVENDER_INV
+ShotData { id = 2072 rect = (192,192,224,224) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //PURPLE_INV
+ShotData { id = 2073 rect = (224,192,256,224) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //PINK_INV
+ShotData { id = 2074 rect = (256,192,288,224) collision = 3 angular_velocity = 4 delay_color = (255,255,255) } //WHITE_INV
+
+// DROP
+ShotData { id = 2033 rect = (0,96,32,128) collision = (2,0,5) delay_color = (255,255,255) } //RED					
+ShotData { id = 2034 rect = (32,96,64,128) collision = (2,0,5) delay_color = (255,255,255) } //ORANGE					
+ShotData { id = 2035 rect = (64,96,96,128) collision = (2,0,5) delay_color = (255,255,255) } //YELLOW					
+ShotData { id = 2036 rect = (96,96,128,128) collision = (2,0,5) delay_color = (255,255,255) } //GREEN					
+ShotData { id = 2037 rect = (128,96,160,128) collision = (2,0,5) delay_color = (255,255,255) } //AQUA					
+ShotData { id = 2038 rect = (160,96,192,128) collision = (2,0,5) delay_color = (255,255,255) } //LAVENDER					
+ShotData { id = 2039 rect = (192,96,224,128) collision = (2,0,5) delay_color = (255,255,255) } //PURPLE					
+ShotData { id = 2040 rect = (224,96,256,128) collision = (2,0,5) delay_color = (255,255,255) } //PINK					
+
+ShotData { id = 2077 rect = (0,224,32,256) collision = (2,0,5) delay_color = (255,255,255) } //RED_INV
+ShotData { id = 2078 rect = (32,224,64,256) collision = (2,0,5) delay_color = (255,255,255) } //ORANGE_INV
+ShotData { id = 2079 rect = (64,224,96,256) collision = (2,0,5) delay_color = (255,255,255) } //YELLOW_INV
+ShotData { id = 2080 rect = (96,224,128,256) collision = (2,0,5) delay_color = (255,255,255) } //GREEN_INV
+ShotData { id = 2081 rect = (128,224,160,256) collision = (2,0,5) delay_color = (255,255,255) } //AQUA_INV
+ShotData { id = 2082 rect = (160,224,192,256) collision = (2,0,5) delay_color = (255,255,255) } //LAVENDER_INV
+ShotData { id = 2083 rect = (192,224,224,256) collision = (2,0,5) delay_color = (255,255,255) } //PURPLE_INV
+ShotData { id = 2084 rect = (224,224,256,256) collision = (2,0,5) delay_color = (255,255,255) } //PINK_INV
+ShotData { id = 2085 rect = (256,224,288,256) collision = (2,0,5) delay_color = (255,255,255) } //WHITE_INV
+

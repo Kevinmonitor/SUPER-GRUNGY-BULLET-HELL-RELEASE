@@ -1,0 +1,429 @@
+#TouhouDanmakufu[Single]
+#ScriptVersion[3]
+#Title["False 02"]
+#Text["M Y N U T T U S S Y I N B I O"]
+#System["script/KevinSystem/Kevin_System.dnh"]
+
+int diff = 0;
+
+let objScene = GetEnemyBossSceneObjectID();
+let csd = GetCurrentScriptDirectory();
+
+let bossObj;
+int dummyBullet;
+
+float bossX = 0; 
+float bossY = 0;
+float playerY = 0;
+float playerX = 0;
+
+let aniframe = 0;
+let aniframe2 = 0;
+
+let spellsnd = ObjSound_Create(); 
+let bossdiesnd = ObjSound_Create();
+
+int timer;
+int timeoutThreshold = 10;
+
+int curRank;
+float frac1, frac2, frac3;
+
+int patternWait = 1;
+
+// Includes ahoy
+
+#include "script/KevinSystem/Universal_Lib.dnh" // The library to include all libraries :sans: :nail_care:
+#include "script/GrungyBossData/Boss_Lib.dnh" // The library to include all libraries :sans: :nail_care:
+
+@Initialize {
+
+	//SetIntersectionVisualization(true);
+	
+	SetAutoDeleteObject(true);
+	
+	//SetAreaCommonData("Ingame", "Difficulty", "Legendary");
+
+	diff = _InitDifficulty();
+	ManageRankLimits(diff, false);
+
+	// Create the boss object itself
+	bossObj = ObjEnemy_Create(OBJ_ENEMY_BOSS); 
+	ObjEnemy_Regist(bossObj);
+	ObjMove_SetDestAtFrame(bossObj, STG_WIDTH/2, STG_HEIGHT/2, 45, LERP_DECELERATE);
+
+	ObjEnemyBossScene_StartSpell(objScene);
+
+	//ObjEnemy_SetMaximumDamage(bossObj, 999);
+
+	//s_RenderMidboss(bossObj);
+	_RenderBoss02(bossObj);
+	SetEnemyAutoDeleteClip(48, 48, 48, 48);
+
+	mainTask();
+	_FadeInvincibility(bossObj, 5, 80, 1);
+	BossEnding();
+
+	SetCommonDataPtr(POINTER_SPELLSCORE, 1000000 * GetCommonDataPtr(POINTER_MULTIPLIER, 1.0));
+
+	_RenderBossLife(bossObj, 22000, [0, 128, 600, 256], [0, 0, 0, 0], "SUPER CUTE PENMASTAH!!!");
+	_RenderSpellDetails("\"DREAMY EVACCANEER\"", 0, 22000, true);
+	_SpellScoreHandling(22000);
+
+	//string tex2 = "script/BossData/Midboss/midbossSplash.png";
+	
+    // Obj_SetRenderPriorityI(tex2, 16);
+    // ObjRender_SetAlpha(tex2, 150);
+    // ObjRender_SetAngleZ(tex2, 2.5);
+    // ObjRender_SetPosition(tex2, 840, 630, 0);
+
+}
+
+@Event {
+
+	alternative(GetEventType())
+
+	case(EV_REQUEST_LIFE) {
+		SetScriptResult(22000);
+	}
+	
+	case(EV_REQUEST_TIMER) {
+		SetScriptResult(45);
+	}
+	
+	case(EV_REQUEST_SPELL_SCORE){
+		SetScriptResult(100);
+	}
+
+}
+
+@MainLoop {
+
+	playerY = GetPlayerY();
+	playerX = GetPlayerX();
+	//The player position is ALWAYS UPDATED 
+	
+	bossX = ObjMove_GetX(bossObj);
+	bossY = ObjMove_GetY(bossObj);
+
+	ObjEnemy_SetIntersectionCircleToShot(bossObj, ObjMove_GetX(bossObj), ObjMove_GetY(bossObj), 96);
+	timer = ObjEnemyBossScene_GetInfo(objScene, INFO_TIMER);
+	//WriteLog(ObjEnemy_GetInfo(bossObj, INFO_LIFE));
+
+	curRank = GetCommonDataPtr(POINTER_RANK, 1.0);
+
+	yield;
+	
+}
+
+
+task mainTask {
+
+	curRank = GetCommonDataPtr(POINTER_RANK, 1);
+	frac1 = clamp(curRank/300, 0, 1);
+	frac2 = clamp(curRank/400, 0, 1);
+	frac3 = clamp(curRank/500, 0, 1);
+
+	wait(45);
+
+	WriteLog("wait done");
+
+	Opener();
+	//AntiCheese();
+
+	while(ObjEnemy_GetInfo(bossObj, INFO_LIFE) > 0){
+		
+		CalculateValues();
+		wait(10);
+		//ObjMove_SetDestAtFrame(bossObj, rand(STG_WIDTH/2 - STG_WIDTH/3, STG_WIDTH/2 + STG_WIDTH/3), STG_HEIGHT/4, 60, LERP_DECELERATE);
+
+	}
+	// Refire initial semicircle
+	
+}
+
+task CalculateValues(){
+
+	// Measure rank
+	curRank = GetCommonDataPtr(POINTER_RANK, 1);
+	frac1 = clamp(curRank/300, 0, 1);
+	frac2 = clamp(curRank/400, 0, 1);
+	frac3 = clamp(curRank/500, 0, 1);
+
+}
+
+function <void> Opener(){
+	
+	int[] duoArray_ = [LAV_CAT, COOL_CAT];
+	int sel = 0;
+	
+	ascent(i in 0..12){
+		float ang = GetAngleToPlayer(bossObj) + 360/12 * i;
+		int bullet = CreateShotA2(bossX, bossY, 3, ang, 0.15, 12, 1, duoArray_[sel], 10);
+		//ObjShot_SetAutoDelete(bullet, false);
+		if(ObjEnemy_GetInfo(bossObj, INFO_LIFE) <= 0){Obj_Delete(bullet);}
+		else{
+			_Delay(bullet, 0);
+			_BulletRescale(bullet, 1.5, true, 1);
+			ObjShot_SetAutoDelete(bullet, false);
+			ObjShot_SetDeleteFrame(bullet, 100);
+			ObjShot_SetFixedAngle(bullet, true);
+		}
+		
+		alternative(sel)
+		case(0){sel = 1;}
+		case(1){sel = 0;}
+	}
+	
+	Shoot2;
+	wait(120);
+	
+	_FadeInvincibility(bossObj, 60, 240, 1);	
+	
+	TopRow();
+	BottomRow();
+	BossPattern();
+	
+}
+
+task TopRow(){
+
+	// _CreateCustomTelegraphLine( 
+	// 	0, 60, 45,
+	// 	0, 0,
+	// 	0, STG_WIDTH+30,
+	// 	100, 100,
+	// 	0xFF87E9, 150,
+	// 	5, 60, 15
+	// );
+
+	ascent(i in 0..8){
+		_CreateWarningSign(FUNC_LERP_LINEAR(0, STG_WIDTH, i/7), STG_HEIGHT/6+48, 45, 0.54);
+		_CreateWarningSign(FUNC_LERP_LINEAR(0, STG_WIDTH, i/7), STG_HEIGHT/6-48, 45, 0.54);
+	}
+	
+	wait(30);
+	
+	while(ObjEnemy_GetInfo(bossObj, INFO_LIFE) > 0){
+	
+		int familiar = CreateShotB2(-90, STG_HEIGHT/6, 7, -2, 0, 0.02, 7, 2, LAV_CAT, 0);
+
+		if(ObjEnemy_GetInfo(bossObj, INFO_LIFE) <= 0){Obj_Delete(familiar);}
+		else{
+			ObjShot_SetAutoDelete(familiar, false);
+			//ObjShot_SetDeleteFrame(familiar, 100);
+			_BulletRescale(familiar, 1.8, true, 1);
+			ObjShot_SetFixedAngle(familiar, true);
+			TopAttack(familiar);
+		}
+	
+		wait(40);	// Delay before next familiar comes in
+	}
+ 
+}
+
+task BottomRow(){
+	
+	ascent(i in 0..8){
+		_CreateWarningSign(FUNC_LERP_LINEAR(0, STG_WIDTH, i/7), 9*STG_HEIGHT/10+48, 45, 0.54);
+		_CreateWarningSign(FUNC_LERP_LINEAR(0, STG_WIDTH, i/7), 9*STG_HEIGHT/10-48, 45, 0.54);
+	}
+
+	wait(30);
+	
+	while(ObjEnemy_GetInfo(bossObj, INFO_LIFE) > 0){
+	
+		int familiar = CreateShotB2(STG_WIDTH+90, 9*STG_HEIGHT/10, -7, 2, 0, -0.02, -7, -2, COOL_CAT, 0);
+
+		if(ObjEnemy_GetInfo(bossObj, INFO_LIFE) <= 0){Obj_Delete(familiar);}
+		else{
+			ObjShot_SetAutoDelete(familiar, false);
+			_BulletRescale(familiar, 2, true, 1);
+			ObjShot_SetFixedAngle(familiar, true);
+			BottomAttack(familiar);
+		}
+	
+		wait(40);	// Delay before next familiar comes in
+	}
+ 
+}
+
+task TopAttack(int familiar){
+
+	while(!Obj_IsDeleted(familiar) || ObjMove_GetX(familiar) <= STG_WIDTH+90){
+	
+		// -1, 0, 1
+		
+		float spd = FUNC_LERP_LINEAR(7, 10, frac1);
+		float angSpace = FUNC_LERP_LINEAR(1, 4, frac2);
+			
+		int[] a = [];
+		
+		if(timer <= 4){ a = [-2, 3]; }
+		else{a = [-1, 2];}
+		
+		ascent(i in a[0]..a[1]){
+
+			float ang = 90 - i*angSpace;
+			
+			if(timer <= 4){ ang = 90 - i*angSpace*1.1; }
+			else if(timer <= timeoutThreshold){ang = 90 - i*angSpace*1.2;}
+			
+			int bullet = CreateHueShotA1(ObjMove_GetX(familiar), ObjMove_GetY(familiar), spd, ang, KEV_BULLET, HUE_VIOLET, 1.8, 0);
+			if(ObjEnemy_GetInfo(bossObj, INFO_LIFE) <= 0 || Obj_IsDeleted(familiar)){Obj_Delete(bullet);}
+			else{
+				ObjRender_SetBlendType(bullet, BLEND_ALPHA);	
+			}
+		}
+		
+		//if(timer <= 4){wait(5);}
+		if(timer <= timeoutThreshold){wait(15);}
+		else{wait(32);}
+	
+	}
+	
+	if(!Obj_IsDeleted(familiar)){Obj_Delete(familiar);}
+}
+
+task BottomAttack(int familiar){
+
+	while(!Obj_IsDeleted(familiar) || ObjMove_GetX(familiar) >= -90){
+	
+		// -1, 0, 1
+		float spd = FUNC_LERP_LINEAR(7, 10, frac1);
+		float angSpace = FUNC_LERP_LINEAR(1, 4, frac2);
+
+		int[] a = [];
+		
+		if(timer <= 4){spd = 16;}
+		else if(timer <= timeoutThreshold){spd = 12;}
+		else{spd = 6;}
+		
+		if(timer <= 4){ a = [-2, 3]; }
+		else{a = [-1, 2];}
+
+		ascent(i in a[0]..a[1]){
+
+			float ang = 270 - i*angSpace;
+			
+			if(timer <= 4){ ang = 270 - i*angSpace*1.1 ; }
+			else if(timer <= timeoutThreshold){ang = 270 - i*angSpace*1.2 ;}
+			
+			int bullet = CreateHueShotA1(ObjMove_GetX(familiar), ObjMove_GetY(familiar), spd, ang, KEV_BULLET, HUE_VIOLET, 1.8, 0);
+			if(ObjEnemy_GetInfo(bossObj, INFO_LIFE) <= 0 || Obj_IsDeleted(familiar)){Obj_Delete(bullet);}
+			else{
+				ObjRender_SetBlendType(bullet, BLEND_ALPHA);	
+			}
+		}
+		
+		if(timer <= 4){wait(10);}
+		else if(timer <= timeoutThreshold){wait(15);}
+		else{wait(32);}
+	
+	}
+	
+	if(!Obj_IsDeleted(familiar)){Obj_Delete(familiar);}
+}
+
+task BossPattern(){
+	
+	float[] angArray_ = [130, 150, 170, 10, 30, 50];
+	float accel1 = FUNC_LERP_LINEAR(-0.2, -0.6, frac2);
+	float accel2 = FUNC_LERP_LINEAR(0.2, 0.4, frac2);
+	float maxSpd = FUNC_LERP_LINEAR(8, 13, frac3);
+
+	int num = [3, 4, 5, 6, 7][min(4, floor(curRank/50))];
+	//int num = [3, 4, 5, 6, 7][min(4, floor(curRank/50))];
+	
+	ObjMove_SetDestAtFrame(bossObj, STG_WIDTH/2, STG_HEIGHT/5, 60, LERP_DECELERATE);
+	wait(60);
+	
+	while(ObjEnemy_GetInfo(bossObj, INFO_LIFE) > 0){
+		
+		for each(float ang in angArray_){
+		
+			CallAtk(ang);
+			
+		}
+		
+		if(timer <= timeoutThreshold){wait(45);}
+		else{wait(90);}
+		
+	}
+
+	task CallAtk(float ang){
+		
+		ascent(i in 0..num){
+
+			int bullet = CreateHueShotA2(bossX, bossY, absolute(accel1)*30, ang, accel1, 0, 0, KEV_BULLET, HUE_AZURE, 1.8, 0);
+
+			if(ObjEnemy_GetInfo(bossObj, INFO_LIFE) <= 0){Obj_Delete(bullet);}
+			else{
+				Shoot1;
+				_Delay(bullet, 0);
+				LerpAngle(bullet, 40, 20);
+				ObjRender_SetBlendType(bullet, BLEND_ALPHA);	
+			}
+
+			wait(3);
+
+		}
+		
+	}
+	
+	task LerpAngle(int target, int frame, int lerplength){
+	
+		float ang = ObjMove_GetAngle(target);
+		
+		ascent(i in 0..lerplength){
+			ObjMove_AddPatternA4(target, frame+i, NO_CHANGE, Interpolate_Decelerate(ang, 0, i/lerplength), accel2, maxSpd, 0, NO_CHANGE, GetPlayerObjectID());
+		}
+	}
+	
+}
+
+task BossEnding(){
+	
+	while(ObjEnemy_GetInfo(bossObj, INFO_LIFE)>0){
+		yield;
+	}
+
+	float x = bossX;
+	float y = bossY;
+
+	SetCommonData("midbossKillTime", GetCommonData("midbossKillTime", 0)+(ObjEnemyBossScene_GetInfo(objScene, INFO_ORGTIMERF) - ObjEnemyBossScene_GetInfo(objScene, INFO_TIMERF)));
+	ObjSound_Play(bossGlassBreak);
+
+	async{
+		ascent(i in 0..30){
+			ObjMove_SetPosition(bossObj, x, y);
+			ObjMove_CancelMovement(bossObj);
+			yield;
+		}
+	}
+
+	//Obj_SetRenderPriorityI(bossObj, 40);
+	DeleteShotAll(TYPE_ALL, TYPE_ITEM);
+	NotifyEventAll(EV_BOSS_ATTACK_CLEAR, [bossX, bossY]);
+	SetPlayerInvincibilityFrame(60);
+
+	async{
+
+		loop(60){
+			DeleteShotAll(TYPE_CHILD, TYPE_ITEM);
+			yield;
+		}
+
+	}
+
+	wait(30);
+
+	// ObjMove_SetDestAtFrame(bossObj, STG_WIDTH/2, -96, 25, LERP_DECELERATE);
+
+	wait(30);
+
+	Obj_Delete(bossObj);
+	SetShotAutoDeleteClip(256, 256, 256, 256);
+	CloseScript(GetOwnScriptID);
+	
+}

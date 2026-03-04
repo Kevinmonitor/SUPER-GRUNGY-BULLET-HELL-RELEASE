@@ -1,0 +1,7 @@
+
+let path2 = GetCurrentScriptDirectory() ~ "PlayerCommon_ShotData.dnh";
+LoadPlayerShotData(path2);
+// ----- 
+
+const BURST_PARTICLE = 99;
+

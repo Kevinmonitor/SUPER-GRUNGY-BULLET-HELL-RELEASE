@@ -1,0 +1,769 @@
+/* --------------------------------------------------------------------
+	
+	UNIVERSAL/GENERAL FUNCTIONS USED FOR PLAYERS
+	
+	These functions may/will be reused for future scripts as well.
+	
+   --------------------------------------------------------------------
+*/
+
+#include "script/KevinSystem/SystemScripts/Kevin_ItemConst.dnh"
+#include "script/KevinSystem/SystemScripts/Kevin_ItemLib.dnh"
+#include "script/KevinSystem/SystemScripts/Lib_Const.dnh"
+#include "script/KevinSystem/Kevin_PlayerLib_HUD.dnh"
+#include "script/KevinSystem/PlayerSoundLib.dnh"
+//#include "script/KevinSystem/Universal_Lib.dnh"
+
+#include "script/player/common/PlayerCommon_ShotConst.dnh" 
+
+float universalAlpha = GetAreaCommonData("Config", "PlayerShotOpacity", 255);
+
+let commonimg = GetModuleDirectory() ~ "script/player/common/playercommon.png";
+LoadTextureEx(commonimg, true, true);
+
+//universalAlpha = 255; // Debug
+
+function CreateTextObject(
+	float mx, my, size,
+	string text, font,
+	int colorTop, colorBottom,
+	int borderColor, borderWidth,
+	int renderPriority
+	){
+	
+	let obj = ObjText_Create();
+	ObjText_SetText(obj, text);
+	ObjText_SetFontSize(obj, size);
+	ObjText_SetFontType(obj, font);
+	ObjText_SetFontColorTop(obj, colorTop);
+	ObjText_SetFontColorBottom(obj, colorBottom);
+	ObjText_SetFontBorderType(obj, BORDER_FULL);
+	ObjText_SetFontBorderColor(obj, borderColor);
+	ObjText_SetFontBorderWidth(obj, borderWidth);
+	Obj_SetRenderPriorityI(obj, renderPriority);
+	ObjRender_SetX(obj, mx);
+	ObjRender_SetY(obj, my);
+	return obj;
+	
+}
+
+function <int> _Create2DImage(imgpath, int[] rectarray){
+		
+	int imgname = ObjPrim_Create(OBJ_SPRITE_2D);
+	ObjPrim_SetTexture(imgname, imgpath);
+	ObjSprite2D_SetSourceRect(imgname, rectarray);
+	ObjSprite2D_SetDestCenter(imgname);
+	//ObjRender_SetPosition(imgname, positionstart)
+	
+	return imgname;
+}
+
+// thanks ttbd owo
+
+function CreateEffectObject(px, py, img, blendtype, left, top, right, bottom)
+{
+	let obj = ObjPrim_Create(OBJ_SPRITE_2D);
+	ObjPrim_SetTexture(obj, img);
+	ObjSprite2D_SetSourceRect(obj, left, top, right, bottom);
+	ObjSprite2D_SetDestCenter(obj);
+
+	if(blendtype=="ALPHA"){ObjRender_SetBlendType(obj, BLEND_ALPHA);}
+	else if(blendtype=="MULTIPLY"){ObjRender_SetBlendType(obj, BLEND_MULTIPLY);}
+	else if(blendtype=="SUBTRACT"){ObjRender_SetBlendType(obj, BLEND_SUBTRACT);}
+	else if(blendtype=="SHADOW"){ObjRender_SetBlendType(obj, BLEND_SHADOW);}
+	else if(blendtype=="RGB"){ObjRender_SetBlendType(obj, BLEND_ADD_RGB);}
+	else if(blendtype=="ARGB"){ObjRender_SetBlendType(obj, BLEND_ADD_ARGB);}
+	else if(blendtype=="INVERT"){ObjRender_SetBlendType(obj, BLEND_INV_DESTRGB);}
+
+	ObjRender_SetPosition(obj, px, py, 0);
+	ObjRender_SetTextureFilter(obj, FILTER_POINT, FILTER_POINT, FILTER_POINT);
+
+	return obj;
+}
+
+// Self-explanatory 
+
+task _DeleteEffect(obj, scale){
+	ObjRender_SetBlendType(obj, BLEND_ADD_ARGB);
+	Obj_SetRenderPriorityI(obj, 49);
+	ascent(i in 0..10){
+		ObjRender_SetAlpha(obj, Interpolate_Decelerate(50*(universalAlpha/100), 0, i/15));
+		ObjRender_SetScaleXYZ(obj, Interpolate_Decelerate(scale, scale*3, i/15));
+		ObjMove_SetSpeed(obj, 2);
+		yield;
+	}
+	Obj_Delete(obj);
+}
+
+// Renders player movement. Assumes that all sprites are ORGANIZED HORIZONTALLY IN THE SHEET.
+// flipscale can only be 1 or -1.
+
+task _RenderPlayerMovement(int obj, int frame, int offsetleft, int offsettop, int width, int height, int speed){
+
+	ObjSprite2D_SetSourceRect(obj, offsetleft+width*floor(frame/speed), offsettop, width+width*floor(frame/speed), offsettop+height);
+	
+}
+
+// Bullet rescaling... for player shots.
+task _BulletRescalePlayer(int target, float scale, bool hitboxscale, float hitboxlevel){
+	ObjRender_SetScaleXYZ(target, scale, scale, 1);
+	if (hitboxscale){
+		ObjShot_SetIntersectionScaleXY(target, scale*hitboxlevel, scale*hitboxlevel);
+	}
+}
+
+// Handles death/respawn sigil. Assumes sigils are 512x512 in size.
+// If death is true (the player dies), the circle expands outwards. Otherwise (the player bombs/respawns), it shrinks inwards.
+
+task _SigilCall(bool death, texture, int rectleft, int recttop, int rectright, int rectbottom, int objPlayer, int time){
+
+	let DeathCircle = ObjPrim_Create(OBJ_SPRITE_2D);
+
+	ObjPrim_SetTexture(DeathCircle, "");
+	ObjSprite2D_SetSourceRect(DeathCircle, rectleft, recttop, rectright, rectbottom);
+	ObjSprite2D_SetDestCenter(DeathCircle);
+	ObjRender_SetBlendType(DeathCircle,BLEND_ALPHA);
+	ObjRender_SetAlpha(DeathCircle,255);
+
+	ObjRender_SetPosition(DeathCircle,GetPlayerX(),GetPlayerY(),1);
+	Obj_SetRenderPriorityI(DeathCircle,Obj_GetRenderPriorityI(objPlayer)-10);
+
+	alternative(death)
+	case(true){
+		ascent(i in 0..time){
+			float scaliealpha = Interpolate_Decelerate(255, 0, i/time);
+			float scaliesize = Interpolate_Decelerate(0.1, 3, i/time);
+			ObjRender_SetAlpha(DeathCircle, scaliealpha);
+			ObjRender_SetPosition(DeathCircle,GetPlayerX(),GetPlayerY(),1);
+			ObjRender_SetScaleXYZ(DeathCircle, scaliesize, scaliesize, 1);
+			yield;
+		}
+	}
+	case(false){
+		ascent(i in 0..time){
+			float scaliealpha = Interpolate_Accelerate(255, 0, i/time);
+			float scaliesize = Interpolate_Accelerate(3, 0.1, i/time);
+			ObjRender_SetAlpha(DeathCircle, scaliealpha);
+			ObjRender_SetPosition(DeathCircle,GetPlayerX(),GetPlayerY(),1);
+			ObjRender_SetScaleXYZ(DeathCircle, scaliesize, scaliesize, 1);
+			yield;
+		}
+	}
+
+	
+	while(ObjRender_GetAlpha(DeathCircle) > 0){yield;}
+	Obj_Delete(DeathCircle);
+	
+}
+
+// Handles the hitbox and its aura. What the fuck. 
+
+task _HitboxAuraRender(){
+
+	// Handle hitbox's aura
+	
+	// int aura = ObjPrim_Create(OBJ_SPRITE_2D);
+	
+	int objPlayer = GetPlayerObjectID();
+
+	// ObjPrim_SetTexture(aura, texture_aura);
+	// ObjSprite2D_SetSourceRect(aura, rectleft_aura, recttop_aura, rectright_aura, rectbottom_aura);
+	// ObjSprite2D_SetDestCenter(aura);
+	// ObjRender_SetScaleXYZ(aura, scale_aura, scale_aura, 1);
+	// ObjRender_SetAlpha(aura, 70);
+	// //ObjRender_SetBlendType(aura, BLEND_ADD_ARGB);
+	// Obj_SetRenderPriorityI(aura, Obj_GetRenderPriorityI(objPlayer)+3);
+
+	int aura1 = _Create2DImage(commonimg, [128, 0, 256, 128]);
+	int aura2 = _Create2DImage(commonimg, [128, 0, 256, 128]);
+	
+	Obj_SetVisible(aura1, false);
+	Obj_SetVisible(aura2, false);
+
+
+	int[] auraImg = [aura1, aura2];
+
+	for each (img in auraImg){
+		ObjRender_SetAlpha(img, 180);
+		Obj_SetRenderPriorityI(img, 49);
+	}
+
+	ObjRender_SetScaleXYZ(aura1, 1.8);
+	ObjRender_SetScaleXYZ(aura2, 1.8);
+	
+	loop{
+
+		if ((!Obj_IsVisible(objPlayer) || GetVirtualKeyState(VK_SLOWMOVE) != KEY_HOLD)){
+			Obj_SetVisible(aura1, false);
+			Obj_SetVisible(aura2, false);
+		}
+
+		else if ((Obj_IsVisible(objPlayer) && (GetVirtualKeyState(VK_SLOWMOVE) == KEY_HOLD || GetVirtualKeyState(VK_SLOWMOVE) == KEY_PUSH))){
+
+			Obj_SetVisible(aura1, true);
+			Obj_SetVisible(aura2, true);
+
+		}
+
+		// overrides
+
+		// always display
+		if(GetCommonDataPtr(HITBOXDISPLAY_PTR, 0) == 1){
+			Obj_SetVisible(aura1, true);
+			Obj_SetVisible(aura2, true);
+		}
+		// never display
+		else if (GetCommonDataPtr(HITBOXDISPLAY_PTR, 0) == 2){
+			Obj_SetVisible(aura1, false);
+			Obj_SetVisible(aura2, false);
+		}
+
+		ObjRender_SetPosition(aura1, ObjMove_GetX(objPlayer), ObjMove_GetY(objPlayer), 1);
+		ObjRender_SetPosition(aura2, ObjMove_GetX(objPlayer), ObjMove_GetY(objPlayer), 1);
+
+		ascent(i in 0..2){
+			ObjRender_SetAngleZ(auraImg[i], ObjRender_GetAngleZ(auraImg[i]) + 1.5 * (i % 2 == 0 ? 1 : -1));	
+		}
+
+		yield;
+	}
+
+}
+
+task GrazeTask(){
+
+	ObjSound_Play(Graze2);
+	SetCommonDataPtr(POINTER_BURSTGAUGE, GetCommonDataPtr(POINTER_BURSTGAUGE, 0) + 0.25);
+
+}
+
+task DeathTask(){
+
+	SetCommonDataPtr(POINTER_TRUERANK, GetCommonDataPtr(POINTER_TRUERANK, 1.0) * RankLower[GetCommonDataPtr(POINTER_DIFFICULTYNUM, 0)]);
+
+}
+
+task HandleBurstSound(){
+
+	//ObjSound_Play(bitchBurstReady);
+
+	SetCommonData("burstReady", true);
+
+	// when burst reaches 100%, play sound and enable isBurstReady
+	while(GetCommonDataPtr(POINTER_BURSTGAUGE, 0) < 100){
+		yield;
+	}
+
+	ObjSound_Play(bitchBurstReady);
+
+	// when burst goes back to 0%, re-disable isBurstReady
+
+	while(GetCommonDataPtr(POINTER_BURSTGAUGE, 0) >= 100){
+		yield;
+	}
+
+	SetCommonData("burstReady", false);
+
+	HandleBurstSound();
+
+}
+
+task BurstReady(){
+
+	HandleBurstSound();
+
+	int i = 0;
+	int burstAura = _Create2DImage(commonimg, [0, 130, 128, 254]);
+
+	ObjRender_SetAlpha(burstAura, 125);
+
+	Obj_SetRenderPriorityI(burstAura, 37);
+	ObjRender_SetScaleXYZ(burstAura, 2.5);
+
+	function CreateParticle(float angle){
+
+		int burstParticle = CreatePlayerShotA1(ObjMove_GetX(GetPlayerObjectID()), ObjMove_GetY(GetPlayerObjectID()), 9, angle, 0, 999, BURST_PARTICLE);
+		Obj_SetRenderPriorityI(burstParticle, 37);
+		ObjRender_SetAlpha(burstParticle, 200);
+		ObjShot_SetIntersectionEnable(burstParticle, false);
+		ObjRender_SetScaleXYZ(burstParticle, 1.5);
+		ObjShot_SetDeleteFrame(burstParticle, 25);
+		
+		async{
+			int i = 0;
+			while(!Obj_IsDeleted(burstParticle)){
+				ObjRender_SetScaleXYZ(burstParticle, 1.5-0.05*i);
+				ObjRender_SetAlpha(burstParticle, 200 - 8 * i);
+				i++;
+				yield;
+			}
+		}
+
+	}
+
+	while(true){
+
+		if(GetCommonDataPtr(POINTER_BURSTGAUGE, 0) >= 100 && !GetCommonDataPtr(POINTER_BURSTMODE, false)){
+			ObjRender_SetAlpha(burstAura, 150);
+			if (i % 2 == 0){
+				CreateParticle(prand(0, 360));
+				CreateParticle(prand(0, 360));
+				CreateParticle(prand(0, 360));
+			}
+		}
+		else{
+			ObjRender_SetAlpha(burstAura, 0);
+		}
+
+		i++;
+
+		ObjRender_SetPosition(burstAura, ObjMove_GetX(GetPlayerObjectID()), ObjMove_GetY(GetPlayerObjectID()), 1);
+		yield;
+		
+	}
+
+}
+
+task _Countdown(){
+
+	//_FunIndicator;
+
+	//int timer = time;
+	int counter = CreateTextObject(
+	GetPlayerX(), GetPlayerY(), 32,
+	"", "Aquire",
+	0x000000, 0x000000,
+	0x1AEC8C, 4,
+	61
+	);
+
+	int revivalAura = _Create2DImage(commonimg, [256, 64, 384, 192]);
+	int funAura = _Create2DImage(commonimg, [288, 8, 360, 40]);
+
+	Obj_SetVisible(revivalAura, true);
+	Obj_SetVisible(funAura, false);
+
+	Obj_SetRenderPriorityI(revivalAura, 60);
+	Obj_SetRenderPriorityI(funAura, 49);
+
+	ObjRender_SetScaleXYZ(revivalAura, 2);
+	ObjRender_SetScaleXYZ(funAura, 2);
+
+	ObjRender_SetTextureFilter(counter, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	ObjRender_SetTextureFilter(funAura, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	//ObjText_SetFixedWidth(counter, 48);
+	ObjText_SetFontBold(counter, true);
+
+	int counter2 = CreateTextObject(
+	1720, 870, 16,
+	"", "Aquire",
+	0xFFFFFF, 0xFFFFFF,
+	0x1AEC8C, 2,
+	19
+	);
+	
+	float ang = 0;
+	int i = 0;
+
+	ObjText_SetHorizontalAlignment(counter, ALIGNMENT_CENTER);
+
+	while(true){
+
+		if(GetPlayerInvincibilityFrame() <= 0){Obj_SetVisible(counter, false);}
+		else{Obj_SetVisible(counter, true);}
+
+		ObjRender_SetPosition(counter, GetPlayerX() - 64, GetPlayerY() - 48, 1);
+		ObjText_SetText(counter, IntToString(GetPlayerInvincibilityFrame()));
+
+		if(GetPlayerInvincibilityFrame() >= 15){
+			ObjRender_SetAlpha(revivalAura, 255 + 120 * sin(ang));
+		}
+
+		else{
+			ObjRender_SetAlpha(revivalAura, ObjRender_GetAlpha(revivalAura) - 255/10);
+		}
+
+		if(GetCommonDataPtr(POINTER_BURSTGAUGE, 0) >= 100){
+			Obj_SetVisible(funAura, true);
+			if (i % 8 == 0){
+				ObjSprite2D_SetSourceRect(funAura, [288, 8, 360, 40]);
+			}
+			else{
+				ObjSprite2D_SetSourceRect(funAura, [360, 8, 432, 40]);
+			}
+		}
+		else{
+			Obj_SetVisible(funAura, false);
+		}
+
+		ang += 12;
+		i++;
+
+		ObjRender_SetPosition(funAura, GetPlayerX(), GetPlayerY() - 96, 1);
+		ObjRender_SetPosition(revivalAura, GetPlayerX(), GetPlayerY(), 1);
+		yield;
+		
+	}
+	
+	//Obj_Delete(counter);
+	
+}
+
+/* 
+Simple function that handles player options. These options simply follow the player at an offset - they do not have any trajectories of their own like spinning around the player, etc.
+If the options have animations, set triggeranimation to true and adjust the number of frames + speed using delay and frameno.
+If the options rotate (in place), set triggerspin to true and adjust spinning speed using spinspeed.
+If the options only appear unfocused or focused, set either onlyFocus or onlyUnfocus to true. Setting both to true or false makes the options always visible.
+*/
+
+function PlayerOption(
+	float offsetx, float offsety, 
+	texture, 
+	int left, int top, int right, int bottom, float scale,
+	int width, int animdelay, int frameno, bool triggeranimation, 
+	bool triggerspin, float spinspeed,
+	bool onlyFocus, bool onlyUnfocus
+	){
+	
+	let option = ObjPrim_Create(OBJ_SPRITE_2D);
+	bool visible;
+	int animate = 0;
+	float optx;
+	float opty;
+	
+	ObjPrim_SetTexture(option, texture);
+	ObjSprite2D_SetSourceRect(option, left, top, right-1, bottom-1); // Allows the options to spin smoothly should the user choose to do so.
+	ObjSprite2D_SetDestCenter(option);
+	ObjRender_SetScaleXYZ(option, scale);
+	ObjRender_SetBlendType(option, BLEND_ALPHA);
+	ObjRender_SetAlpha(option, 255);
+	Obj_SetRenderPriorityI(option, 41);
+	ObjRender_SetPosition(option, offsetx, offsety, 1);
+	
+	// Animation
+	async{
+		while(triggeranimation){
+			ObjSprite2D_SetSourceRect(option, left+width*floor(animate/animdelay), top, right+width*floor(animate/animdelay)-1, bottom-1);
+			animate++;
+			if (animate >= animdelay*frameno){animate = 0;}
+			yield;
+		}
+	}
+	
+	// Rotation
+	async{
+		float i = 0;
+		while(triggerspin){
+			//ObjRender_SetPosition(option, GetPlayerX()+offsetx, GetPlayerY()+offsety, 1);
+			ObjRender_SetAngleZ(option, i);
+			i += spinspeed;
+			yield;
+		}
+	}
+	
+	// Follow
+	async{
+		while(true){
+			ObjRender_SetPosition(option, GetPlayerX()+offsetx, GetPlayerY()+offsety, 1);
+			yield;
+		}
+	}
+	
+	// Visibility
+	async{
+		// Always visible
+		if((onlyFocus && onlyUnfocus) || (!onlyFocus && !onlyUnfocus)) {
+			loop
+			{
+				if(GetPlayerState != STATE_NORMAL && GetPlayerState != STATE_HIT){ObjRender_SetAlpha(option, max(0, ObjRender_GetAlpha(option)-15)); visible = false;}
+				else {ObjRender_SetAlpha(option, min(225, ObjRender_GetAlpha(option)+15)); visible = true;}
+				yield;
+			}
+		}
+		// Visible when focused only
+		else if(onlyFocus && !onlyUnfocus){
+			loop
+			{
+				if((GetPlayerState != STATE_NORMAL && GetPlayerState != STATE_HIT) || GetVirtualKeyState(VK_SLOWMOVE) == KEY_FREE){ObjRender_SetAlpha(option, max(0, ObjRender_GetAlpha(option)-15)); visible = false;}
+				else {ObjRender_SetAlpha(option, min(225, ObjRender_GetAlpha(option)+15)); visible = true;}
+				yield;
+			}
+		}	
+		// Visible when unfocused only
+		else if(!onlyFocus && onlyUnfocus){
+			loop
+			{
+				if((GetPlayerState != STATE_NORMAL && GetPlayerState != STATE_HIT) || GetVirtualKeyState(VK_SLOWMOVE) != KEY_FREE){ObjRender_SetAlpha(option, max(0, ObjRender_GetAlpha(option)-15)); visible = false;}
+				else {ObjRender_SetAlpha(option, min(225, ObjRender_GetAlpha(option)+15)); visible = true;}
+				yield;
+			}
+		}	
+	}
+
+	function _FadeIn(){
+		ascent(i in 0..15){
+			ObjRender_SetAlpha(option, Interpolate_Decelerate(0, 225, i/15));
+			yield;
+		}
+	}
+	
+	function _FadeOut(){
+		ascent(i in 0..15){
+			ObjRender_SetAlpha(option, Interpolate_Decelerate(225, 0, i/15));
+			yield;
+		}
+	}
+	
+	return option;
+}
+
+/* 
+A form of PlayerOption that handles basic movement towards different positionings based on whether the player is focusing or unfocusing. 
+If the options have animations, set triggeranimation to true and adjust the number of frames + speed using delay and frameno.
+If the options rotate (in place), set triggerspin to true and adjust spinning speed using spinspeed.
+If the options only appear unfocused or focused, set either onlyFocus or onlyUnfocus to true. Setting both to true or false makes the options always visible.
+*/
+
+function PlayerOption_LinearMove(
+	float offsetX_uf, offsetY_uf, offsetX_f, offsetY_f,
+	bool angchange, float ang_uf, ang_f,
+	texture, 
+	int graphic, float texScale, int priorityRender,
+	int texWidth, int animDelay, int animFrameNo, bool animMode, 
+	bool spinMode, float spinSpeed,
+	bool onlyFocus, bool onlyUnfocus
+	){
+	
+	int option = CreatePlayerShotA1(0, 0, 0, 0, 0, 9999999, graphic);
+	bool visible;
+	int animate = 0;
+	float optx;
+	float opty;
+	
+	float playerX = 0, playerY = 0;
+
+	/*
+	ObjPrim_SetTexture(option, texture);
+	ObjSprite2D_SetSourceRect(option, texRect[0], texRect[1], texRect[2]-1, texRect[3]-1); // Allows the options to spin smoothly should the user choose to do so.
+	ObjSprite2D_SetDestCenter(option);
+	*/
+	
+	ObjShot_SetAutoDelete(option, false);
+	ObjRender_SetScaleXYZ(option, texScale);
+	ObjRender_SetBlendType(option, BLEND_ALPHA);
+	//ObjRender_SetAlpha(option, 255);
+	Obj_SetRenderPriorityI(option, priorityRender);
+	ObjRender_SetPosition(option, GetPlayerX()+offsetX_uf, GetPlayerY()+offsetY_uf, 1);
+	
+	///// MISC /////
+	async{
+		while(true){
+			playerX = ObjRender_GetX(GetPlayerObjectID());
+			playerY = ObjRender_GetY(GetPlayerObjectID());
+			yield;
+		}
+	}
+	
+	///// ANIMATION /////
+	
+	/*
+	async{
+		while(animMode){
+			ObjSprite2D_SetSourceRect(option, texRect[0]+texWidth*floor(animate/animDelay), texRect[1], texRect[2]+texWidth*floor(animate/animDelay)-1, texRect[3]-1);
+			animate++;
+			if (animate >= animDelay*animFrameNo){animate = 0;}
+			yield;
+		}
+	}*/
+	
+	///// ROTATION /////
+	async{
+		float i = 0;
+		while(spinMode){
+			//ObjRender_SetPosition(option, GetPlayerX()+offsetx, GetPlayerY()+offsety, 1);
+			ObjRender_SetAngleZ(option, i);
+			i += spinSpeed;
+			yield;
+		}
+	}
+	
+	///// VISIBILITY /////
+	async{
+		// Always visible
+		if((onlyFocus && onlyUnfocus) || (!onlyFocus && !onlyUnfocus)) {
+			loop
+			{
+				if(GetPlayerState != STATE_NORMAL && GetPlayerState != STATE_HIT){ObjRender_SetAlpha(option, max(0, ObjRender_GetAlpha(option)-15)); visible = false;}
+				else {ObjRender_SetAlpha(option, min(255, ObjRender_GetAlpha(option)+15)); visible = true;}
+				yield;
+			}
+		}
+		// Visible when focused only
+		else if(onlyFocus && !onlyUnfocus){
+			loop
+			{
+				if((GetPlayerState != STATE_NORMAL && GetPlayerState != STATE_HIT) || GetVirtualKeyState(VK_SLOWMOVE) == KEY_FREE){ObjRender_SetAlpha(option, max(0, ObjRender_GetAlpha(option)-15)); visible = false;}
+				else {ObjRender_SetAlpha(option, min(255, ObjRender_GetAlpha(option)+15)); visible = true;}
+				yield;
+			}
+		}	
+		// Visible when unfocused only
+		else if(!onlyFocus && onlyUnfocus){
+			loop
+			{
+				if((GetPlayerState != STATE_NORMAL && GetPlayerState != STATE_HIT) || GetVirtualKeyState(VK_SLOWMOVE) != KEY_FREE){ObjRender_SetAlpha(option, max(0, ObjRender_GetAlpha(option)-15)); visible = false;}
+				else {ObjRender_SetAlpha(option, min(255, ObjRender_GetAlpha(option)+15)); visible = true;}
+				yield;
+			}
+		}	
+	}
+
+	///// MOVEMENT /////
+	async{
+		
+		loop{
+			
+			if(GetVirtualKeyState(VK_SLOWMOVE) != KEY_FREE){
+			
+				async{
+					
+					ascent(i in 0..15){
+						if(angchange){ObjRender_SetAngleZ(option, Interpolate_Decelerate(ObjRender_GetAngleZ(option), ang_f, i/15));}
+						ObjRender_SetX(option, Interpolate_Decelerate(ObjRender_GetX(option), GetPlayerX()+offsetX_f, i/15));
+						ObjRender_SetY(option, Interpolate_Decelerate(ObjRender_GetY(option), GetPlayerY()+offsetY_f, i/15));
+						yield;
+					}
+				
+				}
+
+			}
+					
+			else{
+			
+				async{
+					
+					ascent(i in 0..15){
+						if(angchange){ObjRender_SetAngleZ(option, Interpolate_Decelerate(ObjRender_GetAngleZ(option), ang_uf, i/15));}
+						ObjRender_SetX(option, Interpolate_Decelerate(ObjRender_GetX(option), GetPlayerX()+offsetX_uf, i/15));
+						ObjRender_SetY(option, Interpolate_Decelerate(ObjRender_GetY(option), GetPlayerY()+offsetY_uf, i/15));
+						yield;
+					}
+				
+				}
+				
+			}
+			
+			yield;
+		}
+		
+	}
+	
+	function _FadeIn(){
+		ascent(i in 0..15){
+			ObjRender_SetAlpha(option, Interpolate_Decelerate(0, 225, i/15));
+			yield;
+		}
+	}
+	
+	function _FadeOut(){
+		ascent(i in 0..15){
+			ObjRender_SetAlpha(option, Interpolate_Decelerate(225, 0, i/15));
+			yield;
+		}
+	}
+	
+	return option;
+}
+
+/*
+Option that spins around two points relative to the player.
+*/
+
+
+/*
+------------------------------------------------------
+
+	POINTBLANK-PIV MECHANIC FUNCTIONS 
+	Will be optimized somewhere down the line.
+
+------------------------------------------------------
+*/
+
+// Selects an enemy in the @MainLoop-updated _enemyArray, executes _PetalDrop, and adds it to _existArray so the task isn't called again for the same enemy. maxX and maxY are the bounds of the playing field.
+
+task _Mechanic(bool playerdeathbool, int[] _enemyArray, int [] _existArray, float maxX, float maxY, int objPlayer, int bossScene, int maxrate, int addrate, float adddist){
+	while(!playerdeathbool){
+		_enemyArray = GetIntersectionRegistedEnemyID();
+		bossScene = GetEnemyBossSceneObjectID();
+		for each (int enemy in ref _enemyArray){
+			float enemyX = ObjMove_GetX(enemy);
+			float enemyY = ObjMove_GetY(enemy);
+			if (0 < enemyX && enemyX < maxX && 0 < enemyY && enemyY < maxY && !contains(_existArray, enemy)){
+				_PetalDrop(enemy, playerdeathbool, objPlayer, bossScene, maxrate, addrate, adddist);
+				_existArray = _existArray ~ [enemy];
+			}
+			else{continue;}
+		}
+		yield;
+	}
+}
+
+// Checks the boss scene type (nonspell/spell/last spell/invalid), the ID of the player object, and the target enemy. Drops petals with a type and drop rate that depends on the boss scene type and how close the player is to the target enemy. 
+
+task _PetalDrop(int target, bool playerdeathbool, int objPlayer, int bossScene, int maxrate, int addrate, float adddist){
+
+	while(!Obj_IsDeleted(target) && !playerdeathbool){
+		float dist = hypot(ObjMove_GetX(target)-ObjMove_GetX(objPlayer), ObjMove_GetY(target)-ObjMove_GetY(objPlayer));
+		let atktype = GetEnemyBossSceneObjectID();
+		if(dist <= (GetStgFrameHeight()-100) && atktype != ID_INVALID && ObjEnemy_GetInfo(target, INFO_SHOT_HIT_COUNT) >= 1 && ObjEnemy_GetInfo(target, INFO_DAMAGE_PREVIOUS_FRAME) > 0){
+		
+			CreateScoreItem(
+				GetAreaCommonData("Ingame", "IsBurst", false) ? GOLD_POINT : POINT_ITEM, 
+				ObjMove_GetX(target) + rand(-64, 64),
+				ObjMove_GetY(target) + rand(-64, 64),
+			);
+			wait(maxrate + addrate*floor(dist/adddist));
+				
+		}
+		else{yield;}
+	}
+	
+}
+
+task _DeathbombWarning(imgpath, int[] imgrectarray, int deathbombframes, float basescale){
+
+	int circle = _Create2DImage(imgpath, imgrectarray);
+	Obj_SetRenderPriorityI(circle, 75);
+	ObjRender_SetAlpha(circle, 255);
+	ObjRender_SetPosition(circle, ObjRender_GetX(GetPlayerObjectID()), ObjRender_GetY(GetPlayerObjectID()), 1);
+	ObjRender_SetBlendType(circle, BLEND_INV_DESTRGB);
+	
+	ascent(i in 0..deathbombframes-1){
+		ObjRender_SetScaleXYZ(circle, Interpolate_Accelerate(basescale, 0, i/(deathbombframes-1)));
+		yield;
+	}
+	
+	Obj_Delete(circle);
+	return;
+	
+}
+
+task _BombShake(shaketime, intensity){
+
+	float baseintensity = intensity;
+	float shakeno = shaketime;
+	
+	ascent(i in 0..shakeno){
+		Set2DCameraFocusX(GetStgFrameWidth/2 + prand(-intensity, intensity));
+		Set2DCameraFocusY(GetStgFrameHeight/2 + prand(-intensity, intensity));
+		intensity = Interpolate_Decelerate(0, baseintensity, 1-i/shakeno);
+		shaketime--;
+		yield;
+	}
+	
+	while(shaketime > 0){yield;}
+	
+	Set2DCameraFocusX(GetStgFrameWidth/2);
+	Set2DCameraFocusY(GetStgFrameHeight/2);
+	yield;
+}

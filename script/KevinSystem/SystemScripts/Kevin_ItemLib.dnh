@@ -1,0 +1,71 @@
+// Valid types: PIV_100, PIV_250, PIV_500
+
+float universalItemAlpha = GetAreaCommonData("Config", "ItemOpacity", 100);
+
+function CreatePIVItem(itemtype, x, y){
+
+	let PIVItem = CreateItemU1(itemtype, x, y, 0);
+	ObjItem_SetDefaultCollectMovement(PIVItem, false);
+	ObjItem_SetAutoDelete(PIVItem, false);
+	
+	ObjMove_SetAngle(PIVItem, 90);
+	ObjMove_SetSpeed(PIVItem, -10);
+	ObjMove_SetAcceleration(PIVItem, 1);
+	ObjMove_SetMaxSpeed(PIVItem, 0);
+
+	ObjItem_SetIntersectionRadius(PIVItem, 60);
+	
+	//ObjRender_SetScaleXYZ(PIVItem, 2);
+	ObjRender_SetAlpha(PIVItem, 255*(universalItemAlpha/100));
+
+	return PIVItem;
+}
+
+// Valid types: POINT_REGULAR, POINT_BHESTIE, POINT_RAINBOW
+function CreateScoreItem(itemtype, x, y){
+
+	let ScoreItem = CreateItemU1(itemtype, x + rand(-60, 60), y + rand(-60, 60), 0);
+	ObjItem_SetDefaultCollectMovement(ScoreItem, false);
+	ObjItem_SetAutoDelete(ScoreItem, false);
+	
+	ObjItem_SetAutoCollectEnableFlags(ScoreItem, ITEM_AUTOCOLLECT_ALL);
+	ObjMove_SetAngle(ScoreItem, 90);
+	ObjMove_SetSpeed(ScoreItem, -5);
+	ObjMove_SetAcceleration(ScoreItem, 0.5);
+	ObjMove_SetMaxSpeed(ScoreItem, 2);
+	
+	ObjItem_SetIntersectionRadius(ScoreItem, 24);
+	ObjItem_SetRenderScoreEnable(ScoreItem, false);
+	Obj_SetRenderPriorityI(ScoreItem, 44);
+	
+	ObjRender_SetAlpha(ScoreItem, 255*(universalItemAlpha/100));
+	//ObjRender_SetScaleXYZ(ScoreItem, 3);
+	
+	return ScoreItem;
+}
+
+// Valid types: EXTEND_LIFE, EXTEND_SPELL
+function CreateExtendItem(itemtype, x, y){
+
+	let ExtendItem = CreateItemU2(itemtype, x, y, x, y-125, 0);
+	ObjItem_SetDefaultCollectMovement(ExtendItem, false);
+	//ObjItem_SetMoveToPlayer(ExtendItem, true);
+	ObjItem_SetAutoCollectEnableFlags(ExtendItem, ITEM_AUTOCOLLECT_ALL);
+	
+	ObjMove_SetAngle(ExtendItem, 90);
+	ObjMove_SetSpeed(ExtendItem, -20);
+	ObjMove_SetAcceleration(ExtendItem, 1);
+	ObjMove_SetMaxSpeed(ExtendItem, 0);
+	
+	//ObjRender_SetScaleXYZ(ExtendItem, 1.5, 1.5, 1);
+	Obj_SetRenderPriorityI(ExtendItem, GetPlayerRenderPriorityI()+1);
+	ObjItem_SetAutoDelete(ExtendItem, false);
+	
+	/*async{
+		wait(30);
+		ObjItem_SetMoveToPlayer(ExtendItem, true);
+		//ObjMove_SetMaxSpeed(CancelItem, 24);
+	}*/
+	
+	return ExtendItem;
+}

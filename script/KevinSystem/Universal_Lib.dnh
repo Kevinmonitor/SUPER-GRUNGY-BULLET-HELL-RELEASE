@@ -1,0 +1,534 @@
+/* --------------------------------------------------------------------
+	
+	/////////////// 	UNIVERSAL/GENERAL LIBRARY 	/////////////////
+	
+	A library meant for universal functions and including other libraries.
+	
+   --------------------------------------------------------------------
+*/
+
+let blipVol = 3 * GetAreaCommonData("Config", "SEVol", 100) * 0.01;
+
+#include "script/KevinSystem/SystemScripts/Lib_Const.dnh"
+#include "script/KevinSystem/shaders/colour/colorF.dnh"
+
+#include "script/KevinSystem/SystemScripts/Kevin_ItemLib.dnh"
+#include "script/KevinSystem/SystemScripts/Kevin_ItemConst.dnh"
+#include "script/default_system/Default_Effect.dnh" // Probably change this somewhere down the line.
+
+#include "script/KevinSystem/GeneralSoundLib.dnh" // Ryannlib momento
+
+#include "script/KevinSystem/Universal_EnemyLib.dnh"
+
+// Shot constants
+
+#include "script/KevinSystem/KevinShot/NewShotConst.dnh"
+#include "script/KevinSystem/TerraShot2x/shot_const.dnh"
+#include "script/KevinSystem/KevinShot/SkyscraperConst.dnh"
+
+// Convenience constants
+
+// Placeholder
+
+let invalid = "script/KevinSystem/img/lol.png";
+
+LoadTextureEx(invalid, true, true);
+
+let sound = ObjSound_Create();
+ObjSound_Load(sound, "script/StageData/StageLib/stageMusic/copyc4t_screenLettering.wav");
+ObjSound_SetVolumeRate(sound, 100 * blipVol);
+ObjSound_SetSoundDivision(sound, SOUND_SE);
+
+// Shortened version of very commonly used functions
+
+function lerpToMax(targetMin, targetMax, lerpFraction){
+	return min(targetMax, FUNC_LERP_SMOOTH(targetMin, targetMax, lerpFraction));
+}
+
+function lerpToMin(targetMax, targetMin, lerpFraction){
+	return max(targetMin, FUNC_LERP_SMOOTH(targetMax, targetMin, lerpFraction));
+}
+
+function countUpInArray(array, fraction){
+	return array[min(length(array), floor(fraction))];
+}
+
+function boostBasedOnExponent(startingValue, staticExponent, changingExponent){
+	return startingValue * (staticExponent ^ changingExponent);
+}
+
+
+function <float> FUNC_LERP_DECEL(a, b, x){
+	float res = Interpolate_Decelerate(a, b, x);
+	return res;
+}
+
+function <float> FUNC_LERP_ACCEL(a, b, x){
+	float res = Interpolate_Accelerate(a, b, x);
+	return res;
+}
+
+function <float> FUNC_LERP_LINEAR(a, b, x){
+	float res = Interpolate_Linear(a, b, x);	
+	return res;
+}
+
+function <float> FUNC_LERP_SMOOTH(a, b, x){
+	float res = Interpolate_Smooth(a, b, x);
+	return res;	
+}
+
+function <float> FUNC_LERP_SMOOTHER(a, b, x){
+	float res = Interpolate_Smoother(a, b, x);	
+	return res;
+}
+
+function <float[]> MOVE_COORD(id){
+	float x = ObjMove_GetX(id);
+	float y = ObjMove_GetY(id);
+	return [x, y];
+}
+
+function <float[]> RENDER_COORD(id){
+	float x = ObjRender_GetX(id);
+	float y = ObjRender_GetY(id);
+	return [x, y];
+}
+
+function <float> XMove(id){
+	return ObjMove_GetX(id);
+}
+
+function <float> YMove(id){
+	return ObjMove_GetY(id);
+}
+
+function <float> XRender(id){
+	return ObjRender_GetX(id);
+}
+
+function <float> YRender(id){
+	return ObjRender_GetY(id);
+}
+
+function CreateEffectObject(px, py, img, blendtype, left, top, right, bottom)
+{
+	let obj = ObjPrim_Create(OBJ_SPRITE_2D);
+	ObjPrim_SetTexture(obj, img);
+	ObjSprite2D_SetSourceRect(obj, left, top, right, bottom);
+	ObjSprite2D_SetDestCenter(obj);
+
+	if(blendtype=="ALPHA"){ObjRender_SetBlendType(obj, BLEND_ALPHA);}
+	else if(blendtype=="MULTIPLY"){ObjRender_SetBlendType(obj, BLEND_MULTIPLY);}
+	else if(blendtype=="SUBTRACT"){ObjRender_SetBlendType(obj, BLEND_SUBTRACT);}
+	else if(blendtype=="SHADOW"){ObjRender_SetBlendType(obj, BLEND_SHADOW);}
+	else if(blendtype=="RGB"){ObjRender_SetBlendType(obj, BLEND_ADD_RGB);}
+	else if(blendtype=="ARGB"){ObjRender_SetBlendType(obj, BLEND_ADD_ARGB);}
+	else if(blendtype=="INVERT"){ObjRender_SetBlendType(obj, BLEND_INV_DESTRGB);}
+
+	ObjRender_SetPosition(obj, px, py, 0);
+	ObjRender_SetTextureFilter(obj, FILTER_POINT, FILTER_POINT, FILTER_POINT);
+
+	return obj;
+}
+
+_SoundTask;
+
+function DigitToCommaArray(num){ //Natashinitai
+
+    let srcStr = IntToString(num);
+    let res = [];
+    let nChar = 0;
+    for(let i = length(srcStr) - 1; i >= 0; i--){
+        res = [srcStr[i]] ~ res;
+        nChar++;
+        if(nChar % 3 == 0 && i > 0) res = "," ~ res;
+    }
+    return res;
+    
+}
+
+// thanks mugenri uwu
+
+function <void> TTextScroll(int obj_, string text_) { //Makes text fill gradually in text boxes
+
+	bool dialogEnd = false;
+	bool sentenceEnd = false;
+	bool sentenceEndLong = false;
+    string[] tempStrings = SplitString(text_, "/"); //use / for newlines instead of [r]
+    string tempString = "";
+    char lastChar;
+    int waitTime;
+	
+	async{
+		while(!dialogEnd){
+			if(sentenceEnd){ObjSound_Play(sound); wait(6); continue;}
+			else if (sentenceEndLong){ObjSound_Play(sound); wait(30); continue;}
+			else{ObjSound_Play(sound); wait(3);}
+		}
+	}
+	
+    if (GetVirtualKeyState(VK_OK) == KEY_PUSH) { //Prevents skipping the yield
+        SetVirtualKeyState(VK_OK, KEY_FREE);
+    }
+	
+    ascent (i in 0..length(tempStrings)) { //list of substrings
+        ascent (j in 0..length(tempStrings[i])) { //for each character in a substring
+            tempString ~= [tempStrings[i][j]];
+            lastChar = tempString[-1];
+            ObjText_SetText(obj_, tempString);
+			if([tempStrings[i][j]] == "." ||
+			[tempStrings[i][j]] == "," ||
+			[tempStrings[i][j]] == "!" ) {sentenceEnd = true; sentenceEndLong = false; wait(10);}
+			else if ([tempStrings[i][j]] == "|") {sentenceEnd = false; sentenceEndLong = true; wait(30);} // long pause
+			else {wait(1); sentenceEnd = false; sentenceEndLong = false;}
+        }
+        tempString ~= ['[','r',']']; //append a newline after each substring
+    }
+	
+	dialogEnd = true;
+	wait(30);
+
+}
+
+// Simple text object creation (adapted from mkm)
+
+function CreateTextObject(
+	float mx, my, size,
+	string text, font,
+	int colorTop, colorBottom,
+	int borderColor, borderWidth,
+	int renderPriority
+	){
+	
+	let obj = ObjText_Create();
+	ObjText_SetText(obj, text);
+	ObjText_SetFontSize(obj, size);
+	ObjText_SetFontType(obj, font);
+	ObjText_SetFontColorTop(obj, colorTop);
+	ObjText_SetFontColorBottom(obj, colorBottom);
+	ObjText_SetFontBorderType(obj, BORDER_FULL);
+	ObjText_SetFontBorderColor(obj, borderColor);
+	ObjText_SetFontBorderWidth(obj, borderWidth);
+	Obj_SetRenderPriorityI(obj, renderPriority);
+	ObjRender_SetX(obj, mx);
+	ObjRender_SetY(obj, my);
+	return obj;
+	
+}
+
+// Simple 2D image creation
+
+function <int> _Create2DImage(imgpath, int rectleft, int recttop, int rectright, int rectbottom){
+		
+	int imgname = ObjPrim_Create(OBJ_SPRITE_2D);
+	ObjPrim_SetTexture(imgname, imgpath);
+	ObjSprite2D_SetSourceRect(imgname, rectleft, recttop, rectright, rectbottom);
+	ObjSprite2D_SetDestCenter(imgname);
+	//ObjRender_SetPosition(imgname, positionstart)
+	
+	return imgname;
+}
+
+// Overload that uses arrays instead
+
+function shuffle(var array)
+{
+    int[] _arr = [];
+    for (int i = length(array) - 1; i >= 0; i--) {
+        var num = rand_int(0, i);
+        _arr ~= [array[num]];
+        array = erase(array, num);
+    }
+    return _arr;
+}
+
+function <int> _Create2DImage(imgpath, int[] rectarray){
+		
+	int imgname = ObjPrim_Create(OBJ_SPRITE_2D);
+	ObjPrim_SetTexture(imgname, imgpath);
+	ObjSprite2D_SetSourceRect(imgname, rectarray);
+	ObjSprite2D_SetDestCenter(imgname);
+	//ObjRender_SetPosition(imgname, positionstart)
+	
+	return imgname;
+}
+
+// Overload with texture load option 
+
+function <int> _Create2DImage(imgpath, int[] rectarray, bool loadEx){
+		
+	if(loadEx){LoadTextureEx(imgpath, true, true);}
+
+	int imgname = ObjPrim_Create(OBJ_SPRITE_2D);
+	ObjPrim_SetTexture(imgname, imgpath);
+	ObjSprite2D_SetSourceRect(imgname, rectarray);
+	ObjSprite2D_SetDestCenter(imgname);
+	//ObjRender_SetPosition(imgname, positionstart)
+	
+	return imgname;
+	
+}
+
+
+// Task to make bullet fade after a certain time, bullet loses hitbox while fading
+
+task _EnemyShotFade(int target, int time, bool fadedelay, float delaymultiplier){
+	ObjShot_SetDeleteFrame(target, time);
+	if (fadedelay){
+		wait(time-time/delaymultiplier);
+		ObjShot_SetIntersectionEnable(target, false);
+		ascent(i in 0..time/delaymultiplier){
+			ObjRender_SetAlpha(target, Interpolate_Smoother(ObjRender_GetAlpha(target), 0, i/(time/delaymultiplier)));
+			yield;
+		}
+	}
+	else{
+		ascent(i in 0..time){
+			ObjRender_SetAlpha(target, Interpolate_Smoother(ObjRender_GetAlpha(target), 0, i/time));
+			yield;
+		}
+	}
+	return;
+}
+
+// Delay function by Naudiz
+
+task _Delay(target, del){
+
+	ObjShot_SetDelay(target, del);
+	ObjShot_SetDelayGraphic(target, ObjShot_GetImageID(target)); // unless you already have the ID in the function somewhere, in which case you can just use that, or use any other graphic
+	ObjShot_SetDelayMode(target, DELAY_LERP, LERP_ACCELERATE, LERP_DECELERATE); // delay mode, scale lerp, alpha lerp (these are the modes I use in my entry)
+	ObjShot_SetDelayColoringEnable(target, true);
+	ObjShot_SetDelayScaleParameter(target, 1, 2, del); // lerps from 2 to 1 scale in del frames (use the value from ObjShot_SetDelay for del)
+	ObjShot_SetDelayAlphaParameter(target, 1, 0, del); // lerps from 0 to 1 (255) alpha in del frames
+	
+	return;
+}
+
+function _CreateWarningSign(float x, float y, int warnTime, float scale){
+	
+	int sign = CreateShotA1(x, y, 0, 270, KEV_WARNING, 0);
+
+	Obj_SetRenderPriorityI(sign, 45);
+	ObjShot_SetAutoDelete(sign, false);
+	ObjShot_SetSpellResist(sign, true);
+	ObjRender_SetAngleZ(sign, 0);
+	ObjShot_SetIntersectionEnable(sign, false);
+	ObjRender_SetScaleXYZ(sign, scale);
+
+	async{
+		ascent(i in 0..warnTime){
+			yield;
+		}
+		Obj_Delete(sign);
+	}
+
+	return sign;
+	
+}
+
+function _CreateStaticScene(float x, float y, int warnTime, float scale){
+	
+	int sign = CreateShotA1(x, y, 0, 270, KEV_STATIC, 0);
+
+	Obj_SetRenderPriorityI(sign, 85);
+	ObjShot_SetAutoDelete(sign, false);
+	ObjShot_SetSpellResist(sign, true);
+	ObjRender_SetAngleZ(sign, 0);
+	ObjShot_SetIntersectionEnable(sign, false);
+	ObjRender_SetScaleXYZ(sign, scale);
+
+	async{
+		ascent(i in 0..warnTime){
+			yield;
+		}
+		Obj_Delete(sign);
+	}
+
+	return sign;
+	
+}
+
+// Overloads by me
+
+
+
+task _Delay(target, del, orgscale, destscale, orgalpha, destalpha, scalelerp, alphalerp){
+
+	ObjShot_SetDelay(target, del);
+	ObjShot_SetDelayGraphic(target, ObjShot_GetImageID(target)); 
+	ObjShot_SetDelayColoringEnable(target, true);
+	ObjShot_SetDelayMode(target, DELAY_LERP, scalelerp, alphalerp); 
+	ObjShot_SetDelayScaleParameter(target, destscale, orgscale, del); 
+	ObjShot_SetDelayAlphaParameter(target, destalpha, orgalpha, del);
+	return;
+	
+}
+
+task _Delay(target, del, orgscale, destscale, orgalpha, destalpha){
+
+	ObjShot_SetDelay(target, del);
+	ObjShot_SetDelayGraphic(target, ObjShot_GetImageID(target)); 
+	ObjShot_SetDelayColoringEnable(target, true);
+	ObjShot_SetDelayMode(target, DELAY_LERP, LERP_ACCELERATE, LERP_DECELERATE); 
+	ObjShot_SetDelayScaleParameter(target, destscale, orgscale, del); 
+	ObjShot_SetDelayAlphaParameter(target, destalpha, orgalpha, del);
+	return;
+	
+}
+
+task _Delay(target, del, orgscale, orgalpha){
+
+	ObjShot_SetDelay(target, del);
+	ObjShot_SetDelayGraphic(target, ObjShot_GetImageID(target));
+	ObjShot_SetDelayColoringEnable(target, true); 
+	ObjShot_SetDelayMode(target, DELAY_LERP, LERP_ACCELERATE, LERP_DECELERATE); 
+	ObjShot_SetDelayScaleParameter(target, 1, orgscale, del); 
+	ObjShot_SetDelayAlphaParameter(target, 1, orgalpha, del);
+	return;
+	
+}
+
+
+
+
+
+// Item drop functions. 
+
+// By Neck_Logo
+
+task _CreateCustomTelegraphLine( 
+		float posX_, float posY_, int renderPriority,
+		float initAngle_, float destAngle_,
+		float initLength_, float destLength_,
+		float initWidth_, float destWidth_,
+		int color_, int maxAlpha_,
+		float growthTime_, float lifeTime_, float fadeTime_
+	) 
+
+	{
+	int scene = GetEnemyBossSceneObjectID();
+
+	let _shotF_Telegraph_Line = ObjParticleList_Create(OBJ_PARTICLE_LIST_2D);
+	ObjPrim_SetTexture(_shotF_Telegraph_Line, invalid);
+	
+	Obj_SetRenderPriorityI(_shotF_Telegraph_Line, renderPriority);
+	ObjPrim_SetPrimitiveType(_shotF_Telegraph_Line, PRIMITIVE_TRIANGLELIST);
+	ObjPrim_SetVertexCount(_shotF_Telegraph_Line, 4);
+	
+	ObjRender_SetBlendType(_shotF_Telegraph_Line, BLEND_ALPHA);
+	
+	// 
+	
+	float dU = 0.5, dV = 0.5;
+	// Left-top, right-top, left-bottom, right-bottom
+	
+	ObjPrim_SetVertexUVT(_shotF_Telegraph_Line, 0, 0, 0);
+	ObjPrim_SetVertexUVT(_shotF_Telegraph_Line, 1, 1, 0);
+	ObjPrim_SetVertexUVT(_shotF_Telegraph_Line, 2, 0, 1);
+	ObjPrim_SetVertexUVT(_shotF_Telegraph_Line, 3, 1, 1);
+	
+	// Vertex positions are offset with deltas so that the sprite is centered
+	
+	ObjPrim_SetVertexPosition(_shotF_Telegraph_Line, 0, -dU, -dV, 1);
+	ObjPrim_SetVertexPosition(_shotF_Telegraph_Line, 1, dU, -dV, 1);
+	ObjPrim_SetVertexPosition(_shotF_Telegraph_Line, 2, -dU, dV, 1);
+	ObjPrim_SetVertexPosition(_shotF_Telegraph_Line, 3, dU, dV, 1);
+	
+	ObjPrim_SetVertexIndex(_shotF_Telegraph_Line, [0, 1, 2, 1, 2, 3]);
+	
+	float angle = initAngle_;
+	float span = initLength_;
+	float width = initWidth_;
+	int alpha = 0;
+
+	//_CreateParticleList();
+	_TelegraphLineControl();
+
+	if(scene != ID_INVALID){
+	// growth phase
+		for (int i = 1; i <= growthTime_ && 0 < ObjEnemyBossScene_GetInfo(scene, INFO_ACTIVE_STEP_TOTAL_LIFE); i++) {
+			width = Interpolate_Decelerate(initWidth_, destWidth_, i / growthTime_);
+			span = Interpolate_Decelerate(initLength_, destLength_, i / (growthTime_));
+			alpha = Interpolate_Decelerate(0, maxAlpha_+32, i / growthTime_);
+			RenderTelegraphLine();
+			yield;
+		}
+
+		// static phase
+		for (int j = 1; j <= lifeTime_ && 0 < ObjEnemyBossScene_GetInfo(scene, INFO_ACTIVE_STEP_TOTAL_LIFE); j++) {
+			RenderTelegraphLine();
+			yield;
+		}
+
+		if (!(0 < ObjEnemyBossScene_GetInfo(scene, INFO_ACTIVE_STEP_TOTAL_LIFE))) fadeTime_ = min(fadeTime_, 25);
+	
+	}
+	
+	else{
+		for (int i = 1; i <= growthTime_ ; i++) {
+			width = Interpolate_Decelerate(initWidth_, destWidth_, i / growthTime_);
+			span = Interpolate_Decelerate(initLength_, destLength_, i / (growthTime_));
+			alpha = Interpolate_Decelerate(0, maxAlpha_+32, i / growthTime_);
+			RenderTelegraphLine();
+			yield;
+		}
+		
+				// static phase
+		for (int j = 1; j <= lifeTime_; j++) {
+			RenderTelegraphLine();
+			yield;
+		}
+		
+	}
+
+	destWidth_ = width;
+	maxAlpha_ = alpha;
+
+	// deletion phase
+	for (int k = 1; k <= fadeTime_; k++) {
+		width = Interpolate_Accelerate(destWidth_, destWidth_ - (destWidth_ - initWidth_) / 2, k / fadeTime_);
+		alpha = Interpolate_Accelerate(maxAlpha_+32, 0, k / fadeTime_);
+		RenderTelegraphLine();
+		yield;
+	}
+	
+	Obj_Delete(_shotF_Telegraph_Line);
+
+	task _TelegraphLineControl() {
+		for (int l = 1; l <= growthTime_ + lifeTime_; l++) {
+			angle = Interpolate_Decelerate(initAngle_, destAngle_, l / (growthTime_ + lifeTime_));
+			yield;
+		}
+	}
+	
+	function <void> RenderTelegraphLine() {
+		
+		float midX = posX_ + span * cos(angle) + (width / 2) * cos(angle + 90);
+		float midY = posY_ + span * sin(angle) + (width / 2) * sin(angle + 90);
+		
+		ObjParticleList_SetPosition(_shotF_Telegraph_Line, midX, midY, 1);
+		ObjParticleList_SetScale(_shotF_Telegraph_Line, span, width, 1);
+		ObjParticleList_SetAngleZ(_shotF_Telegraph_Line, angle);
+		ObjParticleList_SetColor(_shotF_Telegraph_Line, color_);
+		ObjParticleList_SetAlpha(_shotF_Telegraph_Line, alpha);
+		ObjParticleList_AddInstance(_shotF_Telegraph_Line);
+		
+	}
+	
+	//return _shotF_Telegraph_Line;
+}
+
+task _CreateBulletColourShader(){
+
+	int obj = ObjShader_Create();
+
+	ObjShader_SetShaderF(obj, "script/KevinSystem/shaders/colour/pool.hlsl");
+	ObjShader_SetTechnique(obj, "render");
+
+	SetCommonDataPtr(POINTER_SHOTSHADER, obj);
+
+}
+
+_CreateBulletColourShader();

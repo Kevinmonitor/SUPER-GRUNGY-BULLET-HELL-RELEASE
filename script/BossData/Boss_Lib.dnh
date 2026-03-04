@@ -1,0 +1,383 @@
+// Explosion Sound Effects
+string texMidboss = "script/BossData/Midboss/Midboss_Sheet.png";
+LoadTextureEx(texMidboss, true, true);
+	
+string texBoss = "script/BossData/Boss/thisBitch.png";
+LoadTextureEx(texBoss, true, true);
+
+string texBossEffect = "script/BossData/Boss/itsahomosexual.png";
+LoadTextureEx(texBossEffect, true, true);
+
+int[] playerSilhouettes = [
+	_Create2DImage(texBossEffect, [700, 0, 840, 170]),
+	_Create2DImage(texBossEffect, [865, 0, 865+96, 115]),
+	_Create2DImage(texBossEffect, [854, 144, 976, 288]),
+	_Create2DImage(texBossEffect, [865, 0, 865+96, 115])
+];
+
+int bossSilhouette = _Create2DImage(texBossEffect, [0, 0, 720, 540]);
+ObjRender_SetAlpha(bossSilhouette, 0);
+
+ObjRender_SetScaleXYZ(bossSilhouette, 0.375);
+ObjRender_SetScaleXYZ(playerSilhouettes[0], 1.1);
+ObjRender_SetScaleXYZ(playerSilhouettes[1], 1.4);
+ObjRender_SetScaleXYZ(playerSilhouettes[1], 1.1);
+
+ascent(i in 0..4){
+	ObjRender_SetAlpha(playerSilhouettes[i], 0);
+}
+
+task _RenderMidboss(int enemy){
+	
+	int frame = 0;
+	int idleframes = 5;
+
+	int nameText = CreateTextObject(
+		16, 12, 18,
+		"Starry-Eyed Cosmographer [Noah]", "Bedstead",
+		0x0B9849, 0xFFFFFF,
+		0x000000, 3,
+		78
+	);
+	
+	ObjText_SetFontBold(nameText, true);
+	ObjPrim_SetTexture(enemy, texMidboss);
+	ObjSprite2D_SetSourceRect(enemy, 0, 0, 244, 288);
+	ObjSprite2D_SetDestCenter(enemy);
+	ObjRender_SetScaleXYZ(enemy, 0.75);
+	ObjRender_SetTextureFilterMin(enemy, FILTER_LINEAR);
+	Obj_SetRenderPriorityI(enemy, 41);
+
+	_EnemyRenderIdle(enemy, 5, 0, 288, 244, 288, 6);
+	
+}
+
+task _RenderBoss(int enemy){
+	
+	int frame = 0;
+	int idleframes = 5;
+
+	int nameText = CreateTextObject(
+		16, 12, 18,
+		"Reverent Runaway [Amadeus]", "Bedstead",
+		0x8034D3, 0xFFFFFF,
+		0x000000, 3,
+		78
+	);
+	
+	ObjText_SetFontBold(nameText, true);
+	ObjPrim_SetTexture(enemy, texBoss);
+	ObjSprite2D_SetSourceRect(enemy, 0, 0, 720, 540);
+	ObjSprite2D_SetDestCenter(enemy);
+	ObjRender_SetScaleXYZ(enemy, 0.375);
+	ObjRender_SetTextureFilterMin(enemy, FILTER_LINEAR);
+	Obj_SetRenderPriorityI(enemy, 41);
+
+	if (GetAreaCommonData("Ingame", "IsExpandFrame", false)){
+		ObjRender_SetX(nameText, 336+16);
+	}
+
+	_EnemyRenderIdle(enemy, 5, 0, 0, 720, 540, 6);
+
+}
+
+task _RenderBossLife(int enemy){
+
+	int objScene = GetEnemyBossSceneObjectID();
+
+	int HPText = CreateTextObject(
+		STG_WIDTH - 16, 24, 24,
+		"", "Aquire",
+		0xBA8AFF, 0xFFFFFF,
+		0x552A9C, 3,
+		49
+	);
+
+	ObjText_SetFontBold(HPText, true);
+	ObjText_SetHorizontalAlignment(HPText, ALIGNMENT_CENTER);
+
+	async{
+		while(ObjEnemyBossScene_GetInfo(objScene, INFO_CURRENT_LIFE) > 0){
+			
+			ObjRender_SetPosition(HPText, ObjMove_GetX(enemy), ObjMove_GetY(enemy)+64, 1);
+			ObjText_SetText(HPText, IntToString(ObjEnemyBossScene_GetInfo(objScene, INFO_CURRENT_LIFE)) ~ " | " ~ IntToString(ObjEnemyBossScene_GetInfo(objScene, INFO_CURRENT_LIFE_MAX)));
+			yield;
+
+		}
+		ObjText_SetText(HPText, "");
+	}
+
+}
+
+task _RenderSpellDetails(string attackName){
+
+	int objScene = GetEnemyBossSceneObjectID();
+
+	int nameText = CreateTextObject(
+		STG_WIDTH - 16, 64, 18,
+		attackName, "Bedstead",
+		0xDDD4FF, 0xFFFFFF,
+		0x2D0075, 3.5,
+		31
+	);
+	
+	int bonusText = CreateTextObject(
+		STG_WIDTH - 16, 90, 18,
+		attackName, "Bedstead",
+		0xBA8AFF, 0xFFFFFF,
+		0x000000, 3,
+		31
+	);
+
+	int timeText = CreateTextObject(
+		16, 90, 18,
+		"", "Bedstead",
+		0x3753FF, 0xFFFFFF,
+		0x000000, 3,
+		31
+	);
+
+	int bonusText1 = CreateTextObject(
+		STG_WIDTH/2, STG_HEIGHT/3, 32,
+		"", "Bedstead",
+		0xFFA337, 0xFFFFFF,
+		0x000000, 6,
+		60
+	);
+	int bonusText2 = CreateTextObject(
+		STG_WIDTH/2, STG_HEIGHT/3 + 32, 60,
+		"", "Bedstead",
+		0xFFA337, 0xFFFFFF,
+		0x5D2408, 6,
+		60
+	);
+
+	ObjText_SetFontBold(nameText, true);
+	ObjText_SetHorizontalAlignment(nameText, ALIGNMENT_RIGHT);
+	ObjText_SetHorizontalAlignment(bonusText, ALIGNMENT_RIGHT);
+	ObjText_SetHorizontalAlignment(timeText, ALIGNMENT_LEFT);
+
+	ObjText_SetHorizontalAlignment(bonusText1, ALIGNMENT_CENTER);
+	ObjText_SetHorizontalAlignment(bonusText2, ALIGNMENT_CENTER);
+	
+	int[] textArray = [nameText, bonusText, timeText];
+	float[] textXArray = [STG_WIDTH - 16, STG_WIDTH - 16, 16];
+	float[] expandFrameXArray = [944 - 16, 944 - 16, 336 + 16];
+	int indexArray = 0;
+
+	for each (int text in textArray){
+		
+		Obj_SetRenderPriorityI(text, 78);
+		
+		if (GetAreaCommonData("Ingame", "IsExpandFrame", false)){
+			ObjRender_SetX(text, expandFrameXArray[indexArray]);
+		}
+
+		indexArray++;
+
+	}
+
+	async{
+
+		while(ObjEnemyBossScene_GetInfo(objScene, INFO_CURRENT_LIFE) > 0){
+			
+			ObjText_SetText(timeText, "TIME: " ~ rtos("000.00", ObjEnemyBossScene_GetInfo(objScene, INFO_TIMERF)/60));
+
+			for each (int text in textArray){
+				if(GetPlayerY() <= STG_HEIGHT/3){
+					ObjRender_SetAlpha(text, 120);
+				}	
+				else{
+					ObjRender_SetAlpha(text, 255);
+				}
+			}
+
+			let score = trunc(GetCommonDataPtr(POINTER_SPELLSCORE, 10000000)/10) * 10;
+			score = min(score,999999999990);
+			let yass = DigitToCommaArray(score);
+			ObjText_SetText(bonusText, "BONUS: " ~ yass);
+
+			yield;
+		}
+
+		//ObjText_SetText(bonusText, "");
+		ObjText_SetText(bonusText1, "BOSS ATTACK BONUS!");
+		ObjText_SetText(bonusText2, "+" ~ DigitToCommaArray(trunc(GetCommonDataPtr(POINTER_SPELLSCORE, 10000000)/10) * 10));
+		
+		ascent(i in 0..25){
+			ObjRender_SetY(bonusText1, FUNC_LERP_DECEL(STG_HEIGHT/3 + 64, STG_HEIGHT/3 - 92, i/25));
+			ObjRender_SetY(bonusText2, FUNC_LERP_DECEL(STG_HEIGHT/3 + 96, STG_HEIGHT/3 + 32 - 92, i/25));
+			yield;
+		}
+
+		wait(40);
+
+		Obj_Delete(bonusText1);
+		Obj_Delete(bonusText2);
+
+	}
+
+}
+
+// NOT USED?????
+
+task _RenderSpellDetails(string attackName, int bonusOffset){
+
+	int objScene = GetEnemyBossSceneObjectID();
+
+	int nameText = CreateTextObject(
+		STG_WIDTH - 16, 64, 18,
+		attackName, "Bedstead",
+		0xDDD4FF, 0xFFFFFF,
+		0x2D0075, 3.5,
+		31
+	);
+	
+	int bonusText = CreateTextObject(
+		STG_WIDTH - 16, 90+bonusOffset, 18,
+		attackName, "Bedstead",
+		0xBA8AFF, 0xFFFFFF,
+		0x000000, 3,
+		31
+	);
+
+	int timeText = CreateTextObject(
+		16, 90+bonusOffset, 18,
+		"", "Bedstead",
+		0x3753FF, 0xFFFFFF,
+		0x000000, 3,
+		31
+	);
+
+	int bonusText1 = CreateTextObject(
+		STG_WIDTH/2, STG_HEIGHT/3, 32,
+		"", "Bedstead",
+		0xFFA337, 0xFFFFFF,
+		0x000000, 6,
+		60
+	);
+	int bonusText2 = CreateTextObject(
+		STG_WIDTH/2, STG_HEIGHT/3 + 32, 60,
+		"", "Bedstead",
+		0xFFA337, 0xFFFFFF,
+		0x5D2408, 6,
+		60
+	);
+
+	ObjText_SetFontBold(nameText, true);
+	ObjText_SetHorizontalAlignment(nameText, ALIGNMENT_RIGHT);
+	ObjText_SetHorizontalAlignment(bonusText, ALIGNMENT_RIGHT);
+	ObjText_SetHorizontalAlignment(timeText, ALIGNMENT_LEFT);
+
+	ObjText_SetHorizontalAlignment(bonusText1, ALIGNMENT_CENTER);
+	ObjText_SetHorizontalAlignment(bonusText2, ALIGNMENT_CENTER);
+	
+	int[] textArray = [nameText, bonusText, timeText];
+	float[] textXArray = [STG_WIDTH - 16, STG_WIDTH - 16, 16];
+	float[] expandFrameXArray = [944 - 16, 944 - 16, 336 + 16];
+	int indexArray = 0;
+
+	for each (int text in textArray){
+		
+		Obj_SetRenderPriorityI(text, 78);
+		
+		if (GetAreaCommonData("Ingame", "IsExpandFrame", false)){
+			ObjRender_SetX(text, expandFrameXArray[indexArray]);
+		}
+
+		indexArray++;
+
+	}
+
+	async{
+
+		while(ObjEnemyBossScene_GetInfo(objScene, INFO_CURRENT_LIFE) > 0){
+			
+			ObjText_SetText(timeText, "TIME: " ~ rtos("000.00", ObjEnemyBossScene_GetInfo(objScene, INFO_TIMERF)/60));
+
+			for each (int text in textArray){
+				if(GetPlayerY() <= STG_HEIGHT/3){
+					ObjRender_SetAlpha(text, 120);
+				}	
+				else{
+					ObjRender_SetAlpha(text, 255);
+				}
+			}
+
+			let score = trunc(GetCommonDataPtr(POINTER_SPELLSCORE, 10000000)/10) * 10;
+			score = min(score,999999999990);
+			let yass = DigitToCommaArray(score);
+			ObjText_SetText(bonusText, "BONUS: " ~ yass);
+
+			yield;
+		}
+
+		//ObjText_SetText(bonusText, "");
+		ObjText_SetText(bonusText1, "BOSS ATTACK BONUS!");
+		ObjText_SetText(bonusText2, "+" ~ DigitToCommaArray(trunc(GetCommonDataPtr(POINTER_SPELLSCORE, 10000000)/10) * 10));
+		
+		ascent(i in 0..25){
+			ObjRender_SetY(bonusText1, FUNC_LERP_DECEL(STG_HEIGHT/3 + 64, STG_HEIGHT/3 - 92, i/25));
+			ObjRender_SetY(bonusText2, FUNC_LERP_DECEL(STG_HEIGHT/3 + 96, STG_HEIGHT/3 + 32 - 92, i/25));
+			yield;
+		}
+
+		wait(40);
+
+		Obj_Delete(bonusText1);
+		Obj_Delete(bonusText2);
+
+	}
+
+}
+
+task _SpellScoreHandling(){
+
+	// Decrease score per frame
+	int objScene = GetEnemyBossSceneObjectID();
+	int maxSpellScore = GetCommonDataPtr(POINTER_SPELLSCORE, 10000000);
+	int minSpellScore = GetCommonDataPtr(POINTER_SPELLSCORE, 10000000)/10;
+	int reductionPerFrame = (maxSpellScore - minSpellScore)/ObjEnemyBossScene_GetInfo(objScene, INFO_ORGTIMERF);
+
+	async{
+		int frame = 0;
+		while(ObjEnemyBossScene_GetInfo(objScene, INFO_CURRENT_LIFE) > 0){
+			frame++;
+			frame = clamp(frame, 0, ObjEnemyBossScene_GetInfo(objScene, INFO_ORGTIMERF));
+			SetCommonDataPtr(POINTER_SPELLSCORE, GetCommonDataPtr(POINTER_SPELLSCORE, 10000000)-reductionPerFrame);
+			SetCommonDataPtr(POINTER_SPELLSCORE, clamp(GetCommonDataPtr(POINTER_SPELLSCORE, 10000000), minSpellScore, maxSpellScore));
+			yield;
+		}
+		AddScore(GetCommonDataPtr(POINTER_SPELLSCORE, 10000000));
+	}
+
+	// -25% if burst, -50% if take damage
+	async{
+		while(ObjEnemyBossScene_GetInfo(objScene, INFO_CURRENT_LIFE) > 0){
+			if(
+				GetPlayerState() == STATE_DOWN &&
+				ObjEnemyBossScene_GetInfo(objScene, INFO_TIMERF) <= ObjEnemyBossScene_GetInfo(objScene, INFO_ORGTIMERF) - 30
+			){
+				SetCommonDataPtr(POINTER_SPELLSCORE, GetCommonDataPtr(POINTER_SPELLSCORE, 10000000) * 0.5);
+				wait(90);
+			}
+			if(
+				GetCommonDataPtr(POINTER_BURSTGAUGE, 0) >= 100 &&
+				GetVirtualKeyState(VK_SPELL) == KEY_PUSH &&
+				GetCommonDataPtr(POINTER_BURSTMODE, false) == false
+				)
+			{
+				SetCommonDataPtr(POINTER_SPELLSCORE, GetCommonDataPtr(POINTER_SPELLSCORE, 10000000) * 0.75);
+				wait(90);				
+			}
+			yield;
+		}
+	}
+
+}
+
+// boss stuff
+
+task _LoadBossImages(){
+
+}

@@ -1,0 +1,21 @@
+// banger
+
+#TouhouDanmakufu[Package]
+#ScriptVersion[3]
+#Title["what are you doing here?"]
+#Text["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+
+@Initialize{
+
+    //AddArchiveFile(GetModuleDirectory() ~ "script/KevinSystem/KevinSystem.dat");
+    //AddArchiveFile(GetModuleDirectory() ~ "script/BossData.dat");
+    //AddArchiveFile(GetModuleDirectory() ~ "script/StageData.dat");
+    //AddArchiveFile(GetModuleDirectory() ~ "script/KevinSystem.dat");
+    //AddArchiveFile(GetModuleDirectory() ~ "script/game.dat");
+    //AddArchiveFile(GetModuleDirectory() ~ "script/player.dat");
+    //AddArchiveFile(GetModuleDirectory() ~ "script/default_system.dat");
+    
+    let s = LoadScript("script/GayGunner_Package.dnh");
+    StartScript(s);
+
+}

@@ -1,0 +1,141 @@
+#TouhouDanmakufu[Plural]
+#ScriptVersion[3]
+#Title["BOSS PART 2 Plural"]
+#Text["pilk"]
+#System["script/KevinSystem/Kevin_System.dnh"] 
+
+let csd = GetCurrentScriptDirectory();
+
+let obj = ObjEnemyBossScene_Create();
+
+// debug
+int curDiff = 1;
+
+int LifeStart = GetCommonData("Starting Lives", 2);
+
+string DATA_PLAYER = "";
+string DATA_DIFFICULTY = "";
+
+int objBGM = ObjSound_Create();
+float BGMRateBoss = GetAreaCommonData("Config", "BGMVol", 100) * 0.01;
+
+#include "script/KevinSystem/Universal_Lib.dnh"
+#include "script/KevinSystem/SystemScripts/Lib_Const.dnh"
+#include "script/StageData/Stage_Enemies.dnh"
+#include "script/GrungyStageData/Boss_Background.dnh"
+
+@Event{
+	
+	alternative(GetEventType)
+    case(EV_BOSS_START_V1){
+        ObjSound_Seek(objBGM, 0.01);
+        ObjSound_Play(objBGM);
+    }
+
+	case(EV_APP_LOSE_FOCUS){
+		NotifyEventAll(EV_PAUSE_ENTER);
+	}
+	
+	// DEBUG
+	case(EV_PAUSE_ENTER){
+		ObjSound_Stop(objBGM);
+	}
+
+	case(EV_PAUSE_LEAVE){
+		ObjSound_Play(objBGM);
+	}
+
+	case(EV_BOSS_ATTACK_CLEAR)
+	{
+		
+		float[] pos = GetEventArgument(0);
+		LargeExplosion_Cancel_Boss(pos, 180, 15);
+
+	}
+
+	case(EV_START_TRUE_FORM){
+		Background();
+	}
+
+	case(EV_END_TRUE_FORM){
+		SetCommonData("TrueBossReveal", false);
+	}
+
+	case(EV_PLAYER_SHOOTDOWN){
+		if(GetPlayerLife() < 0){
+			ObjSound_Stop(objBGM);
+		}
+	}
+
+}
+
+@Initialize{
+
+	SetEnemyAutoDeleteClip(64, 64, 64, 64);
+
+	// debug
+	ObjSound_Load(objBGM, "script/GrungyBossData/bossThemeFull.ogg");
+	ObjSound_SetSoundDivision(objBGM, SOUND_BGM);
+	ObjSound_SetResumeEnable(objBGM, true);
+	ObjSound_SetVolumeRate(objBGM, 65 * BGMRateBoss);
+	//ObjSound_SetLoopEnable(objBGM, true);
+
+	// do this so we don't need to rely on events
+	SetCommonData("currentBossSong", objBGM);
+
+	if(!IsCommonDataAreaExists("Ingame")){
+		CreateCommonDataArea("Ingame");
+		SetAreaCommonData("Ingame", "currentvalue", 1000);
+		SetAreaCommonData("Ingame", "ChainAmount", 1);
+	}
+	else{
+		SetAreaCommonData("Ingame", "ChainAmount", 1);
+		SetAreaCommonData("Ingame", "currentvalue", 1000);
+	}
+	
+	
+	SetAutoDeleteObject(true);
+
+	// int tex2 = _Create2DImage("script/BossData/Boss/bossSplash.png", [600, 0, 1350, 1900]);
+
+    // Obj_SetRenderPriorityI(tex2, 80);
+    // ObjRender_SetAlpha(tex2, 90);
+    // //ObjRender_SetAngleZ(tex2, 0);
+	// ObjRender_SetScaleXYZ(tex2, 0.75);
+    // ObjRender_SetPosition(tex2, 1235, 500, 0);
+
+	PluralTask();	
+
+}
+
+@MainLoop{    
+	yield;
+}
+
+@Finalize
+{
+}
+
+task PluralTask(){
+	// Registering individual singles
+
+	ObjEnemyBossScene_Add(obj, 0, csd ~ "boss_phase1.dnh");
+	ObjEnemyBossScene_Add(obj, 1, csd ~ "boss_phase2.dnh");
+	ObjEnemyBossScene_Add(obj, 2, csd ~ "boss_phase3.dnh");
+	ObjEnemyBossScene_Add(obj, 3, csd ~ "boss_phase4.dnh");
+	ObjEnemyBossScene_LoadInThread(obj);
+	
+	// Loading and registering the boss scene
+	ObjEnemyBossScene_Regist(obj);
+	
+	async{
+		while(GetPlayerState() != STATE_END){yield;}
+	}
+	
+	while(!Obj_IsDeleted(obj)){
+		yield;
+	}
+    
+	SetAutoDeleteObject(true);
+	CloseScript(GetOwnScriptID());
+}

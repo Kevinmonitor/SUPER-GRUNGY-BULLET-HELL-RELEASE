@@ -1,0 +1,20 @@
+shot_image = "./playercommon.png"
+
+ShotData{
+	id = 0 // Dummy
+	rect = (0,0,0,0)
+	render = ALPHA 
+	alpha = 0
+	collision = 24
+}
+
+// Shot
+
+ShotData{
+	id = 99
+	rect = (0, 64, 64, 128)
+	render = ALPHA
+	alpha = 255
+	collision = 0
+	angular_velocity = 12
+}

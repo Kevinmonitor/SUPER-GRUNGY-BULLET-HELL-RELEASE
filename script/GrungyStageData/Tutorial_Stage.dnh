@@ -1,0 +1,421 @@
+#TouhouDanmakufu[Stage]
+#ScriptVersion[3]
+#Title["Tutorial Stage"]
+#Text["dead"]
+#System["script/KevinSystem/Kevin_System.dnh"] 
+
+#include "script/KevinSystem/Universal_Lib.dnh"
+#include "script/KevinSystem/SystemScripts/Lib_Const.dnh"
+
+#include "./Stage_Background.dnh"
+#include "./Stage_Enemies.dnh"
+#include "./Tutorial_EnemyWaves.dnh"
+#include "./Stage_Values.dnh"
+
+bool postMidbossBGStart = false;
+
+int transition = _Create2DImage("script/JamTexture/Mystia_BossTransition.png", [0, 0, 320, 240]);
+int transitionEnd = _Create2DImage("script/JamTexture/Mystia_BossTransitionEnd.png", [0, 0, 320, 240]);
+int transitionEnd2 = _Create2DImage("script/JamTexture/Mystia_BossTransitionEnd.png", [0, 0, 320, 240]);
+Obj_SetVisible(transition, false);
+Obj_SetVisible(transitionEnd, false);
+Obj_SetVisible(transitionEnd2, false);
+
+int LifeStart = GetCommonData("Starting Lives", 2);
+int curDiff = 1;
+int curRank = 0;
+float curRankSpeed = 1.0;
+
+bool stageStart = false;
+bool bossStart = false;
+float BGMRate = GetAreaCommonData("Config", "BGMVol", 100) * 0.01;
+
+//let obj = ObjEnemyBossScene_Create();
+int objBGM = ObjSound_Create();
+int objBGMBoss = ObjSound_Create();
+
+string DATA_PLAYER = "";
+string DATA_DIFFICULTY = "";
+
+bool bossRoomBGStart = false;
+bool bossRoomTransitionBGStart = false;
+bool bossRoomTransitionBGMiddle = false;
+bool bossBGStart = false;
+
+int hiScore = 0;
+
+@Initialize
+{
+
+    SetPlayerLife(999);
+	SetEnemyAutoDeleteClip(48, 48, 48, 48);
+
+    ObjSound_Load(objBGM, "script/StageData/StageLib/stageMusic/tutorial_theme.ogg");
+	ObjSound_SetSoundDivision(objBGM, SOUND_BGM);
+	ObjSound_SetResumeEnable(objBGM, true);
+	ObjSound_SetLoopEnable(objBGM, true);
+	//ObjSound_SetLoopTime(objBGM, 1.512, 141.670);
+	
+	ObjSound_Load(objBGMBoss, "script/StageData/StageLib/stageMusic/boss_theme.ogg");
+	ObjSound_SetSoundDivision(objBGMBoss, SOUND_BGM);
+	ObjSound_SetResumeEnable(objBGMBoss, true);
+	ObjSound_SetLoopEnable(objBGMBoss, true);
+    //ObjSound_SetLoopTime(objBGMBoss, 0, 77.688);
+	
+	ObjSound_SetVolumeRate(objBGMBoss, 50*BGMRate);
+	ObjSound_SetVolumeRate(objBGM, 60*BGMRate);
+
+	curDiff = 4;
+	ManageRankLimits(curDiff, true);
+	curRankSpeed = RankSpeed[curDiff];
+
+	SetAreaCommonData("Ingame", "DifficultyNo", curDiff);
+	
+	hiScore = GetAreaCommonData("Data_" ~ PlayerName[GetAreaCommonData("Ingame", "PlayerNum")], "HighScore_" ~ GameMode[GetAreaCommonData("Ingame", "GameMode")] ~ "_" ~ DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo")], 0);
+
+	THiScore;
+	TDiffShow();
+
+	WriteLog(PlayerName[GetAreaCommonData("Ingame", "PlayerNum")]);
+	WriteLog(GameMode[GetAreaCommonData("Ingame", "GameMode")]);
+	WriteLog(DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo")]);
+
+    TStage();
+}
+
+@Event{
+
+	alternative (GetEventType())
+
+	case(EV_START_MUSIC){
+		stageStart = true;
+		ObjSound_Play(objBGM);
+	}
+
+	case(EV_FADE_NORMAL_BG){
+		bossRoomBGStart = true;
+	}
+
+    case(EV_FADE_STAGE_MUSIC){
+		ObjSound_SetFade(objBGM, -50);
+    }
+    
+    case(EV_FADE_BOSS_MUSIC){
+		ObjSound_SetFade(objBGMBoss, -50);
+    }
+
+	case(EV_BOSS_MUSIC){
+		bossStart = true;
+		ObjSound_Stop(objBGM);
+		ObjSound_Play(objBGMBoss);
+	}
+	
+	case(EV_PAUSE_ENTER){
+
+		if (stageStart) {
+			if(bossStart){
+				ObjSound_Stop(objBGMBoss);
+			}
+			else{
+				ObjSound_Stop(objBGM);
+			}
+		}
+
+	}
+
+	case(EV_BOSS_ATTACK_CLEAR)
+	{
+		
+		float[] pos = GetEventArgument(0);
+		
+		LargeExplosion_Cancel_Boss(pos, 180, 15);
+
+	}
+
+	case(EV_PAUSE_LEAVE){
+
+		if (stageStart) {
+			if(bossStart){
+				ObjSound_Play(objBGMBoss);
+			}
+			else{
+				ObjSound_Play(objBGM);
+			}
+		}
+
+	}
+
+	case(EV_END){
+		bossStart = false;
+		stageStart = false;
+		ObjSound_SetFade(objBGM, -50);
+		ObjSound_SetFade(objBGMBoss, -50);
+		SaveHiScore();
+	}
+
+}
+
+@MainLoop
+{
+	curRank = GetCommonDataPtr(POINTER_RANK, 1);
+	SetCommonDataPtr(POINTER_TRUERANK, GetCommonDataPtr(POINTER_TRUERANK, 1)+0.006*curRankSpeed);
+    yield;
+}
+
+@Finalize
+{
+}
+
+task THiScore(){
+ 	// New score system using rtos
+
+ 	// For score with zeroes at the end: Truncate score/10, and then multiply it by 10
+
+	if(IsReplay() || LifeStart > 2){return;}
+
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 30);
+	ObjText_SetFontBold(objScoreNo, false);
+	ObjText_SetFontType(objScoreNo, "Bedstead");
+	ObjText_SetFontColorTop(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontColorBottom(objScoreNo, 0xFFFFFF);
+	Obj_SetRenderPriorityI(objScoreNo, 82);
+	ObjText_SetSidePitch(objScoreNo, 4);
+	ObjText_SetFixedWidth(objScoreNo, 16);
+	ObjRender_SetPosition(objScoreNo, 963, 329, 0);
+
+	while(true){
+
+		let score = trunc(hiScore/10) * 10;
+		score = min(score,999999999990);
+
+		if(hiScore < GetScore()){
+			hiScore = GetScore();
+		}
+
+		let yass = DigitToCommaArray(score);
+		ObjText_SetText(objScoreNo, yass);
+		
+		yield;
+
+	}
+
+}
+
+task TDiffShow(){
+ 	// New score system using rtos
+
+ 	// For score with zeroes at the end: Truncate score/10, and then multiply it by 10
+
+	int color = [0xD67600, 0x36DC00, 0x0071DB, 0xDB0070, 0xA800DB][GetAreaCommonData("Ingame", "DifficultyNo", 0)];
+
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 24);
+	ObjText_SetFontBold(objScoreNo, true);
+	ObjText_SetFontType(objScoreNo, "Bedstead");
+	ObjText_SetFontColorTop(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontColorBottom(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontBorderColor(objScoreNo, color);
+	ObjText_SetFontBorderWidth(objScoreNo, 2);
+	ObjText_SetFontBorderType(objScoreNo, BORDER_FULL);
+	Obj_SetRenderPriorityI(objScoreNo, 82);
+	//ObjText_SetSidePitch(objScoreNo, 2);
+	ObjRender_SetPosition(objScoreNo, 963, 672, 0);
+	ObjText_SetText(objScoreNo, DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo", 0)]);
+
+}
+
+task CheckPlayerDeath(){
+
+    while(GetPlayerState() != STATE_END){yield;}
+
+	if(GetPlayerState() == STATE_END){
+		NotifyEventAll(EV_END, true);
+		loop(120){yield;}
+		//ステージ終了
+		CloseStgScene();
+	}
+
+}
+
+task TStage
+{
+	
+    let dir = GetCurrentScriptDirectory();
+
+	CheckPlayerDeath();
+	_TutorialBG();
+
+	wait(60);
+	NotifyEventAll(EV_START_MUSIC, 0);
+
+   	Tutorial1A();
+
+	wait(30);
+
+    NotifyEventAll(EV_END, 0);
+    wait(120);
+    //ステージ終了
+    CloseStgScene();
+}
+
+task StartStageTimer(){
+
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 24);
+	ObjText_SetFontBold(objScoreNo, true);
+	ObjText_SetFontType(objScoreNo, "Bedstead");
+	ObjText_SetFontColorTop(objScoreNo, 0xFFE698);
+	ObjText_SetFontColorBottom(objScoreNo, 0xFFE698);
+	Obj_SetRenderPriorityI(objScoreNo, 82);
+	ObjText_SetSidePitch(objScoreNo, 1);
+	ObjText_SetFixedWidth(objScoreNo, 12);
+	ObjRender_SetPosition(objScoreNo, 64, 48, 0);
+    ObjText_SetHorizontalAlignment(objScoreNo, ALIGNMENT_LEFT);
+
+	int frame = 0;
+	ObjText_SetText(objScoreNo, "stage frame " ~ ToString(frame));
+
+	while(true){
+
+		frame++;
+		ObjText_SetText(objScoreNo, "stage frame " ~ ToString(frame));
+		
+		yield;
+        
+	}
+
+}
+
+function SaveHiScore(){
+
+	if(!IsReplay() & LifeStart <= 2){
+		
+		if(hiScore > GetAreaCommonData("Data_" ~ PlayerName[GetAreaCommonData("Ingame", "PlayerNum")], 
+			"HighScore_" ~ GameMode[GetAreaCommonData("Ingame", "GameMode")] ~ "_" ~ DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo")], 0))
+		{
+			SetAreaCommonData("Data_" ~ PlayerName[GetAreaCommonData("Ingame", "PlayerNum")], 
+			"HighScore_" ~ GameMode[GetAreaCommonData("Ingame", "GameMode")] ~ "_" ~ DifficultyName[GetAreaCommonData("Ingame", "DifficultyNo")], 
+			hiScore);
+		}
+
+		else{
+
+		}
+	
+	}
+
+	SaveCommonDataAreaA2("Data_" ~ PlayerName[GetAreaCommonData("Ingame", "PlayerNum")], "script/SaveData/data_" ~ PlayerName[GetAreaCommonData("Ingame", "PlayerNum")] ~ ".dat");
+
+}
+
+function EndBonus(){
+
+	function <void> _CreateBonusText(float x, y, fontSize, int colorBorder, string text){
+	
+		int objText = CreateTextObject(
+		
+		x, y, fontSize,
+		"", "GravityBold8",
+		0xFFFFFF, 0xFFFFFF,
+		colorBorder, fontSize/8,
+		82
+		
+		);
+		
+		ObjText_SetHorizontalAlignment(objText, ALIGNMENT_CENTER);
+		
+		ObjText_SetText(objText, text);
+		//TTextScroll(objText, text);
+		
+	}
+    
+    if(GetPlayerLife() < 0){
+        _CreateBonusText(STG_WIDTH/2, STG_HEIGHT/2+16, 8, 0xFFA300, "Press Z/FIRE to Exit");
+    }
+
+    else{
+	wait(60);
+
+	_CreateBonusText(88, STG_HEIGHT/2-16, 8, 0xFFA300, "YOUR SCORE");
+	_CreateBonusText(88, STG_HEIGHT/2+4, 16, 0xFFA11C, IntToString(trunc(GetScore()/10) * 10));
+
+	_CreateBonusText(88, STG_HEIGHT/2+32, 8, 0xFFA300, "THANK YOU FOR PLAYING!");
+
+	wait(120);
+
+	_CreateBonusText(88, STG_HEIGHT/2+64, 8, 0xFFA300, "Press Z/FIRE to Exit");
+    }
+
+	while(GetVirtualKeyState(VK_SHOT) == KEY_FREE){yield;}
+
+    return;
+	
+}
+
+function EndScreen(){
+
+    if(GetPlayerLife() < 0){ObjRender_SetColor(transitionEnd2, 0x000000);}
+    else                   {}
+
+	ObjRender_SetAlpha(transitionEnd2, 0);
+	Obj_SetVisible(transitionEnd2, true);
+
+	Obj_SetRenderPriorityI(transitionEnd2, 80);
+	ObjRender_SetPosition(transitionEnd2, 160, 120, 1);
+
+	ascent(i in 0..50){
+		ObjRender_SetAlpha(transitionEnd2, FUNC_LERP_LINEAR(0, 255, i/45));
+		yield;
+	}
+
+    if(GetPlayerLife() < 0){
+
+        int img = _Create2DImage("script/JamTexture/Mystia_VictorySheet.png", [352, 48, 512, 96]);
+        ObjRender_SetAlpha(img, 0);
+        ObjRender_SetTextureFilter(img, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+        Obj_SetVisible(img, true);
+        Obj_SetRenderPriorityI(img, 81);
+        ObjRender_SetX(img, STG_WIDTH/2);
+        //ObjRender_SetColor(img, 0x000000);
+
+        ascent(i in 0..40){
+            ObjRender_SetAlpha(img, FUNC_LERP_LINEAR(0, 255, i/40));
+            ObjRender_SetY(img, FUNC_LERP_DECEL(STG_HEIGHT+64, STG_HEIGHT/2-16, i/40));
+            yield;
+        }
+
+    }
+
+    else{
+        int img = _Create2DImage("script/JamTexture/Mystia_VictorySheet.png", [0, 0, 320, 240]);
+        ObjRender_SetAlpha(img, 0);
+        ObjRender_SetTextureFilter(img, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+        Obj_SetVisible(img, true);
+        Obj_SetRenderPriorityI(img, 81);
+        ObjRender_SetY(img, STG_HEIGHT/2);
+
+        int img2 = _Create2DImage("script/JamTexture/Mystia_VictorySheet.png", [368, 0, 512, 48]);
+        ObjRender_SetAlpha(img2, 0);
+        ObjRender_SetTextureFilter(img2, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+        Obj_SetVisible(img2, true);
+        Obj_SetRenderPriorityI(img2, 81);
+        ObjRender_SetY(img2, 48);
+
+        wait(60);
+
+        ascent(i in 0..40){
+            ObjRender_SetAlpha(img, FUNC_LERP_LINEAR(0, 255, i/40));
+            ObjRender_SetX(img, FUNC_LERP_DECEL(-128, 224, i/40));
+        
+            ObjRender_SetAlpha(img2, FUNC_LERP_LINEAR(0, 255, i/40));
+            ObjRender_SetX(img2, FUNC_LERP_DECEL(-128, 88, i/40));
+            yield;
+        }
+        
+        wait(30);
+    }
+
+	EndBonus;
+
+}

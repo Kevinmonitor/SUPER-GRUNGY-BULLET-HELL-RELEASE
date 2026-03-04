@@ -1,0 +1,68 @@
+#UserItemData
+
+item_image = "./../img/Terrenus_Items.png"
+
+ItemData { 
+    
+    id=1 	
+    rect=(0, 0, 64, 128) 
+
+	AnimationData{
+		animation_data = (8, 0, 0, 64, 128)
+		animation_data = (8, 64, 0, 128, 128)
+    }
+    
+} // Blue
+
+ItemData { 
+    
+    id=2    
+    rect=(128, 0, 224, 128)
+
+	AnimationData{
+		animation_data = (8, 128, 0, 224, 128)
+		animation_data = (8, 224, 0, 320, 128)
+    }
+    
+} // Gold
+
+ItemData {
+
+    id=3     
+    rect=(0, 128, 128, 224)
+
+	AnimationData{
+		animation_data = (8, 0, 128, 128, 224)
+		animation_data = (8, 128, 128, 256, 224)
+    }
+    
+} // 1up
+
+// Blue Flake
+
+ItemData { 
+    
+    id = 4	
+    rect=(336, 96, 384, 192) 
+
+	AnimationData{
+		animation_data = (8, 336, 96, 384, 192)
+		animation_data = (8, 384, 96, 432, 192)
+    }
+    
+}
+
+// Gold Flake
+
+ItemData { 
+    
+    id = 5
+    rect=(336, 0, 384, 96) 
+
+	AnimationData{
+		animation_data = (8, 336, 0, 384, 96)
+		animation_data = (8, 384, 0, 432, 96)
+    }
+    
+}
+

@@ -1,0 +1,30 @@
+// lol
+
+task DisplayPlayerSplash(int image){
+
+    Obj_SetRenderPriorityI(image, 80);
+    ObjRender_SetAlpha(image, 110);
+    ObjRender_SetAngleZ(image, 2.0);
+    ObjRender_SetPosition(image, 110, 630, 0);
+    
+    //ObjSprite2D_SetDestRect(objID, x1);
+
+}
+
+task DisplayPlayerSplash(int image, int[] pos){
+
+    Obj_SetRenderPriorityI(image, 80);
+    ObjRender_SetAlpha(image, 110);
+    ObjRender_SetAngleZ(image, 2.0);
+    ObjRender_SetPosition(image, pos[0], pos[1], 0);
+
+}
+
+task DisplayPlayerSplash(int image, int[] pos, float ang){
+
+    Obj_SetRenderPriorityI(image, 80);
+    ObjRender_SetAlpha(image, 110);
+    ObjRender_SetAngleZ(image, ang);
+    ObjRender_SetPosition(image, pos[0], pos[1], 0);
+
+}

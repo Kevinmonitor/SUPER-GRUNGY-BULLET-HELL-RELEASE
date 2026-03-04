@@ -1,0 +1,313 @@
+
+//let imgEffect = dirCurrent ~ "./img/Kevin_Effect.png";
+int ExplosionEffect = ObjParticleList_Create(OBJ_PARTICLE_LIST_2D);
+int ShotDeleteEffect = ObjParticleList_Create(OBJ_PARTICLE_LIST_2D);
+int ScoreEffect = ObjParticleList_Create(OBJ_PARTICLE_LIST_2D);
+int ScoreEffectGold = ObjParticleList_Create(OBJ_PARTICLE_LIST_2D);
+
+task InitEffect(){
+	_EffectListPreRender(ExplosionEffect, imgEffectBoom, [0, 0, 150, 213]);
+	_EffectListPreRender(ShotDeleteEffect, imgEffect, [64, 0, 96, 32]);
+	_ScoreEffectListPreRender(ScoreEffect, imgEffectScore, [0, 0, 48, 64]);
+	_ScoreEffectListPreRender(ScoreEffectGold, imgEffectScore, [0, 64, 48, 128]);
+}
+
+let imgEffect = dirCurrent ~ "./img/Kevin_Effect.png";
+let imgEffectBoom = "script/KevinSystem/img/enemyBoom.png";
+let imgEffectScore = "script/KevinSystem/img/score_digit.png";
+
+// Bullet colours
+
+function round_base(val, base){
+	int val_even = floor(val / base + 0.5) * base;
+	return val_even;
+}
+
+
+// Enemy boom
+
+task _EffectListPreRender(
+	int targetList,
+	texture, int[] rect
+	){
+	
+		ObjPrim_SetTexture(targetList, texture);
+		ObjRender_SetTextureFilter(targetList, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+		Obj_SetRenderPriorityI(targetList, 39);
+		ObjPrim_SetPrimitiveType(targetList, PRIMITIVE_TRIANGLELIST);
+		ObjPrim_SetVertexCount(targetList, 4);
+		
+		ObjRender_SetBlendType(targetList, BLEND_ALPHA);
+	
+		// Left-top, right-top, left-bottom, right-bottom
+		
+		ObjPrim_SetVertexUVT(targetList, 0, rect[0], rect[1]);
+		ObjPrim_SetVertexUVT(targetList, 1, rect[2], rect[1]);
+		ObjPrim_SetVertexUVT(targetList, 2, rect[0], rect[3]);
+		ObjPrim_SetVertexUVT(targetList, 3, rect[2], rect[3]);
+		
+		// Vertex positions are offset with deltas so that the sprite is centered
+		
+		float dU = (rect[2] - rect[0])/2;
+		float dV = (rect[3] - rect[1])/2;
+		
+		ObjPrim_SetVertexPosition(targetList, 0, -dU, -dV, 1);
+		ObjPrim_SetVertexPosition(targetList, 1, dU, -dV, 1);
+		ObjPrim_SetVertexPosition(targetList, 2, -dU, dV, 1);
+		ObjPrim_SetVertexPosition(targetList, 3, dU, dV, 1);
+		
+		ObjPrim_SetVertexIndex(targetList, [0, 1, 2, 1, 2, 3]);
+
+		ObjShader_SetShaderF(targetList, "script/KevinSystem/shaders/number/p2D_step.hlsl");
+		ObjShader_SetTechnique(targetList, "render");
+		ObjShader_SetFloatArray(targetList, "step_", [150.0f / 1963.0f, 1.0f]);
+	
+}
+
+task _ScoreEffectListPreRender(
+	int targetList,
+	texture, int[] rect
+	){
+	
+		ObjPrim_SetTexture(targetList, texture);
+		ObjRender_SetTextureFilter(targetList, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+		Obj_SetRenderPriorityI(targetList, 43);
+		ObjPrim_SetPrimitiveType(targetList, PRIMITIVE_TRIANGLELIST);
+		ObjPrim_SetVertexCount(targetList, 4);
+		
+		ObjRender_SetBlendType(targetList, BLEND_ALPHA);
+	
+		// Left-top, right-top, left-bottom, right-bottom
+		
+		ObjPrim_SetVertexUVT(targetList, 0, rect[0], rect[1]);
+		ObjPrim_SetVertexUVT(targetList, 1, rect[2], rect[1]);
+		ObjPrim_SetVertexUVT(targetList, 2, rect[0], rect[3]);
+		ObjPrim_SetVertexUVT(targetList, 3, rect[2], rect[3]);
+		
+		// Vertex positions are offset with deltas so that the sprite is centered
+		
+		float dU = (rect[2] - rect[0])/2;
+		float dV = (rect[3] - rect[1])/2;
+		
+		ObjPrim_SetVertexPosition(targetList, 0, -dU, -dV, 1);
+		ObjPrim_SetVertexPosition(targetList, 1, dU, -dV, 1);
+		ObjPrim_SetVertexPosition(targetList, 2, -dU, dV, 1);
+		ObjPrim_SetVertexPosition(targetList, 3, dU, dV, 1);
+		
+		ObjPrim_SetVertexIndex(targetList, [0, 1, 2, 1, 2, 3]);
+
+		ObjShader_SetShaderF(targetList, "script/KevinSystem/shaders/number/number.hlsl");
+		ObjShader_SetTechnique(targetList, "render");
+	
+}
+	
+	
+// Enemy go Boom
+
+/*
+Expanding explosion with random angle
+*/
+
+task _ExplosionEffect(float enmX, float enmY, int targetList){
+
+	int i = 0;
+	int effectLength = 12;
+	int effectNum = 5;
+	int dir = 1;
+
+	float maxAlpha = (GetAreaCommonData("Config", "ExplosionOpacity", 100) * 0.01) * 255;
+
+	Obj_SetRenderPriorityI(targetList, 42);
+
+	_CreatePetal();
+	
+	ObjSound_Play(sfxBoom);
+	
+	// Create a petal with:
+	// x offset every frame, y offset every frame
+	
+	task _CreatePetal(){
+	
+		float x = enmX, y = enmY;
+		int frame = 0;
+		let z_add = prand(-1, 1);
+		
+		ascent(i in -1..effectLength){
+			loop(3){
+				_PetalMovement(i);
+				yield;
+			}
+		}
+	
+		task _PetalMovement(frame){
+			
+			ObjParticleList_SetScale(targetList, 2);
+			ObjParticleList_SetAlpha(targetList, maxAlpha);
+			ObjParticleList_SetPosition(targetList, enmX, enmY, 1);
+			ObjParticleList_SetExtraData(targetList, frame, 0, 0);
+			ObjParticleList_AddInstance(targetList);
+		
+		}
+		
+	}
+	
+}
+
+// Bullet deletion efect
+
+task _BulletDeleteEffect(float enmX, float enmY, int targetList){
+
+	int i = 0;
+	int effectLength = 25;
+	int effectNum = 5;
+	int dir = 1;
+
+	float maxAlpha = (GetAreaCommonData("Config", "ExplosionOpacity", 100) * 0.01) * 255;
+
+	Obj_SetRenderPriorityI(targetList, 42);
+	//TExplosionA(enmX, enmY, 255/effectLength, 9/effectLength);
+
+	_CreatePetal();
+	
+	// Create a petal with:
+	// x offset every frame, y offset every frame
+	
+	task _CreatePetal(){
+	
+		float x = enmX, y = enmY;
+		let z_add = prand(-1, 1);
+		
+		ascent(i in 0..effectLength){
+			_PetalMovement(Interpolate_Decelerate(1, 2, i/effectLength), Interpolate_Accelerate(maxAlpha, 0, i/effectLength));
+			yield;
+		}
+	
+		task _PetalMovement(scale, alpha){
+			
+			ObjParticleList_SetScale(targetList, scale);
+			ObjParticleList_SetAngleZ(targetList, 0);
+			ObjParticleList_SetPosition(targetList, x, y, 1);
+			ObjParticleList_SetAlpha(targetList, alpha);
+			
+			//Submits the current data to an instance, cleared every frame.
+
+			ObjParticleList_AddInstance(targetList);
+			
+			yield;
+		
+		}
+		
+	}
+	
+}
+
+task _ScoreEffect(
+	int score, 
+	float enmX, float enmY, float scale,
+	int targetList){
+
+	int effectLength = 45;
+
+	int maxScore = score;
+	Obj_SetRenderPriorityI(targetList, 41);
+
+	_CreatePetal();
+
+	task _CreatePetal(){
+	
+		float x = enmX, y = enmY;
+		let z_add = prand(-1, 1);
+		int curScore = 0;
+		int alpha = effectAlpha;
+		
+		ascent(i in 0..effectLength){
+			
+			if (i < 20){
+				curScore = Interpolate_Smooth(0, maxScore, i/effectLength);
+			}
+
+			else{
+				curScore = maxScore;
+			}
+
+			if (i > 30){
+				alpha -= effectAlpha/14;
+			}
+
+			else{
+				alpha = effectAlpha;
+			}
+
+			_PetalMovement(
+				curScore, alpha,
+				Interpolate_Decelerate(0, 20, i/effectLength)
+			);
+
+			yield;
+			
+		}
+	
+		task _PetalMovement(curScore, alpha, posY){
+
+			int scoreInt = curScore;
+			int scoreHex = 0;
+
+			while (scoreInt > 0)
+			{
+				scoreHex = scoreHex * 8 + (scoreInt % 10);
+				scoreInt = scoreInt/10;
+				digits = floor(log10(max(1, score))) + 1;
+			}
+
+    		int digits = floor(log10(max(1, score))) + 1;
+			
+			ObjParticleList_SetScale(targetList, scale);
+			ObjParticleList_SetAngleZ(targetList, 0);
+			ObjParticleList_SetPosition(targetList, enmX - (48.0 / 2.0) * (digits - 1), enmY + 64 - posY, scoreHex);
+			ObjParticleList_SetAlpha(targetList, alpha);
+			ObjParticleList_SetExtraData(targetList, digits, 48.0, 512.0);
+			
+			//Submits the current data to an instance, cleared every frame.
+
+			ObjParticleList_AddInstance(targetList);
+			
+			yield;
+		
+		}
+		
+	}
+	
+
+}
+
+function CreateEffectObject(px, py, img, blendtype, left, top, right, bottom)
+{
+	let obj = ObjPrim_Create(OBJ_SPRITE_2D);
+	ObjPrim_SetTexture(obj, img);
+	ObjSprite2D_SetSourceRect(obj, left, top, right, bottom);
+	ObjSprite2D_SetDestCenter(obj);
+
+	if(blendtype=="ALPHA"){ObjRender_SetBlendType(obj, BLEND_ALPHA);}
+	else if(blendtype=="MULTIPLY"){ObjRender_SetBlendType(obj, BLEND_MULTIPLY);}
+	else if(blendtype=="SUBTRACT"){ObjRender_SetBlendType(obj, BLEND_SUBTRACT);}
+	else if(blendtype=="SHADOW"){ObjRender_SetBlendType(obj, BLEND_SHADOW);}
+	else if(blendtype=="RGB"){ObjRender_SetBlendType(obj, BLEND_ADD_RGB);}
+	else if(blendtype=="ARGB"){ObjRender_SetBlendType(obj, BLEND_ADD_ARGB);}
+	else if(blendtype=="INVERT"){ObjRender_SetBlendType(obj, BLEND_INV_DESTRGB);}
+
+	ObjRender_SetPosition(obj, px, py, 0);
+	ObjRender_SetTextureFilter(obj, FILTER_POINT, FILTER_POINT, FILTER_POINT);
+
+	return obj;
+}
+
+function <int> _Create2DImage(imgpath, int[] rectarray){
+		
+	int imgname = ObjPrim_Create(OBJ_SPRITE_2D);
+	ObjPrim_SetTexture(imgname, imgpath);
+	ObjSprite2D_SetSourceRect(imgname, rectarray);
+	ObjSprite2D_SetDestCenter(imgname);
+	//ObjRender_SetPosition(imgname, positionstart)
+	
+	return imgname;
+}

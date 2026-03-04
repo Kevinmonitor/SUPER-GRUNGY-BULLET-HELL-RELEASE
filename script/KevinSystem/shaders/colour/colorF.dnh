@@ -1,0 +1,126 @@
+/// Primary Colors
+
+const int HUE_RED = 0;
+const int HUE_GREEN = 120;
+const int HUE_BLUE = 240;
+
+/// Secondary Colors
+
+const int HUE_YELLOW = MixHue(HUE_RED, HUE_GREEN, 0.5);
+const int HUE_GOLD = MixHue(HUE_RED, HUE_GREEN, 0.4);
+
+const int HUE_CYAN = MixHue(HUE_GREEN, HUE_BLUE, 0.5);
+const int HUE_AQUA = MixHue(HUE_GREEN, HUE_BLUE, 0.8);
+const int HUE_MAGENTA = MixHue(HUE_BLUE, HUE_RED, 0.5);
+
+/// Tertiary Colors
+
+const int HUE_ORANGE = MixHue(HUE_RED, HUE_YELLOW, 0.5);
+const int HUE_LIME = MixHue(HUE_YELLOW, HUE_GREEN, 0.5);
+const int HUE_SPRING = MixHue(HUE_GREEN, HUE_CYAN, 0.5);
+const int HUE_AZURE = MixHue(HUE_CYAN, HUE_BLUE, 0.5);
+const int HUE_VIOLET = MixHue(HUE_BLUE, HUE_MAGENTA, 0.5);
+const int HUE_VIOLET2 = MixHue(HUE_BLUE, HUE_MAGENTA, 0.8);
+const int HUE_ROSE = MixHue(HUE_MAGENTA, HUE_RED, 0.5);
+
+const int HUE_DGREEN = MixHue(HUE_GREEN, HUE_BLUE, 0.25);
+const int HUE_DORANGE = MixHue(HUE_RED, HUE_YELLOW, 0.25);
+const int HUE_DYELLOW = MixHue(HUE_RED, HUE_GREEN, 0.4);
+
+/// Special Colors
+
+const int HUE_RAINBOW = -1;
+
+const int[] HUES = [HUE_RED, HUE_ORANGE, HUE_YELLOW, HUE_GREEN, HUE_BLUE, HUE_AZURE, HUE_VIOLET, HUE_ROSE];
+
+/// Color Constants
+
+const float RCP_SQRT3 = 1.0f / sqrt(3.0f);
+
+/// Color Functions
+
+function<void> SetHue(int obj_, int hue_)
+{
+	ObjRender_SetColor(obj_, (sin(hue_) + 1.0f) * 255.0f / 2.0f, (cos(hue_) + 1.0f) * 255.0f / 2.0f, 0.0f);
+	//Obj_SetValueI(obj_, KEY_HUE, hue_);
+}
+
+function<int> GetHue(int obj_)
+{
+	//return Obj_GetValueDI(obj_, KEY_HUE, HUE_RED);
+}
+
+function<int[]> ComputeHue(int hue_)
+{
+	return [(sin(hue_) + 1.0f) * 255.0f / 2.0f, (cos(hue_) + 1.0f) * 255.0f / 2.0f];
+}
+
+function<int[]> RetrieveHue(int hue_)
+{
+	float[] rgb = [255, 0, 0];
+	float[] rcp3 = [RCP_SQRT3, RCP_SQRT3, RCP_SQRT3];
+
+	float coshue = cos(hue_);
+	float sinhue = sin(hue_);
+
+	float[] crossProd = [
+		rcp3[1] * rgb[2] - rcp3[2] * rgb[1],
+		rcp3[2] * rgb[0] - rcp3[0] * rgb[2],
+		rcp3[0] * rgb[1] - rcp3[1] * rgb[0]
+	];
+
+	rgb = rgb * coshue + crossProd * sinhue + rcp3 * (rcp3 * rgb) * (1 - coshue);
+
+	return rgb;
+}
+
+function<int[]> RetrieveHue(int hue_, int[] rgb_)
+{
+	float[] rcp3 = [RCP_SQRT3, RCP_SQRT3, RCP_SQRT3];
+
+	float coshue = cos(hue_);
+	float sinhue = sin(hue_);
+
+	float[] crossProd = [
+		rcp3[1] * rgb_[2] - rcp3[2] * rgb_[1],
+		rcp3[2] * rgb_[0] - rcp3[0] * rgb_[2],
+		rcp3[0] * rgb_[1] - rcp3[1] * rgb_[0]
+	];
+
+	rgb_ = rgb_ * coshue + crossProd * sinhue + rcp3 * (rcp3 * rgb_) * (1 - coshue);
+
+	return rgb_;
+}
+
+function<void> ColorHue(int obj_, int hue_)
+{
+	float[] rgb = RetrieveHue(hue_);
+
+	ObjRender_SetColor(obj_, rgb[0], rgb[1], rgb[2]);
+}
+
+function<int> MixHue(int a_, int b_, float x_)
+{
+	return NormalizeAngle(a_ + round(AngularDistance(a_, b_) * x_));
+}
+
+task _RainbowHue(int obj_)
+{
+	//Obj_SetValueI(obj_, KEY_HUE, HUE_RAINBOW);
+
+	for (int t = 0; Obj_IsExists(obj_); t += 12)
+	{
+		ObjRender_SetColor(obj_, (sin(t) + 1.0f) * 255.0f / 2.0f, (cos(t) + 1.0f) * 255.0f / 2.0f, 0.0f);
+
+		yield;
+	}
+}
+
+task _ChangeHue(int obj_, int a_, int b_, int time_)
+{
+	for (int t = 1; t <= time_ && Obj_IsExists(obj_); t++)
+	{
+		//SetHue(obj_, MixHue(a_, b_, t / float(time_)));
+		yield;
+	}
+}

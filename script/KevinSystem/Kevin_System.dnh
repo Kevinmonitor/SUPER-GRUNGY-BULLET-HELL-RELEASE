@@ -1,0 +1,719 @@
+let dirCurrent = GetCurrentScriptDirectory();
+
+// Change accordingly!
+
+int offsetX = 1551;
+int baseY = 155;
+int spaceY = 135; 
+float scale = 1.15*1.6;
+
+int sel = 0; 
+
+// Item, life, spell graphics
+
+let graphicimg = dirCurrent ~ "./img/Grunge_UI_Graphics.png";
+let lifebarimg = dirCurrent ~ "./img/lifebar.png";
+LoadTextureEx(graphicimg, true, true);
+
+let pointerPIV;
+int hiScore = 0;
+
+float effectAlpha = 0;
+
+// Replace with actual paths
+let path1 = GetCurrentScriptDirectory() ~ "img/Grunge_UI.png";
+let path2 = GetCurrentScriptDirectory() ~ "img/Grunge_UI_Elements.png";
+
+// switch between these two
+let pathTransformed = GetCurrentScriptDirectory() ~ "img/Cute_UI.png";
+
+let obj1 = ObjPrim_Create(OBJ_SPRITE_2D);
+let obj2 = ObjPrim_Create(OBJ_SPRITE_2D);
+let objTransformed = ObjPrim_Create(OBJ_SPRITE_2D);
+
+LoadTextureEx(path1, true, true);
+LoadTextureEx(path2, true, true);
+LoadTextureEx(pathTransformed, true, true);
+
+ObjPrim_SetTexture(obj1, path1);
+ObjPrim_SetTexture(obj2, path2);
+ObjPrim_SetTexture(objTransformed, pathTransformed);
+
+int[] arr = [obj1, objTransformed, obj2];
+
+int i = 0;
+
+#include "script/KevinSystem/Init.dnh"
+
+#include "script/KevinSystem/SystemScripts/Lib_Const.dnh"
+#include "script/KevinSystem/shaders/colour/colorF.dnh"
+
+#include "script/KevinSystem/GeneralSoundLib.dnh"
+#include "script/default_system/Default_Effect.dnh"
+
+#include "script/KevinSystem/SystemScripts/Kevin_EffectLib.dnh"
+#include "script/KevinSystem/SystemScripts/Kevin_SystemUI.dnh"
+
+@Initialize
+{	
+
+	effectAlpha = (GetAreaCommonData("Config", "ExplosionOpacity", 100)*0.01)*255;
+
+	if(!IsCommonDataAreaExists("Ingame")){
+		CreateCommonDataArea("Ingame");
+		SetAreaCommonData("Ingame", "currentvalue", 10000);
+	}
+	
+	else{}
+	
+	pointerPIV = LoadAreaCommonDataValuePointer("Ingame", "currentvalue", 10000);
+	
+	_SoundTask();
+	
+	SetAreaCommonData("ScriptID", "SystemID", GetOwnScriptID());
+	
+	//SetCommonDataPtr("SystemIDPtr", GetOwnScriptID());
+	
+	// 608 x 720
+	SetStgFrame(336, 0, 944, 720, 20, 79); 
+	
+	sel = prand_int(0, 99);
+	
+	// Pixel art
+
+	SetShotTextureFilter(FILTER_NONE, FILTER_NONE);
+	SetItemTextureFilter(FILTER_NONE, FILTER_NONE);
+	
+	SetPauseScriptPath(GetCurrentScriptDirectory() ~ "SystemScripts/Kevin_Pause.dnh");
+	SetEndSceneScriptPath(GetCurrentScriptDirectory() ~ "SystemScripts/Kevin_EndScene.dnh");
+	SetReplaySaveSceneScriptPath(GetCurrentScriptDirectory() ~ "SystemScripts/Kevin_ReplaySave.dnh");
+	
+	InitEffect();
+	InitFrame();
+	
+	TScore();
+	ShowMultiplier();
+	ShowBurstGauge();
+	TReplayShow();
+	//THiScore();
+
+	LifeDisplay();
+	//SpellDisplay();
+	BurstDisplay();
+	//ShowRank();
+	//DebugMode();
+
+	//DetailUIDisplay();
+
+	//TValueDisplay();
+	
+	StartItemScript(dirCurrent ~ "./SystemScripts/KevinSystem_Item.dnh");
+	
+	TExtendSystem();
+	//TBossLife();
+	//TBossTimer();
+
+	TCurrentFps();
+	//TReplayFps();
+
+	//ExpandFrame();
+
+}
+
+@MainLoop
+{
+	yield;
+}
+
+@Event
+{
+	alternative(GetEventType())
+	
+	case(EV_START_BOSS_SPELL)
+	{
+		let path = "script/default_system/Default_System_MagicCircle.txt";
+		let id = LoadScript(path);
+		StartScript(id);
+	}
+
+	case(EV_GAIN_SPELL)
+	{
+
+	}
+
+	// Arguments: [enemy x, y], particle list to use
+	
+	case(EV_EXPLODE)
+	{
+		float[] pos = GetEventArgument(0);
+		
+		if(GetCommonDataPtr(EFFECTCUT_PTR, 0) >= 2){ObjSound_Play(sfxBoom);}
+		else{_ExplosionEffect(pos[0], pos[1], ExplosionEffect);}
+
+	}
+
+	case(EV_SCORE_POPUP)
+	{
+		_ScoreEffect(
+			GetEventArgument(1), 
+			GetEventArgument(0)[0], GetEventArgument(0)[1], GetEventArgument(2),
+			ScoreEffect
+		);
+	}
+
+	case(EV_SCORE_POPUP_GOLD)
+	{
+		_ScoreEffect(
+			GetEventArgument(1), 
+			GetEventArgument(0)[0], GetEventArgument(0)[1], GetEventArgument(2),
+			ScoreEffectGold
+		);
+	}
+
+	case(EV_REQUEST_SHOT_DELETE){
+		_BulletDeleteEffect(GetEventArgument(0)[0], GetEventArgument(0)[1], ShotDeleteEffect);
+	}
+
+	case(EV_REQUEST_SHOT_ITEMIZE){
+		_BulletDeleteEffect(GetEventArgument(0)[0], GetEventArgument(0)[1], ShotDeleteEffect);
+	}
+
+	case(EV_EXPAND_FRAME){
+		ExpandFrame();
+	}
+
+	case(EV_TRANSFORM_TO_CUTE){
+		SwitchFrameToCute;
+	}
+
+	case(EV_TRANSFORM_TO_GRUNGE){
+		SwitchFrameToGrunge;
+	}
+	
+}
+
+function CreateTextObject(
+	float mx, my, size,
+	string text, font,
+	int colorTop, colorBottom,
+	int borderColor, borderWidth,
+	int renderPriority
+	){
+	
+	let obj = ObjText_Create();
+	ObjText_SetText(obj, text);
+	ObjText_SetFontSize(obj, size);
+	ObjText_SetFontType(obj, font);
+	ObjText_SetFontColorTop(obj, colorTop);
+	ObjText_SetFontColorBottom(obj, colorBottom);
+	ObjText_SetFontBorderType(obj, BORDER_FULL);
+	ObjText_SetFontBorderColor(obj, borderColor);
+	ObjText_SetFontBorderWidth(obj, borderWidth);
+	Obj_SetRenderPriorityI(obj, renderPriority);
+	ObjRender_SetX(obj, mx);
+	ObjRender_SetY(obj, my);
+	return obj;
+	
+}
+
+task DebugMode(){
+	while(true){
+		if(GetKeyState(KEY_Q) != KEY_FREE){
+			SetCommonDataPtr(POINTER_TRUERANK, GetCommonDataPtr(POINTER_TRUERANK, 1)-10.0);
+		}
+		if(GetKeyState(KEY_W) != KEY_FREE){
+			SetCommonDataPtr(POINTER_TRUERANK, GetCommonDataPtr(POINTER_TRUERANK, 1)+10.0);
+		}
+		wait(5);
+	}
+}
+
+task ExpandFrame(){
+	
+	// // 608 x 720
+	// SetStgFrame(336, 0, 944, 720, 20, 80); 
+
+	// COMMON DATA FOR BOSS LIFEBARS. AND STUFF
+	SetAreaCommonData("Ingame", "IsExpandFrame", true);
+
+	float[] coords = [GetPlayerX(), GetPlayerY()];
+
+	SetStgFrame(0, 0, 1280, 720, 20, 80, 79);
+	SetPlayerClip(336, 0, 944, 720);
+
+	async{
+		ascent(i in 0..240){
+			ObjRender_SetAlpha(obj1, Interpolate_Smooth(255, 140, i/240));
+			yield;
+		}
+	}
+
+	ObjMove_SetPosition(GetPlayerObjectID(), coords[0]+336, coords[1]);
+	
+	while(true){
+		ObjMove_SetX(GetPlayerObjectID(), clamp(ObjMove_GetX(GetPlayerObjectID()), 336.0, 944.0));
+
+		if(ObjMove_GetX(GetPlayerObjectID()) <= 336.0){
+			SetVirtualKeyState(VK_LEFT, KEY_FREE);
+		}
+		else if(ObjMove_GetX(GetPlayerObjectID()) >= 944.0){
+			SetVirtualKeyState(VK_RIGHT, KEY_FREE);
+		}
+
+		yield;
+	}
+
+}
+
+// Grants extends based on score
+
+task TExtendSystem(){
+
+	// NEXT: Text (y around 650?) (x around 2250?)
+	
+	/*let NextText = 
+	
+	CreateTextObject(
+		1625, 465, 30,
+		"NEXT:", "Connecting Chain Handserif",
+		0xA70053, 0xA70053,
+		0xFFFFFF, 2,
+		1
+	);*/
+	
+	//ObjText_SetFontBold(NextText, true);
+	// Indicates the score threshold needed for the next extend
+	
+	let ExtendThresholdText = 
+	
+	CreateTextObject(
+		1220, 428, 22,
+		"", "YomiyasuSansSerif",
+		0xFF9D9F, 0xFF9D9F,
+		0x4C142B, 2.5,
+		2
+	);
+	
+	ObjText_SetFontBorderType(ExtendThresholdText, BORDER_FULL);
+	Obj_SetRenderPriorityI(ExtendThresholdText, 82);
+	ObjText_SetFontBold(ExtendThresholdText, true);
+	ObjText_SetFixedWidth(ExtendThresholdText, 15);
+	ObjText_SetSidePitch(ExtendThresholdText, -3);
+	ObjText_SetHorizontalAlignment(ExtendThresholdText, ALIGNMENT_RIGHT);
+	
+	int len = 0;
+	int count = 0;
+	// Billions
+	let req = [
+
+	];
+	
+	alternative(GetAreaCommonData("Ingame", "Difficulty", "Tutorial"))
+
+	case("Drizzle"){
+		//req = [1, 2.5, 5, 10, 20, 50, 100, 200, 999];
+		req = [0.2, 0.5, 1, 2, 5, 10, 20, 40, 80, 150, 999];
+	}
+
+	case("Rainstorm"){
+		//req = [2, 4, 8, 15, 30, 60, 120, 250, 999];
+		req = [0.5, 1, 2, 5, 10, 20, 40, 100, 200, 999];
+	}
+
+	case("Monsoon"){
+		//req = [4, 10, 20, 40, 70, 100, 200, 400, 999];
+		req = [2, 4, 8, 15, 30, 60, 120, 250, 999];
+	}
+
+	case("Overload"){
+		req = [4, 10, 20, 40, 70, 100, 200, 400, 999];
+	}
+
+	others{
+		req = [0.5, 1, 2, 5, 10, 20, 40, 100, 200];	
+	}
+	//let next = 0;
+	
+	// KOUDASTG
+
+	// req = [0.2, 0.4, 0.8, 1.2, 1.8, 2.5, 4, 999999];
+	// len = 7;
+
+	let next = 0;
+
+	WriteLog(next);
+
+	loop{
+		count = (trunc(GetScore())/10)*10;
+
+		if(next <= length(req)-1){
+
+			if(count >= req[next]*1000000000){
+				next += 1;
+				SetPlayerLife(GetPlayerLife+1);
+				ExtendSFX;
+				ExtendEffect;
+			}
+
+		}
+
+		if(next <= length(req)-1){ObjText_SetText(ExtendThresholdText, "" ~ DigitToCommaArray(req[next]*1000000000));}
+
+		else{ObjText_SetText(ExtendThresholdText, "MAX EXTEND");}
+
+		yield;
+		
+	}
+}
+
+task ExtendEffect(){
+
+	int time = 30;
+	int timeDisappear = 30;
+	
+	float x = GetPlayerX();
+	float y = GetPlayerY()-90;
+	
+	int extendText = CreateTextObject(
+		x, y, 16,
+		"EXTEND!", "Kenney Bold",
+		0xFF61AE, 0xFFFFFF,
+		0x5E0064, 6,
+		42
+	);
+	
+	ObjText_SetLinePitch(extendText, -2);
+	ObjText_SetFontBold(extendText, true);
+	ObjText_SetHorizontalAlignment(extendText, ALIGNMENT_CENTER);
+	
+	ascent(i in 0..time){
+		ObjRender_SetY(extendText, Interpolate_Decelerate(y, y-120, i/time));
+		yield;
+	}
+	
+	wait(15);
+	
+	ascent(i in 0..timeDisappear){
+		ObjRender_SetAlpha(extendText, Interpolate_Decelerate(255, 0, i/timeDisappear));
+		yield;
+	}
+	Obj_Delete(extendText);
+	
+}
+
+//----------------------------------------------------
+//枠外の背景表示
+//----------------------------------------------------
+task InitFrame()
+{
+
+	for each(int obj in ref arr){
+
+		ObjRender_SetTextureFilterMag(obj, FILTER_NONE);
+		ObjRender_SetTextureFilterMin(obj, FILTER_NONE);
+		ObjRender_SetTextureFilterMip(obj, FILTER_NONE);
+		Obj_SetRenderPriorityI(obj, 80 + i);
+		ObjSprite2D_SetSourceRect(obj, 0, 0, GetScreenWidth(), GetScreenHeight());
+		ObjSprite2D_SetDestRect(obj, 0, 0, GetScreenWidth(), GetScreenHeight());
+
+		i++;
+
+	}
+
+	// hide the cute UI at first
+
+	// on the other hand, if you're debugging...
+	SwitchFrameToGrunge();
+	//ObjRender_SetAlpha(objTransformed, 255);
+	
+}
+
+task SwitchFrameToCute()
+{
+	ObjRender_SetAlpha(objTransformed, 255);
+	ObjRender_SetAlpha(obj1, 0);
+}
+
+task SwitchFrameToGrunge(){
+	ObjRender_SetAlpha(obj1, 255);
+	ObjRender_SetAlpha(objTransformed, 0);
+}
+
+//----------------------------------------------------
+// Edited ExRumia system
+//----------------------------------------------------
+task TBossLife
+{
+	let path = lifebarimg;
+	let obj = ObjPrim_Create(OBJ_SPRITE_LIST_2D);
+	let objStar = ObjPrim_Create(OBJ_SPRITE_LIST_2D);
+	let objDivision = ObjPrim_Create(OBJ_SPRITE_LIST_2D);
+	let objLifebar = ObjPrim_Create(OBJ_SPRITE_LIST_2D);
+	//bool BossExist = false;
+	
+	ObjPrim_SetTexture(obj, path);
+	Obj_SetRenderPriorityI(obj, 72); 
+	ObjRender_SetAlpha(obj, 255);
+	
+	ObjPrim_SetTexture(objStar, path);
+	Obj_SetRenderPriorityI(objStar, 70); 
+	
+	ObjPrim_SetTexture(objDivision, path);
+	Obj_SetRenderPriorityI(objDivision, 72);
+	
+	ObjPrim_SetTexture(objLifebar, path);
+	Obj_SetRenderPriorityI(objLifebar, 70);
+	ObjRender_SetAlpha(objLifebar, 140);
+	//Obj_SetVisible(objLifebar, false);
+
+	let lastRemStep = -1;
+	let lifeRateRender = 0;
+
+	let objScene = ID_INVALID;
+
+	float currX = 303, currY = 48;
+
+	loop
+	{
+
+		if(GetCommonDataPtr(POINTER_FRAME, false)){
+			currX = 303+336;
+			currY = 48;
+		}
+		else{
+			currX = 303;
+			currY = 48;
+		}
+
+		objScene = GetEnemyBossSceneObjectID();
+		ObjSpriteList2D_ClearVertexCount(obj);
+		ObjSpriteList2D_ClearVertexCount(objLifebar);
+		ObjSpriteList2D_ClearVertexCount(objStar);
+		ObjSpriteList2D_ClearVertexCount(objDivision);
+		if(objScene != ID_INVALID)
+		{
+			//BossExist = true;
+			ObjSpriteList2D_SetSourceRect(objLifebar, 8, 6, 801, 50);
+			ObjSpriteList2D_SetDestCenter(objLifebar);
+			ObjRender_SetScaleXYZ(objLifebar, 0.75, 0.6, 1);
+			ascent (i in 0..1){
+				ObjRender_SetPosition(objLifebar, currX, currY, 1);
+				ObjSpriteList2D_AddVertex(objLifebar);
+			}
+			RenderActiveLife();
+			
+		}
+		yield;
+	}
+
+	/*task RenderLifebar(){
+		ObjSprite2D_SetSourceRect(objLifebar, 5, 5, 534, 34);
+		ObjSprite2D_SetDestCenter(objLifebar);
+		ObjRender_SetPosition(objLifebar, 352, 20, 1);
+		while(BossExist){
+			Obj_SetVisible(objLifebar, true);
+			yield;
+		}
+	}*/
+	
+	function RenderActiveLife()
+	{
+		//残りステップ
+		let countRemStep = ObjEnemyBossScene_GetInfo(objScene, INFO_REMAIN_STEP_COUNT);
+		if(lastRemStep != countRemStep)
+		{
+			//ステップが変化
+			lifeRateRender = 1;
+		}
+		
+		//Overall active life
+		let lifeTotalMax = ObjEnemyBossScene_GetInfo(objScene, INFO_CURRENT_LIFE_MAX);
+		let lifeTotal = ObjEnemyBossScene_GetInfo(objScene, INFO_CURRENT_LIFE);
+		let lifeRate = min(lifeTotal / lifeTotalMax, lifeRateRender);
+		ObjSpriteList2D_SetSourceRect(obj, 7, 119, 800, 159);
+		if(GetCommonDataPtr(POINTER_FRAME, false)){
+			ObjSpriteList2D_SetDestRect(obj, 11 + 336, 38, 11 + 336 + 589 * lifeRate, 58);
+		}
+		else{
+			ObjSpriteList2D_SetDestRect(obj, 11, 38, 11 + 589 * lifeRate, 58);
+		}
+		//ObjRender_SetColorHSV(obj, -44, 384, 525);
+		ObjSpriteList2D_AddVertex(obj);
+		ObjRender_SetBlendType(obj, BLEND_ALPHA);
+		
+		//Life "division" bar
+		ObjSpriteList2D_SetSourceRect(objDivision, 8, 56, 27, 111);
+		//ObjRender_SetColorHSV(objDivision, 32, 255, 255);
+		let listLifeDiv = [0] ~ ObjEnemyBossScene_GetInfo(objScene, INFO_ACTIVE_STEP_LIFE_RATE_LIST);
+		ascent(iDiv in 1 .. length(listLifeDiv)-1)
+		{
+			let rate = listLifeDiv[iDiv];
+			let x = (GetStgFrameWidth()) * 0.98 * (1-rate);
+			ObjSpriteList2D_SetDestRect(objDivision, x-4, 62, x+24, 118);
+			ObjSpriteList2D_AddVertex(objDivision);
+		}
+
+		//Boss star rendering
+		ObjRender_SetScaleXYZ(objStar, 0.3, 0.3, 1);
+		ObjSpriteList2D_SetSourceRect(objStar, 0, 169, 268, 430);
+		Obj_SetRenderPriorityI(objStar, 88);
+		ascent(iStep in 0 .. countRemStep)
+		{
+			ObjRender_SetPosition(objStar, GetStgFrameWidth()*1.6 - 8, 24+32*iStep, 1);
+			ObjSpriteList2D_SetDestCenter(objStar);
+			ObjSpriteList2D_AddVertex(objStar);
+		}
+
+		lifeRateRender += 0.01;
+		lifeRateRender = min(lifeRateRender, 1);
+		lastRemStep = countRemStep;
+		
+		if(ObjEnemyBossScene_GetInfo(objScene, INFO_REMAIN_STEP_COUNT) > -1){
+			if(ObjMove_GetY(GetPlayerObjectID()) < GetStgFrameHeight()/6){
+				ObjRender_SetAlpha(obj, 180);
+				ObjRender_SetAlpha(objLifebar, 180);
+			}
+			else{
+				ObjRender_SetAlpha(obj, 255);
+				ObjRender_SetAlpha(objLifebar, 255);
+			}
+		}
+		
+		else{
+			ObjRender_SetAlpha(obj, 0);
+			ObjRender_SetAlpha(objLifebar, 0);
+		}
+		
+	}
+}
+
+//----------------------------------------------------
+//タイマー表示
+//----------------------------------------------------
+task TBossTimer
+{
+	let textTimer = ObjText_Create();
+	ObjText_SetFontSize(textTimer, 20);
+	ObjText_SetFontType(textTimer, "Kenney Bold");
+	
+	//ObjText_SetMaxWidth(textTimer, GetStgFrameWidth()/6);
+	ObjText_SetHorizontalAlignment(textTimer, ALIGNMENT_LEFT);
+	
+	ObjText_SetFontBold(textTimer, true);
+	ObjText_SetFontColorTop(textTimer, 0xFFFFFF);
+	ObjText_SetFontColorBottom(textTimer, 0xFFFFFF);
+	ObjText_SetFontBorderType(textTimer, BORDER_FULL);
+	ObjText_SetFontBorderColor(textTimer, 0x45A6FF);
+	ObjText_SetFontBorderWidth(textTimer, 5);
+	Obj_SetRenderPriorityI(textTimer, 73);
+	//ObjRender_SetX(textTimer, GetStgFrameWidth()/2);
+	ObjRender_SetX(textTimer, 16);
+	ObjRender_SetY(textTimer, GetStgFrameHeight()-16);
+	Obj_SetVisible(textTimer, true);
+	
+	let pathDigit = GetCurrentScriptDirectory() ~ "img/Default_SystemDigit.png";
+
+	let obj = ObjPrim_Create(OBJ_SPRITE_LIST_2D);
+	ObjPrim_SetTexture(obj, lifebarimg);
+	ObjRender_SetBlendType(obj, BLEND_ADD_RGB);
+	Obj_SetRenderPriority(obj, 0.75);
+	//ObjRender_SetY(obj, 38);
+	let count = 2;
+
+	let objScene = ID_INVALID;
+	loop
+	{
+		objScene = GetEnemyBossSceneObjectID();
+		ObjSpriteList2D_ClearVertexCount(obj);
+		if(objScene != ID_INVALID)
+		{
+			Obj_SetVisible(textTimer, true);
+			RenderTimer();
+		}
+		else{Obj_SetVisible(textTimer, false);
+		}
+		yield;
+	}
+
+	task RenderTimer()
+	{
+		let timer = ObjEnemyBossScene_GetInfo(objScene, INFO_TIMERF)/60;
+		timer = min(timer, 999.99);
+		ObjText_SetText(textTimer, rtos("000.00", timer) ~ "[font sz=15 oy=18]s LEFT");
+		ObjSpriteList2D_SetSourceRect(obj, 404, 225, 537, 374);
+		ObjRender_SetScaleXYZ(obj, 1, 1, 1);
+		ObjSpriteList2D_SetDestCenter(obj); 
+		ObjRender_SetPosition(textTimer, 16,  GetStgFrameHeight()-16, 1);
+		//ObjSpriteList2D_AddVertex(obj);
+		if(ObjEnemyBossScene_GetInfo(objScene, INFO_TIMER) <= 10 && ObjEnemyBossScene_GetInfo(objScene, INFO_TIMER) > 0){
+			if(ObjEnemyBossScene_GetInfo(objScene, INFO_TIMERF) % 60 == 0 || ObjEnemyBossScene_GetInfo(objScene, INFO_TIMER) < 1){_Timeout();}
+			ObjText_SetFontBorderColor(textTimer, 0xF0396C);
+		}
+		else{ObjText_SetFontBorderColor(textTimer, 0x45A6FF); ObjText_SetFontSize(textTimer, 35);}
+		if(ObjMove_GetY(GetPlayerObjectID()) < GetStgFrameHeight()/8){
+			ObjRender_SetAlpha(textTimer, 60);
+		}
+		else{
+			ObjRender_SetAlpha(textTimer, 255);
+		}
+		yield;
+	}
+	
+	task _Timeout(){ // HOLY FUCK THE TIMER IS RUNNING OUT BITCH
+		
+		ascent(i in 0..30){
+			ObjText_SetFontSize(textTimer, Interpolate_Decelerate(50, 25, i/30));
+			//ObjRender_SetScaleXYZ(obj, Interpolate_Decelerate(0.6, 0.38, i/30));
+			yield;
+		}
+			
+	}
+}
+//----------------------------------------------------
+//FPS表示
+//----------------------------------------------------
+task TCurrentFps()
+{
+
+	let objText = ObjText_Create();
+	ObjText_SetFontSize(objText, 24);
+	ObjText_SetFontBold(objText, true);
+	ObjText_SetFontType(objText, "Unispace");
+	ObjText_SetFontColorTop(objText, 0x6747FF);
+	ObjText_SetFontColorBottom(objText, 0xAEC4FF);
+	ObjText_SetFontBorderType(objText, BORDER_FULL);
+	ObjText_SetFontBorderColor(objText, 38, 3, 93);
+	ObjText_SetFontBorderWidth(objText, 1.5);
+	ObjText_SetHorizontalAlignment(objText, ALIGNMENT_LEFT);
+	ObjText_SetMaxWidth(objText, GetScreenWidth() - 8);
+	Obj_SetRenderPriority(objText, 1.0);
+
+	if(IsReplay()){
+		ObjRender_SetY(objText, GetScreenHeight() - 54);
+	}
+	else{
+		ObjRender_SetY(objText, GetScreenHeight() - 32);
+	}
+	ObjRender_SetX(objText, 16);
+	
+
+	loop
+	{
+		let fps = GetCurrentFps();
+		let text = "";
+		
+		if(IsReplay()){
+			text = vtos("1.2f", fps) ~ "fps" ~ "[r]" ~ "[font sz=12]REPLAY: " ~ vtos("1.2f", GetReplayFps()) ~ "fps";
+		}
+		else{
+			text = vtos("1.2f", fps) ~ "fps";
+		}
+
+		ObjText_SetText(objText, text);
+		yield;
+	}
+}
+
+//----------------------------------------------------
+//ユーティリティ
+//----------------------------------------------------

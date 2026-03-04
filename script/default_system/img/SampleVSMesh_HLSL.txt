@@ -1,0 +1,64 @@
+sampler sampler0_ : register(s0);
+
+//The following semantic-linked global variables are provided by the engine.
+//	WORLD		(float4x4)
+//		The transformation matrix of the render object.
+//	VIEW		(float4x4)
+//		The view matrix. Used to transform world coordinates to camera coordinates.
+//	PROJECTION	(float4x4)
+//		The projection matrix. Used to transform camera coordinates to device coordinates.
+//	VIEWPROJECTION	(float4x4)
+//		The view-projection matrix. (view * projection)
+//	FOGENABLE	(bool)
+//		A boolean indicating whether fog was enabled for the render object.
+//	FOGCOLOR	(float4)
+//		The color of the fog set with SetFogParam. The packing format is (r, g, b, a).
+//	FOGDIST		(float2)
+//		The ranges of the fog set with SetFogParam. The packing format is (fog start, fog end).
+
+float4x4 g_mWorld : WORLD : register(c0);
+float4x4 g_mView : VIEW : register(c4);
+float4x4 g_mProj : PROJECTION : register(c8);
+
+float4 g_vFogColor : FOGCOLOR : register(c12);
+float2 g_vFogDist : FOGDIST : register(c13);
+
+struct VS_INPUT {
+	float4 position : POSITION;
+	float3 normal : NORMAL;
+	float2 texCoord : TEXCOORD0;
+};
+struct VS_OUTPUT {
+	float4 position : POSITION;
+	float3 normal : NORMAL;
+	float2 texCoord : TEXCOORD0;
+	float fog : FOG;
+};
+
+VS_OUTPUT mainVS(VS_INPUT InVs) {
+	VS_OUTPUT OutVs;
+	
+	OutVs.normal = InVs.normal;
+	OutVs.texCoord = InVs.texCoord;
+	OutVs.position = mul(InVs.position, g_mWorld);
+	OutVs.position = mul(OutVs.position, g_mView);
+	
+	OutVs.fog = saturate((g_vFogDist.y - OutVs.position.z) / (g_vFogDist.y - g_vFogDist.x));
+	
+	OutVs.position = mul(OutVs.position, g_mProj);
+
+	return OutVs;
+}
+
+float4 mainPS(VS_OUTPUT InPs) : COLOR0 {
+	float4 color = tex2D(sampler0_, InPs.texCoord);
+	color.rgb = lerp(g_vFogColor.rgb, color.rgb, InPs.fog);
+	return color;
+}
+
+technique Render {
+	pass P0 {
+		VertexShader = compile vs_3_0 mainVS();
+		PixelShader = compile ps_3_0 mainPS();
+	}
+}

@@ -1,0 +1,71 @@
+// Sound effects for player scripts go here. 
+
+// Link to sound folder
+
+//let sddir = GetCurrentScriptDirectory() ~ "./PlayerSFX";
+
+string[] SFXList = GetFilePathList("script/KevinSystem/PlayerSFX/");
+
+let SFXVol = GetAreaCommonData("Config", "SEVol", 100) * 0.01;
+
+const Base1 = ObjSound_Create(), 
+Base2 = ObjSound_Create(), 
+Base3 = ObjSound_Create(), 
+Bomb1 = ObjSound_Create(), 
+Fire = ObjSound_Create(), 
+Explosion1 = ObjSound_Create(), 
+Graze = ObjSound_Create(), 
+LaserAct = ObjSound_Create(), 
+LaserDeact = ObjSound_Create(), 
+Explosion2 = ObjSound_Create(), 
+PlayerHit = ObjSound_Create(),
+PlayerDie = ObjSound_Create(), 
+Misc1 = ObjSound_Create(), 
+Shine = ObjSound_Create(), 
+PlayerDie2 = ObjSound_Create(), 
+Misc2 = ObjSound_Create(), 
+Base4 = ObjSound_Create(), 
+Bomb2 = ObjSound_Create(), 
+MasterSpark = ObjSound_Create(), 
+Graze2 = ObjSound_Create(), 
+Misc3 = ObjSound_Create(),
+Slash = ObjSound_Create(),
+Base5 = ObjSound_Create(),
+SlashAlt = ObjSound_Create(),
+Base6 = ObjSound_Create();
+
+let VarList = [Base1, Base2, Base3, Bomb1, Fire, Explosion1, Graze, LaserAct, LaserDeact, Explosion2, PlayerHit, PlayerDie, Misc1, Shine, PlayerDie2, Misc2, Base4, Bomb2, Graze2, MasterSpark, Misc3, Slash, Base5, SlashAlt, Base6];
+
+const int bitchBurstReady = ObjSound_Create();
+
+// Function for loading and setting volume of a sound object
+
+task _Init(){
+
+}
+
+function <int> LoadEx(obj, targetpath, targetvol){
+
+	//int obj = ObjSound_Create();
+	ObjSound_Load(obj, targetpath);
+	ObjSound_SetVolumeRate(obj, targetvol * SFXVol);
+	ObjSound_SetSoundDivision(obj, SOUND_SE);
+	
+	//return obj;
+	
+}
+
+task _SoundTaskDebug(){
+
+	int i = 0;
+	
+	for each(var objSound in ref VarList){
+		LoadEx(objSound, SFXList[i], 50);
+		i++;
+	}
+
+	ObjSound_Load(bitchBurstReady, GetModuleDirectory() ~ "script/player/common/bitchLaserReady2.wav");
+	ObjSound_SetVolumeRate(bitchBurstReady, 180 * SFXVol);
+	ObjSound_SetSoundDivision(bitchBurstReady, SOUND_SE);
+	
+}

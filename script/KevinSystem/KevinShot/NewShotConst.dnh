@@ -1,0 +1,41 @@
+#UserShotData
+
+local
+{
+	LoadEnemyShotData(GetCurrentScriptDirectory ~ "NewShotData.dnh");
+	LoadEnemyShotData(GetCurrentScriptDirectory ~ "BonusShotData.dnh");
+}
+
+const KEV_BULLET = 2000;
+const KEV_BULLET_INV = 2001;
+
+const KEV_STAR = 2002;
+const KEV_STAR_INV = 2003;
+
+const KEV_KNIFE = 2004;
+const KEV_KNIFE_INV = 2005;
+
+const KEV_LASER = 2006;
+const KEV_LASER_INV = 2007;
+
+const KEV_BULLET_ALT = 2008;
+const KEV_BULLET_ALT_INV = 2009;
+
+const KEV_ROUND_STAR = 2010;
+const KEV_ROUND_STAR_INV = 2011;
+
+const KEV_BULLET_DARK = 2012;
+const KEV_STAR_DARK = 2013;
+const KEV_KNIFE_DARK = 2014;
+const KEV_LASER_DARK = 2015;
+const KEV_BULLET_ALT_DARK = 2016;
+const KEV_ROUND_STAR_DARK = 2017;
+
+const KEV_WARNING = 2100;
+const KEV_STATIC = 2101;
+
+const KEV_CAT_RIP = 2018;
+
+const KEV_CAT = 2019;
+const LAV_CAT = 2020;
+const COOL_CAT = 2021;

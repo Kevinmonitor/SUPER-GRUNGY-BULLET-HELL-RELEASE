@@ -1,0 +1,463 @@
+//----------------------------------------------------
+//スコア表示
+//----------------------------------------------------
+
+task THighScore(){
+
+	let DATA_PLAYER = GetPlayerReplayName();
+	let DATA_DIFFICULTY = GetCommonData("Difficulty", "Standard");
+
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 32);
+	ObjText_SetFontBold(objScoreNo, true);
+	ObjText_SetFontType(objScoreNo, "GravityBold8");
+	ObjText_SetFontColorTop(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontColorBottom(objScoreNo, 0xFFB061);
+	ObjText_SetFontBorderType(objScoreNo, BORDER_FULL);
+	ObjText_SetFontBorderColor(objScoreNo, 0xAB3D00);
+	ObjText_SetFontBorderWidth(objScoreNo, 4);
+	//ObjText_SetFontWeight(objScoreNo, 1000);
+	Obj_SetRenderPriorityI(objScoreNo, 79);
+	ObjText_SetSidePitch(objScoreNo, -2);
+	ObjRender_SetPosition(objScoreNo, 192, 12, 0);
+
+	while(true){
+		let score = GetAreaCommonData("Data_" ~ DATA_PLAYER, "HighScore_" ~ DATA_DIFFICULTY, 0);
+		score = min(score,999999999990);
+		let yass = DigitToCommaArray(score);
+		ObjText_SetText(objScoreNo, yass);
+		yield;
+	}
+}
+
+task TScore(){
+ 	// New score system using rtos
+
+ 	// For score with zeroes at the end: Truncate score/10, and then multiply it by 10
+	
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 34);
+	ObjText_SetFontBold(objScoreNo, false);
+	ObjText_SetFontType(objScoreNo, "Y1MezzoAngel Corgi");
+	ObjText_SetFontColorTop(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontColorBottom(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontBorderType(objScoreNo, BORDER_FULL);
+	ObjText_SetFontBorderColor(objScoreNo, 0x000000);
+	//ObjText_SetFontBorderWidth(objScoreNo, 1);
+	//ObjText_SetFontWeight(objScoreNo, 1000);
+	Obj_SetRenderPriorityI(objScoreNo, 82);
+	//ObjText_SetSidePitch(objScoreNo, 6);
+	ObjText_SetFixedWidth(objScoreNo, 25);
+	ObjRender_SetPosition(objScoreNo, 964, 238, 0);
+	while(true){
+
+		let score = trunc(GetScore()/10) * 10;
+		score = min(score,999999999990);
+		let yass = DigitToSpaceArray(score);
+		ObjText_SetText(objScoreNo, yass);
+		
+		yield;
+	}
+}
+
+task TReplayShow(){
+ 	// New score system using rtos
+
+ 	// For score with zeroes at the end: Truncate score/10, and then multiply it by 10
+	
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 20);
+	ObjText_SetFontBold(objScoreNo, false);
+	ObjText_SetFontType(objScoreNo, "Bedstead");
+	ObjText_SetFontColorTop(objScoreNo, 0xFF73AB);
+	ObjText_SetFontColorBottom(objScoreNo, 0xFF73AB);
+	ObjText_SetHorizontalAlignment(objScoreNo, ALIGNMENT_RIGHT);
+	ObjText_SetFontBorderType(objScoreNo, BORDER_FULL);
+	ObjText_SetFontBorderColor(objScoreNo, 0x000000);
+	ObjText_SetFontBorderWidth(objScoreNo, 1);
+	ObjText_SetFontWeight(objScoreNo, 1000);
+	Obj_SetRenderPriorityI(objScoreNo, 82);
+	ObjText_SetSidePitch(objScoreNo, 9);
+	ObjText_SetFixedWidth(objScoreNo, 4);
+	ObjRender_SetPosition(objScoreNo, 1010, 690, 0);
+	while(true){
+
+		if(IsReplay()){
+			ObjText_SetText(objScoreNo, "REPLAY ON");
+		}
+		
+		yield;
+
+	}
+}
+
+function DigitToCommaArray(num){ //Natashinitai
+
+	let srcStr = IntToString(num);
+	let res = [];
+	let nChar = 0;
+	for(let i = length(srcStr) - 1; i >= 0; i--){
+		res = [srcStr[i]] ~ res;
+		nChar++;
+		if(nChar % 3 == 0 && i > 0) res = "," ~ res;
+	}
+	return res;
+	
+}
+
+function DigitToSpaceArray(num){ //Natashinitai
+
+	let srcStr = IntToString(num);
+	let res = [];
+	let nChar = 0;
+	for(let i = length(srcStr) - 1; i >= 0; i--){
+
+		// if (i <= 4 && nChar > 11) res = "[font tc=(61, 61, 242)]" ~ res;
+		// else if (i <= 4 && nChar <= 11 && nChar > 8) res = "[font tc=(189, 61, 242)]" ~ res;
+		// else if (i <= 4 && nChar <= 8 && nChar > 5) res = "[font tc=(255, 194, 102)]" ~ res;
+		// else if (i <= 4 && nChar <= 5 && nChar > 2) res = "[font tc=(102, 255, 194)]" ~ res;
+
+		res = [srcStr[i]] ~ res;
+		nChar++;
+
+		if (nChar < 4) res = "[font tc=(255, 255, 255)]" ~ res;
+		if (nChar >= 4 && nChar < 7) res = "[font tc=(102, 255, 194)]" ~ res;
+		if (nChar >= 7 && nChar < 10) res = "[font tc=(255, 194, 102)]" ~ res;
+		if (nChar >= 10 && nChar < 13) res = "[font tc=(189, 61, 242)]" ~ res;
+		if (nChar >= 13) res = "[font tc=(61, 61, 242)]" ~ res;
+
+		// if (nChar == 3) res = "[font tc=(255, 255, 255)]" ~ res;
+		// if (nChar == 6) res = "[font tc=(102, 255, 194)]" ~ res;
+		// if (nChar == 9) res = "[font tc=(255, 194, 102)]" ~ res;
+		// if (nChar == 12) res = "[font tc=(189, 61, 242)]" ~ res;
+		// if (nChar > 12) res = "[font tc=(61, 61, 242)]" ~ res;
+
+	}
+	return res;
+	
+}
+
+function DigitToCommaArrayA(num){ //Natashinitai
+
+	let srcStr = IntToString(num);
+	let res = [];
+	let nChar = 0;
+	for(let i = length(srcStr) - 1; i >= 0; i--){
+		res = [srcStr[i]] ~ res;
+		nChar++;
+		//if(nChar % 3 == 0 && i > 0) res = "," ~ res;
+	}
+	return res;
+	
+}
+
+task ShowMultiplier(){
+ 	// New score system using rtos
+
+ 	// For score with zeroes at the end: Truncate score/10, and then multiply it by 10
+	
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 44);
+	ObjText_SetFontBold(objScoreNo, true);
+	ObjText_SetFontType(objScoreNo, "Bedstead");
+	ObjText_SetFontColorTop(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontColorBottom(objScoreNo, 0x68CFFD);
+	Obj_SetRenderPriorityI(objScoreNo, 82);
+	ObjText_SetSidePitch(objScoreNo, 8);
+	ObjText_SetFixedWidth(objScoreNo, 24);
+	ObjRender_SetPosition(objScoreNo, 958, 303, 0);
+	ObjText_SetHorizontalAlignment(objScoreNo, ALIGNMENT_LEFT);
+
+	while(true){
+
+		let score = trunc(GetCommonDataPtr(POINTER_MULTIPLIER, 1.0));
+		//WriteLog(score);
+		let yass = DigitToCommaArrayA(score);
+		ObjText_SetText(objScoreNo, yass ~ "[f sz=30]x");
+		
+		wait(5);
+		
+	}
+
+}
+
+task ShowBurstGauge(){
+ 	// New score system using rtos
+
+ 	// For score with zeroes at the end: Truncate score/10, and then multiply it by 10
+	
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 25);
+	ObjText_SetFontBold(objScoreNo, false);
+	ObjText_SetFontType(objScoreNo, "Bedstead");
+	ObjText_SetFontColorTop(objScoreNo, 0xFFFFFF);
+	ObjText_SetFontColorBottom(objScoreNo, 0x8E87FF);
+	ObjText_SetFontBorderType(objScoreNo, BORDER_FULL);
+	ObjText_SetFontBorderWidth(objScoreNo, 2);
+	ObjText_SetFontBorderColor(objScoreNo, 0x0900A1);
+	Obj_SetRenderPriorityI(objScoreNo, 82);
+	ObjText_SetSidePitch(objScoreNo, -2.5);
+	//ObjText_SetFixedWidth(objScoreNo, 21);
+	ObjRender_SetPosition(objScoreNo, 1255, 497, 0);
+	ObjText_SetHorizontalAlignment(objScoreNo, ALIGNMENT_RIGHT);
+
+	while(true){
+
+		let score = trunc(clamp(GetCommonDataPtr(POINTER_BURSTGAUGE, 0), 0, 300));
+		//WriteLog(score);
+		let yass = DigitToCommaArrayA(score);
+		ObjText_SetText(objScoreNo, yass ~ "%");
+		
+		yield;
+		
+	}
+
+}
+
+// New life task
+task LifeDisplay(){
+
+	let liferemain;
+	let lifecounter = ObjPrim_Create(OBJ_SPRITE_LIST_2D);
+	let lifeCounterMax = 9;
+	let lifeCounterCount = 0;
+	let lifeshow = graphicimg;
+	Obj_SetRenderPriorityI(lifecounter, 82);
+	ObjPrim_SetTexture(lifecounter, lifeshow);
+	//ObjSpriteList2D_SetSourceRect(lifecounter, 256, 0, 384, 128);
+	//ObjRender_SetScaleXYZ(lifecounter, 0.5, 0.5, 1);
+	//ObjSpriteList2D_SetDestCenter(lifecounter);
+	
+	int maxText = CreateTextObject(
+		1250, 445, 45,
+		"ASCENSION", "YomiyasuSansSerif",
+		0xFF9D9F, 0xFF9D9F,
+		0x4C142B, 3.5,
+		2
+	);
+	
+	ObjText_SetHorizontalAlignment(maxText, ALIGNMENT_RIGHT);
+	ObjText_SetFontBold(maxText, true);
+	
+	int MaxLife = GetCommonData("Life Limit", 99999); 
+	
+	loop{
+		SetPlayerLife(min(MaxLife, GetPlayerLife()));
+		
+		ObjSpriteList2D_ClearVertexCount(lifecounter);
+		ObjSpriteList2D_SetSourceRect(lifecounter, 0, 0, 64, 64);
+		ObjRender_SetTextureFilterMag(lifecounter, FILTER_NONE);
+		ObjSpriteList2D_SetDestCenter(lifecounter);
+		ObjRender_SetScaleXYZ(lifecounter, 0.75);
+		liferemain = GetPlayerLife();
+		ascent(i in 0..liferemain){
+			if (i >= lifeCounterMax){continue;}
+			ObjRender_SetPosition(lifecounter, 1246-i*22, 412, 0);
+			ObjSpriteList2D_AddVertex(lifecounter);	
+			// lifeCounterCount++;	
+		}
+		yield;
+	}
+
+}
+
+task BurstDisplay(){
+
+	float GAUGE_WIDTH = 20;
+	float GAUGE_LENGTH = 210;
+	// Hyper gauge image creation and positioning
+	int gauge = _Create2DImage(graphicimg, [64, 0, 320, 32]);
+	ObjRender_SetTextureFilter(gauge, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	ObjRender_SetPosition(gauge, 1155, 485, 0);
+	Obj_SetRenderPriorityI(gauge, 82);
+	// Gauge width: 9, gauge length: 78
+	// Usage of primitives to create a bar with specified length
+	let objI = CreateEffectObject(STG_WIDTH/60, STG_HEIGHT/7, "script/KevinSystem/img/Reverie_UI_Graphics.png", "ALPHA", 72, 38, 310, 56);
+	ObjSprite2D_SetDestRect(objI, 0, 0, 250, 14);
+	ObjRender_SetPosition(objI, 1050, 475, 0);
+	Obj_SetRenderPriorityI(objI, 81);
+	
+	ObjRender_SetScaleXYZ(gauge, 0.85);
+
+	// Manage the color of the gauge: gray normally, aqua blue when filled, gold when being consumed.
+
+	task Flash(ID){
+		ObjRender_SetColor(ID, 0x4CD2FF);
+		wait(5);
+		ObjRender_SetColor(ID, 0xFFFFFF);
+		wait(5);
+	}
+
+	while(true){
+
+		ObjSprite2D_SetDestRect(objI, 0, 0, (GetCommonDataPtr(POINTER_BURSTGAUGE, 1.0)/300)*GAUGE_LENGTH, GAUGE_WIDTH);
+		SetCommonDataPtr(POINTER_BURSTGAUGE, clamp(GetCommonDataPtr(POINTER_BURSTGAUGE, 0), 0, 300)); 
+		ObjRender_SetColor(objI, 0x69ECFF);
+		yield;
+
+	}
+
+}
+
+task SpellDisplay{
+
+	SetPlayerSpell(2);
+
+	int text = CreateTextObject(
+	1745, 620, 25,
+	"OVERLOAD", "YomiyasuSansSerif",
+	0xFFFFFF, 0xFFB4F7,
+	0x6600BE, 4,
+	2
+	);
+	
+	Obj_SetVisible(text, false);
+	ObjText_SetSidePitch(text, -4); 
+	ObjText_SetHorizontalAlignment(text, ALIGNMENT_CENTER);
+	
+	let spellremain;
+	let spellcounter = ObjPrim_Create(OBJ_SPRITE_LIST_2D);
+	let spellshow = graphicimg;
+	Obj_SetRenderPriorityI(spellcounter, 82);
+	ObjRender_SetScaleXYZ(spellcounter, 0.75);
+	ObjPrim_SetTexture(spellcounter, spellshow);
+
+	loop{
+
+		if(GetPlayerSpell() > 9){SetPlayerSpell(9);}
+
+		ObjSpriteList2D_ClearVertexCount(spellcounter);
+		ObjSpriteList2D_SetSourceRect(spellcounter, 0, 64, 64, 128);
+		ObjSpriteList2D_SetDestCenter(spellcounter);
+		spellremain = GetPlayerSpell();
+		ascent(i in 0..spellremain){
+			ObjRender_SetPosition(spellcounter, 1246-i*22, 480, 0);
+			ObjSpriteList2D_AddVertex(spellcounter);		
+		}
+		yield;
+
+	}
+}
+
+task ShowRank(){
+
+	let objScoreNo = ObjText_Create();
+	ObjText_SetFontSize(objScoreNo, 56);
+	ObjText_SetFontBold(objScoreNo, true);
+	ObjText_SetFontType(objScoreNo, "Bedstead");
+	ObjText_SetFontColorTop(objScoreNo, 0xFFE698);
+	ObjText_SetFontColorBottom(objScoreNo, 0xFFE698);
+	Obj_SetRenderPriorityI(objScoreNo, 82);
+	ObjText_SetSidePitch(objScoreNo, 8);
+	ObjText_SetFixedWidth(objScoreNo, 28);
+	ObjRender_SetPosition(objScoreNo, 1280, 617, 0);
+	ObjText_SetHorizontalAlignment(objScoreNo, ALIGNMENT_RIGHT);
+
+	let obj2 = ObjText_Create();
+	ObjText_SetFontSize(obj2, 14);
+	ObjText_SetFontBold(obj2, true);
+	ObjText_SetFontType(obj2, "Bedstead");
+	ObjText_SetFontColorTop(obj2, 0xFFE698);
+	ObjText_SetFontColorBottom(obj2, 0xFFE698);
+	Obj_SetRenderPriorityI(obj2, 82);
+	ObjText_SetFixedWidth(obj2, 11);
+	ObjRender_SetPosition(obj2, 1230, 670, 0);
+	ObjText_SetHorizontalAlignment(obj2, ALIGNMENT_RIGHT);
+
+	while(true){
+
+		let score = trunc(GetCommonDataPtr(POINTER_RANK, 1.0));
+		let score2 = vtos("1.4f", GetCommonDataPtr(POINTER_TRUERANK, 1.0));
+		//WriteLog(score);
+		let yass = DigitToCommaArrayA(score);
+		ObjText_SetText(objScoreNo, yass);
+		ObjText_SetText(obj2, score2);
+		
+		wait(5);
+		
+	}
+
+}
+
+task DetailUIDisplay(){
+
+	// Detail UI
+	int UI = _Create2DImage("script/KevinSystem/img/Reverie_DetailUI.png", [0, 0, 380, 300]);
+	ObjRender_SetTextureFilter(UI, FILTER_NONE, FILTER_NONE, FILTER_NONE);
+	ObjRender_SetPosition(UI, 167, 580, 0);
+	Obj_SetRenderPriorityI(UI, 82);
+
+	let hitCount = ObjText_Create();
+	ObjText_SetFontSize(hitCount, 45);
+	ObjText_SetFontBold(hitCount, true);
+	ObjText_SetFontType(hitCount, "Bedstead");
+	ObjText_SetFontColorTop(hitCount, 0xFFFFFF);
+	ObjText_SetFontColorBottom(hitCount, 0xFFFFFF);
+	ObjText_SetFontBorderType(hitCount, BORDER_FULL);
+	ObjText_SetFontBorderColor(hitCount, 0xFF0E52);
+	ObjText_SetFontBorderWidth(hitCount, 1);
+	Obj_SetRenderPriorityI(hitCount, 82);
+	ObjRender_SetPosition(hitCount, 73, 500, 0);
+	ObjText_SetHorizontalAlignment(hitCount, ALIGNMENT_CENTER);
+
+	let burstCount = ObjText_Create();
+	ObjText_SetFontSize(burstCount, 45);
+	ObjText_SetFontBold(burstCount, true);
+	ObjText_SetFontType(burstCount, "Bedstead");
+	ObjText_SetFontColorTop(burstCount, 0xFFFFFF);
+	ObjText_SetFontColorBottom(burstCount, 0xFFFFFF);
+	ObjText_SetFontBorderType(burstCount, BORDER_FULL);
+	ObjText_SetFontBorderColor(burstCount, 0x0E92FF);
+	ObjText_SetFontBorderWidth(burstCount, 1);
+	Obj_SetRenderPriorityI(burstCount, 82);
+	ObjRender_SetPosition(burstCount, 247, 500, 0);
+	ObjText_SetHorizontalAlignment(burstCount, ALIGNMENT_CENTER);
+
+	let destructionRate = ObjText_Create();
+	ObjText_SetFontSize(destructionRate, 52);
+	ObjText_SetFontBold(destructionRate, true);
+	ObjText_SetFontType(destructionRate, "Bedstead");
+	ObjText_SetFontColorTop(destructionRate, 0xFFFFFF);
+	ObjText_SetFontColorBottom(destructionRate, 0xFFF5B7);
+	ObjText_SetFontBorderType(destructionRate, BORDER_FULL);
+	ObjText_SetFontBorderColor(destructionRate, 0x9C3208);
+	ObjText_SetFontBorderWidth(destructionRate, 2);
+	ObjText_SetSidePitch(destructionRate, -2);
+	Obj_SetRenderPriorityI(destructionRate, 82);
+	ObjRender_SetPosition(destructionRate, 204, 550, 0);
+	ObjText_SetHorizontalAlignment(destructionRate, ALIGNMENT_CENTER);
+
+	let destructionRateDecimals = ObjText_Create();
+	ObjText_SetFontSize(destructionRateDecimals, 21);
+	ObjText_SetFontBold(destructionRateDecimals, true);
+	ObjText_SetFontType(destructionRateDecimals, "Bedstead");
+	ObjText_SetFontColorTop(destructionRateDecimals, 0xFFFFFF);
+	ObjText_SetFontColorBottom(destructionRateDecimals, 0xFFF5B7);
+	ObjText_SetFontBorderType(destructionRateDecimals, BORDER_FULL);
+	ObjText_SetFontBorderColor(destructionRateDecimals, 0x9C3208);
+	ObjText_SetFontBorderWidth(destructionRateDecimals, 2);
+	Obj_SetRenderPriorityI(destructionRateDecimals, 82);
+	ObjRender_SetPosition(destructionRateDecimals, 262, 575, 0);
+	ObjText_SetSidePitch(destructionRateDecimals, -1.5);
+	ObjText_SetHorizontalAlignment(destructionRateDecimals, ALIGNMENT_CENTER);
+
+	float destValue = GetCommonDataPtr(POINTER_ENEMYKILLED, 1) / GetCommonDataPtr(POINTER_ENEMYCOUNT, 1);
+	int destInteger = trunc(destValue);
+	float destDecimal = destValue - destInteger;
+
+	while(true){
+
+		destValue = GetCommonDataPtr(POINTER_ENEMYKILLED, 1) / GetCommonDataPtr(POINTER_ENEMYCOUNT, 1);
+		destInteger = trunc(destValue*100);
+		destDecimal = destValue*100 - trunc(destValue*100);
+
+		ObjText_SetText(hitCount, GetCommonDataPtr(POINTER_DEATHCOUNT, 0));
+		ObjText_SetText(burstCount, GetCommonDataPtr(POINTER_BURSTCOUNT, 0));
+		ObjText_SetText(destructionRate, destInteger);
+		ObjText_SetText(destructionRateDecimals, "." ~ vtos("02d", destDecimal*100));
+
+		yield;
+
+	}
+
+}
