@@ -111,7 +111,7 @@ task BaseShot(){
 
 					ascent(b in 0..3){
 
-						let shotC = CreatePlayerShotA1(playerX-44, playerY+84, 42, 240 - 8 + b * 8, shotDamageOption, 1.001, BULLET); 
+						let shotC = CreatePlayerShotA1(playerX-44, playerY+84, 42, 255 - 8 + b * 8, shotDamageOption, 1.001, BULLET); 
 						ObjRender_SetAlpha(shotC, shotAlpha);
 						//ObjShot_SetAngleRounding(shotC, 30);
 						Obj_SetRenderPriorityI(shotC, 41);
@@ -120,7 +120,7 @@ task BaseShot(){
 
 					ascent(b in 0..3){
 
-						let shotC = CreatePlayerShotA1(playerX+44, playerY+84, 42, 300 - 8 + b * 8, shotDamageOption, 1.001, BULLET); 
+						let shotC = CreatePlayerShotA1(playerX+44, playerY+84, 42, 285 - 8 + b * 8, shotDamageOption, 1.001, BULLET); 
 						ObjRender_SetAlpha(shotC, shotAlpha);
 						//ObjShot_SetAngleRounding(shotC, 30);
 						Obj_SetRenderPriorityI(shotC, 41);
@@ -211,7 +211,7 @@ task SummonBarrier(){
 
 	function <int> CreateBullet(angle){
 
-		int bullet = CreatePlayerShotA1(ObjMove_GetX(barrierBullet), ObjMove_GetY(barrierBullet), 24, angle, shotDamageOption/8, 999, MAGIC);
+		int bullet = CreatePlayerShotA1(ObjMove_GetX(barrierBullet), ObjMove_GetY(barrierBullet), 24, angle, shotDamageOption/15, 999, MAGIC);
 		ObjRender_SetAlpha(bullet, 180);
 		ObjRender_SetBlendType(bullet, BLEND_ADD_ARGB);
 		Obj_SetRenderPriorityI(bullet, plRender-1);
@@ -236,7 +236,7 @@ task SummonBarrier(){
 	float startAng = rand(0, 360);
 	float startAng2 = startAng;
 
-	ascent(i in 0..50){
+	ascent(i in 0..40){
 		ascent(f in 0..6){
 			CreateBullet(startAng + f * 360/6);
 			CreateBullet(startAng2 + f * 360/6);
