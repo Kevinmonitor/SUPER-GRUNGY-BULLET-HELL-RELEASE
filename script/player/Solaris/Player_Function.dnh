@@ -213,7 +213,7 @@ task SummonBarrier(){
 
 	function <int> CreateBullet(angle){
 
-		int bullet = CreatePlayerShotA1(ObjMove_GetX(barrierBullet), ObjMove_GetY(barrierBullet), 24, angle, shotDamageOption/5, 999, MAGIC);
+		int bullet = CreatePlayerShotA1(ObjMove_GetX(barrierBullet), ObjMove_GetY(barrierBullet), 24, angle, shotDamageOption/4, 999, MAGIC);
 		ObjRender_SetAlpha(bullet, 180);
 		ObjRender_SetBlendType(bullet, BLEND_ADD_ARGB);
 		Obj_SetRenderPriorityI(bullet, plRender-1);
@@ -222,7 +222,7 @@ task SummonBarrier(){
 		ObjShot_SetSpellFactor(bullet, true);
 		ObjShot_SetAutoDelete(bullet, false);
 
-		ObjMove_AddPatternA2(bullet, 0, 24, angle, -24/15, 2, 0);
+		ObjMove_AddPatternA2(bullet, 0, 24, angle, -24/12, 2, 0);
 		ObjShot_SetDeleteFrame(bullet, 30);
 
 		_BulletRescalePlayer(bullet, 0.8, true, 1);
@@ -303,12 +303,13 @@ task HPManagement(){
 
 task _HomeShot(int shot_) {
 
-	float duration = 55;
+	float duration = 75;
 	bool homingBool = false;
 	float basepenetrate = ObjShot_GetPenetration(shot_);
 	float basedmg = ObjShot_GetDamage(shot_);
 	
-	_BulletRescalePlayer(shot_, 1.4, true, 1);
+	_BulletRescalePlayer(shot_, 1.75, true, 1);
+	ObjMove_SetSpeed(shot_, 28);
 	ObjRender_SetAlpha(shot_, 160);
 	ObjRender_SetBlendType(shot_, BLEND_ADD_ARGB);
 
@@ -316,7 +317,7 @@ task _HomeShot(int shot_) {
 	
 	// async{
 	// 	ascent(i in 0..15){
-	// 		_BulletRescalePlayer(shot_, Interpolate_Smoother(0.8, 1.3, i/15), true, 1);
+	// 		_BulletRescalePlayer(shot_, Interpolate_Smoother(0.8, 1.75, i/15), true, 1);
 	// 		yield;
 	// 	}
 	// }
@@ -373,7 +374,7 @@ task _HomeShot(int shot_) {
 					float shotAngle = NormalizeAngle(ObjMove_GetAngle(shot_)); // Angle of the player shot
 					float targetAngle = NormalizeAngle(atan2(ObjMove_GetY(targetID) - ObjMove_GetY(shot_), ObjMove_GetX(targetID) - ObjMove_GetX(shot_))); // Returns angle from the shot to the enemy.
 					float angleDistance = AngularDistance(shotAngle, targetAngle); // Angular distance between enemy and player shot
-					float homeRate = Interpolate_Decelerate(0, 0.75, min(60, f) / 60);
+					float homeRate = Interpolate_Decelerate(0, 1.2, min(32, f) / 32);
 					// Homing speed?
 					ObjMove_SetAngle(shot_, Interpolate_Accelerate(shotAngle, shotAngle + angleDistance, homeRate)); // Interpolate_Necko 
 					f++;				
